@@ -1,0 +1,203 @@
+// store.js — data layer + toast notifications for Claude Manager v3
+
+const API = 'http://127.0.0.1:3847/api';
+
+// ---- TOAST SYSTEM ----
+const Toast = (() => {
+  let container;
+  function init() {
+    container = document.createElement('div');
+    container.className = 'toast-container';
+    document.body.appendChild(container);
+  }
+  function show(message, type = 'info', duration = 3000) {
+    if (!container) init();
+    const el = document.createElement('div');
+    el.className = `toast toast-${type}`;
+    el.textContent = message;
+    container.appendChild(el);
+    requestAnimationFrame(() => el.classList.add('visible'));
+    setTimeout(() => {
+      el.classList.remove('visible');
+      setTimeout(() => el.remove(), 300);
+    }, duration);
+  }
+  return {
+    info:    (msg, dur) => show(msg, 'info', dur),
+    success: (msg, dur) => show(msg, 'success', dur),
+    error:   (msg, dur) => show(msg, 'error', dur || 5000),
+    warn:    (msg, dur) => show(msg, 'warning', dur),
+  };
+})();
+// ---- API FETCH ----
+async function apiFetch(path, method = 'GET', payload = null) {
+  try {
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    if (payload) opts.body = JSON.stringify(payload);
+    const res = await fetch(`${API}${path}`, opts);
+    const data = await res.json();
+    if (!res.ok) {
+      Toast.error(data.error || `Request failed (${res.status})`);
+      return null;
+    }
+    return data;
+  } catch (e) {
+    Toast.error(`Connection failed: ${e.message}`);
+    return null;
+  }
+}
+
+// ---- SERVER STATUS ----
+const ServerStatus = {
+  online: false,
+  async check() {
+    const data = await apiFetch('/memory');
+    this.online = data !== null;
+    const el = document.getElementById('server-status');
+    if (el) {
+      el.textContent = this.online ? 'Live' : 'Offline';
+      el.className = 'server-status ' + (this.online ? 'online' : 'offline');
+    }
+    return this.online;
+  }
+};
+// ---- SKILL DATA (fetched from server) ----
+let MEMORY_CATEGORIES = [];
+
+async function loadSkillData() {
+  const data = await apiFetch('/skills');
+  if (data) {
+    SKILL_DATA = data.skills || [];
+    CATEGORIES = data.categories || [];
+    MEMORY_CATEGORIES = data.memoryCategories || [];
+  }
+}
+
+// ---- SKILL STATES ----
+const SS = {
+  _cache: null,
+  get() {
+    if (this._cache) return this._cache;
+    try { this._cache = JSON.parse(localStorage.getItem('cm_ss')) || {}; }
+    catch { this._cache = {}; }
+    return this._cache;
+  },
+  set(id, v) {
+    const s = this.get();
+    s[id] = v;
+    this._cache = s;
+    localStorage.setItem('cm_ss', JSON.stringify(s));
+    if (ServerStatus.online) {
+      apiFetch('/states', 'POST', {
+        version: '1.0', last_updated: new Date().toISOString().split('T')[0], states: s,
+      }).then(r => {
+        if (r && r.activeCount !== undefined) {
+          Toast.success(`${r.activeCount} skills active`);
+          if (typeof DashboardTab !== 'undefined') DashboardTab.refreshBudget();
+        }
+      });
+    }
+  },
+  active(id) {
+    const s = this.get();
+    if (id in s) return s[id];
+    const sk = SKILL_DATA.find(x => x.id === id);
+    return sk ? sk.type !== 'external' : true;
+  },
+  async loadFromServer() {
+    const data = await apiFetch('/states');
+    if (data) {
+      const states = data.states || data;
+      this._cache = states;
+      localStorage.setItem('cm_ss', JSON.stringify(states));
+    }
+  },
+  applyServerStates(states) {
+    this._cache = states;
+    localStorage.setItem('cm_ss', JSON.stringify(states));
+  }
+};
+// ---- MEMORY ----
+const MS = {
+  _data: null,
+  getData() {
+    if (this._data) return this._data;
+    try {
+      const raw = localStorage.getItem('cm_mem_v2');
+      if (raw) { this._data = JSON.parse(raw); return this._data; }
+    } catch {}
+    return { version: '1.1', entries: [] };
+  },
+  save(memoryData) {
+    this._data = memoryData;
+    memoryData.last_updated = new Date().toISOString().split('T')[0];
+    localStorage.setItem('cm_mem_v2', JSON.stringify(memoryData));
+    if (ServerStatus.online) {
+      apiFetch('/memory', 'POST', memoryData).then(r => {
+        if (r?.ok) Toast.success('Memory saved');
+        else Toast.error('Failed to save memory');
+      });
+    }
+  },
+  async loadFromServer() {
+    const data = await apiFetch('/memory');
+    if (data && data.entries) {
+      this._data = data;
+      localStorage.setItem('cm_mem_v2', JSON.stringify(data));
+      return data;
+    }
+    return null;
+  }
+};
+
+// ---- RULES ----
+const RS = {
+  _cache: null,
+  get() {
+    if (this._cache) return this._cache;
+    try { const s = JSON.parse(localStorage.getItem('cm_rules')); if (s) { this._cache = s; return s; } }
+    catch {}
+    return { ...DEFAULT_RULES };
+  },
+  save(rules) {
+    this._cache = rules;
+    localStorage.setItem('cm_rules', JSON.stringify(rules));
+    if (ServerStatus.online) {
+      apiFetch('/rules', 'POST', { version: '1.0', last_updated: new Date().toISOString().split('T')[0], ...rules }).then(r => {
+        if (r?.ok) Toast.success('Rules saved');
+        else Toast.error('Failed to save rules');
+      });
+    }
+  },
+  async loadFromServer() {
+    const data = await apiFetch('/rules');
+    if (data) {
+      const rules = { coding: data.coding, general: data.general, soul: data.soul };
+      this._cache = rules;
+      localStorage.setItem('cm_rules', JSON.stringify(rules));
+      return rules;
+    }
+    return null;
+  }
+};
+// ---- DASHBOARD DATA ----
+const DS = {
+  async getHealth()     { return await apiFetch('/health'); },
+  async getClaudeMd()   { return await apiFetch('/claude-md'); },
+  async regenClaudeMd() { return await apiFetch('/claude-md', 'POST'); },
+  async getBudget()     { return await apiFetch('/budget'); },
+  async getBackups()    { return await apiFetch('/backups'); },
+  async createBackup()  { return await apiFetch('/backups', 'POST'); },
+  async restoreBackup(ts) { return await apiFetch('/restore', 'POST', { timestamp: ts }); },
+  async getSessionLog() { return await apiFetch('/session-log'); },
+  async logSession(e)   { return await apiFetch('/session-log', 'POST', e); },
+  async getModes()      { return await apiFetch('/modes'); },
+  async applyMode(id)   { return await apiFetch('/modes/apply', 'POST', { modeId: id }); },
+  async createMode(m)   { return await apiFetch('/modes', 'POST', m); },
+  async updateMode(id, m) { return await apiFetch(`/modes/${id}`, 'PUT', m); },
+  async deleteMode(id)  { return await apiFetch(`/modes/${id}`, 'DELETE'); },
+  async exportProfile() { return await apiFetch('/profile/export'); },
+  async importProfile(d){ return await apiFetch('/profile/import', 'POST', d); },
+};
+
+// ---- DEFAULT RULES (used for reset from data.js) ----

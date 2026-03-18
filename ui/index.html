@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Manager</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="loading-overlay" id="loader">
+  <div class="loading-dots"><span></span><span></span><span></span></div>
+  <div class="loading-text">Loading Claude Manager</div>
+</div>
+
+<div class="app">
+  <nav class="nav">
+    <div class="nav-inner">
+      <div class="nav-brand">Claude <span>Manager</span></div>
+      <button class="tab-btn active"  onclick="switchTab('dashboard',this)">Dashboard</button>
+      <button class="tab-btn"         onclick="switchTab('skills',this)">Skills</button>
+      <button class="tab-btn"         onclick="switchTab('modes',this)">Modes</button>
+      <button class="tab-btn"         onclick="switchTab('memory',this)">Memory</button>
+      <button class="tab-btn"         onclick="switchTab('config',this)">Soul &amp; Rules</button>
+      <span class="server-status offline" id="server-status">Connecting...</span>
+    </div>
+  </nav>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div id="dashboard-tab" class="tab-panel active">
+      <div class="simple-page"><div class="simple-inner wide">
+        <div class="section-hdr">
+          <h2>Dashboard</h2>
+          <p>System status, CLAUDE.md preview, health checks, backups, session log.</p>
+        </div>
+        <div class="db-card">
+          <div class="db-card-hdr">
+            <span class="db-card-title">Context Budget</span>
+            <span class="db-card-sub">Estimated tokens loaded into Claude Code per session</span>
+          </div>
+          <div class="budget-bar"><div class="budget-fill" id="db-budget-bar" style="width:0%"></div></div>
+          <div class="budget-label" id="db-budget-label">-</div>
+          <div class="budget-detail" id="db-budget-detail"></div>
+        </div>
+        <div class="db-card">
+          <div class="db-card-hdr">
+            <span class="db-card-title">CLAUDE.md Preview</span>
+            <div class="db-card-actions">
+              <span class="db-card-sub">What Claude Code reads at session start</span>
+              <button class="mem-btn save" id="db-regen-btn" onclick="DashboardTab.regenCLAUDEmd()">Regenerate</button>
+            </div>
+          </div>
+          <pre class="claude-md-preview" id="db-claude-md-content">Loading...</pre>
+        </div>
+        <div class="db-row">
+          <div class="db-card flex1">
+            <div class="db-card-hdr">
+              <span class="db-card-title">Skill Health</span>
+              <span class="db-card-sub">SKILL.md file verification</span>
+            </div>
+            <div id="db-health-list"><div class="db-empty">Checking...</div></div>
+          </div>
+          <div class="db-card flex1">
+            <div class="db-card-hdr">
+              <span class="db-card-title">Session Log</span>
+              <span class="db-card-sub">Recent changes and events</span>
+            </div>
+            <div id="db-session-log"><div class="db-empty">No entries yet</div></div>
+          </div>
+        </div>
+        <div class="db-card">
+          <div class="db-card-hdr">
+            <span class="db-card-title">Backups</span>
+            <div class="db-card-actions">
+              <span class="db-card-sub">memory.json | rules.json | skill-states.json | CLAUDE.md</span>
+              <button class="mem-btn save" id="db-backup-btn" onclick="DashboardTab.backup()">Backup Now</button>
+            </div>
+          </div>
+          <div id="db-backups-list"><div class="db-empty">No backups yet</div></div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- SKILLS -->
+    <div id="skills-tab" class="tab-panel">
+      <div class="skills-layout">
+        <div class="cat-sidebar" id="cat-sidebar"><div id="cat-nav"></div></div>
+        <div class="skills-main-area">
+          <div class="skills-scroll" id="skills-main">
+            <div class="stats">
+              <div class="stat"><div class="stat-n" id="stat-total">0</div><div class="stat-l">Total</div></div>
+              <div class="stat c"><div class="stat-n" id="stat-active">0</div><div class="stat-l">Active</div></div>
+              <div class="stat g"><div class="stat-n" id="stat-custom">0</div><div class="stat-l">Custom</div></div>
+              <div class="stat a"><div class="stat-n" id="stat-builtin">0</div><div class="stat-l">Built-in</div></div>
+            </div>
+            <div class="toolbar">
+              <input class="search" id="skills-search" type="text" placeholder="Search skills, descriptions, triggers...">
+              <div class="filters">
+                <button class="fb on" onclick="SkillsTab.setFilter('all',this)">All</button>
+                <button class="fb" onclick="SkillsTab.setFilter('active',this)">Active</button>
+                <button class="fb" onclick="SkillsTab.setFilter('inactive',this)">Inactive</button>
+                <button class="fb" onclick="SkillsTab.setFilter('custom',this)">Custom</button>
+                <button class="fb" onclick="SkillsTab.setFilter('builtin',this)">Built-in</button>
+              </div>
+              <div class="view-toggle">
+                <button class="view-btn on" id="btn-grid" title="Grid view" onclick="SkillsTab.setView('grid')">
+                  <svg viewBox="0 0 14 14"><rect x="0" y="0" width="6" height="6"/><rect x="8" y="0" width="6" height="6"/><rect x="0" y="8" width="6" height="6"/><rect x="8" y="8" width="6" height="6"/></svg>
+                </button>
+                <button class="view-btn" id="btn-list" title="List view" onclick="SkillsTab.setView('list')">
+                  <svg viewBox="0 0 14 14"><rect x="0" y="0" width="14" height="2.5"/><rect x="0" y="5.75" width="14" height="2.5"/><rect x="0" y="11.5" width="14" height="2.5"/></svg>
+                </button>
+              </div>
+            </div>
+            <div id="skills-list"></div>
+          </div>
+          <div class="side-panel" id="side-panel">
+            <div class="panel-empty">
+              <div class="panel-empty-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="1"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></div>
+              <div class="panel-empty-msg">Select a skill<br>to inspect it</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODES -->
+    <div id="modes-tab" class="tab-panel">
+      <div class="simple-page"><div class="simple-inner wide">
+        <div class="section-hdr">
+          <h2>Modes</h2>
+          <p>One-click presets that activate the right skill groups for your current context. Toggles are adjustable afterwards.</p>
+        </div>
+        <div id="modes-list" class="modes-grid"></div>
+      </div></div>
+    </div>
+
+    <!-- MEMORY -->
+    <div id="memory-tab" class="tab-panel">
+      <div class="simple-page"><div class="simple-inner">
+        <div class="section-hdr">
+          <h2>Memory</h2>
+          <p>What Claude knows about you. Edits write to <code>E:\Claude\data\memory.json</code></p>
+        </div>
+        <div id="memory-list" class="memory-list"></div>
+        <div class="add-memory">
+          <input class="add-input" id="memory-add-input" type="text" placeholder="Add a memory entry — press Enter to save">
+          <button class="add-btn" onclick="MemoryTab.addEntry()">+ Add</button>
+        </div>
+        <div class="save-bar"><span class="saved-msg" id="memory-saved">Saved to disk</span></div>
+      </div></div>
+    </div>
+
+    <!-- SOUL & RULES -->
+    <div id="config-tab" class="tab-panel">
+      <div class="simple-page"><div class="simple-inner">
+        <div class="section-hdr">
+          <h2>Soul &amp; Rules</h2>
+          <p>How Claude operates. Edits write to <code>E:\Claude\data\rules.json</code></p>
+        </div>
+        <div class="rules-block"><div class="rules-block-hdr">Coding Rules</div><textarea class="rules-textarea" id="rules-coding" rows="5"></textarea></div>
+        <div class="rules-block"><div class="rules-block-hdr">General Rules</div><textarea class="rules-textarea" id="rules-general" rows="5"></textarea></div>
+        <div class="rules-block"><div class="rules-block-hdr">Soul</div><textarea class="rules-textarea" id="rules-soul" rows="6"></textarea></div>
+        <div class="save-bar">
+          <span class="saved-msg" id="rules-saved">Saved to disk</span>
+          <button class="save-btn ghost" onclick="ConfigTab.reset()">Reset defaults</button>
+          <button class="save-btn" onclick="ConfigTab.save()">Save changes</button>
+        </div>
+      </div></div>
+    </div>
+
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="store.js"></script>
+<script src="skills.js"></script>
+<script src="memory.js"></script>
+<script src="config.js"></script>
+<script src="dashboard.js"></script>
+<script src="modes.js"></script>
+<script>
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => { p.classList.remove('active'); p.style.display = 'none'; });
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  const panel = document.getElementById(name + '-tab');
+  panel.style.display = 'flex'; panel.offsetHeight; panel.classList.add('active');
+  btn.classList.add('active');
+  if (name !== 'skills') SkillsTab.closePanel();
+}
+function animateCount(el, target) {
+  const dur = 700, t0 = performance.now();
+  const tick = now => { const p = Math.min((now-t0)/dur,1); el.textContent = Math.round(target*(1-Math.pow(1-p,3))); if(p<1) requestAnimationFrame(tick); };
+  requestAnimationFrame(tick);
+}
+async function boot() {
+  const online = await ServerStatus.check();
+  if (online) await Promise.all([SS.loadFromServer(), MS.loadFromServer(), RS.loadFromServer()]);
+  SkillsTab.init();
+  MemoryTab.init();
+  ConfigTab.init();
+  DashboardTab.init();
+  ModesTab.init();
+  setTimeout(() => {
+    [['stat-total', SKILL_DATA.length],
+     ['stat-active', SKILL_DATA.filter(s => SS.active(s.id)).length],
+     ['stat-custom', SKILL_DATA.filter(s => s.type==='custom').length],
+     ['stat-builtin', SKILL_DATA.filter(s => s.type==='builtin').length]
+    ].forEach(([id,val]) => animateCount(document.getElementById(id), val));
+  }, 200);
+  document.getElementById('loader').classList.add('hidden');
+}
+boot();
+</script>
+</body>
+</html>

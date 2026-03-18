@@ -1,0 +1,1 @@
+# Example Skill\n\nThis is an example custom skill intended to be toggled by the manager.
