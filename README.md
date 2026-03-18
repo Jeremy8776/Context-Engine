@@ -1,6 +1,6 @@
 # Claude Manager Alpha
 
-A beautifully local, offline-first dashboard designed to orchestrate and manage your active [Anthropic Claude Code](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code) contexts, system memory, and modular skills.
+A local, offline-first dashboard designed to orchestrate and manage your active [Anthropic Claude Code](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code) contexts, system memory, and modular skills.
 
 **Claude Manager** actively regenerates your local `CLAUDE.md` file based on what you toggle in the UI. Instead of flooding Claude's context window with every tool and rule you've ever written, you curate "Modes" (like *Developer*, *Creative*, or *Focus*) to inject precisely the tools Claude needs for the task at hand.
 
