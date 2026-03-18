@@ -1,4 +1,4 @@
-# Claude Manager v2
+# Claude Manager Alpha
 
 A beautifully local, offline-first dashboard designed to orchestrate and manage your active [Anthropic Claude Code](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code) contexts, system memory, and modular skills.
 
