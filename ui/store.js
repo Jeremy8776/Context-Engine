@@ -1,4 +1,4 @@
-// store.js — data layer + toast notifications for Claude Manager v3
+// store.js — data layer + toast notifications for Context Engine v3
 
 const API = 'http://127.0.0.1:3847/api';
 
@@ -66,10 +66,10 @@ let MEMORY_CATEGORIES = [];
 
 async function loadSkillData() {
   const data = await apiFetch('/skills');
-  if (data) {
-    SKILL_DATA = data.skills || [];
-    CATEGORIES = data.categories || [];
-    MEMORY_CATEGORIES = data.memoryCategories || [];
+  if (data && Array.isArray(data)) {
+    SKILL_DATA = data;
+    const cats = [...new Set(data.map(s => s.cat))].sort();
+    CATEGORIES = cats.map(c => ({ id: c, label: c }));
   }
 }
 
@@ -78,7 +78,7 @@ const SS = {
   _cache: null,
   get() {
     if (this._cache) return this._cache;
-    try { this._cache = JSON.parse(localStorage.getItem('cm_ss')) || {}; }
+    try { this._cache = JSON.parse(localStorage.getItem('ce_ss')) || {}; }
     catch { this._cache = {}; }
     return this._cache;
   },
@@ -86,7 +86,7 @@ const SS = {
     const s = this.get();
     s[id] = v;
     this._cache = s;
-    localStorage.setItem('cm_ss', JSON.stringify(s));
+    localStorage.setItem('ce_ss', JSON.stringify(s));
     if (ServerStatus.online) {
       apiFetch('/states', 'POST', {
         version: '1.0', last_updated: new Date().toISOString().split('T')[0], states: s,
@@ -109,12 +109,12 @@ const SS = {
     if (data) {
       const states = data.states || data;
       this._cache = states;
-      localStorage.setItem('cm_ss', JSON.stringify(states));
+      localStorage.setItem('ce_ss', JSON.stringify(states));
     }
   },
   applyServerStates(states) {
     this._cache = states;
-    localStorage.setItem('cm_ss', JSON.stringify(states));
+    localStorage.setItem('ce_ss', JSON.stringify(states));
   }
 };
 // ---- MEMORY ----
@@ -123,7 +123,7 @@ const MS = {
   getData() {
     if (this._data) return this._data;
     try {
-      const raw = localStorage.getItem('cm_mem_v2');
+      const raw = localStorage.getItem('ce_mem_v2');
       if (raw) { this._data = JSON.parse(raw); return this._data; }
     } catch {}
     return { version: '1.1', entries: [] };
@@ -131,7 +131,7 @@ const MS = {
   save(memoryData) {
     this._data = memoryData;
     memoryData.last_updated = new Date().toISOString().split('T')[0];
-    localStorage.setItem('cm_mem_v2', JSON.stringify(memoryData));
+    localStorage.setItem('ce_mem_v2', JSON.stringify(memoryData));
     if (ServerStatus.online) {
       apiFetch('/memory', 'POST', memoryData).then(r => {
         if (r?.ok) Toast.success('Memory saved');
@@ -143,7 +143,7 @@ const MS = {
     const data = await apiFetch('/memory');
     if (data && data.entries) {
       this._data = data;
-      localStorage.setItem('cm_mem_v2', JSON.stringify(data));
+      localStorage.setItem('ce_mem_v2', JSON.stringify(data));
       return data;
     }
     return null;
@@ -155,13 +155,13 @@ const RS = {
   _cache: null,
   get() {
     if (this._cache) return this._cache;
-    try { const s = JSON.parse(localStorage.getItem('cm_rules')); if (s) { this._cache = s; return s; } }
+    try { const s = JSON.parse(localStorage.getItem('ce_rules')); if (s) { this._cache = s; return s; } }
     catch {}
     return { ...DEFAULT_RULES };
   },
   save(rules) {
     this._cache = rules;
-    localStorage.setItem('cm_rules', JSON.stringify(rules));
+    localStorage.setItem('ce_rules', JSON.stringify(rules));
     if (ServerStatus.online) {
       apiFetch('/rules', 'POST', { version: '1.0', last_updated: new Date().toISOString().split('T')[0], ...rules }).then(r => {
         if (r?.ok) Toast.success('Rules saved');
@@ -174,7 +174,7 @@ const RS = {
     if (data) {
       const rules = { coding: data.coding, general: data.general, soul: data.soul };
       this._cache = rules;
-      localStorage.setItem('cm_rules', JSON.stringify(rules));
+      localStorage.setItem('ce_rules', JSON.stringify(rules));
       return rules;
     }
     return null;
@@ -182,22 +182,22 @@ const RS = {
 };
 // ---- DASHBOARD DATA ----
 const DS = {
-  async getHealth()     { return await apiFetch('/health'); },
-  async getClaudeMd()   { return await apiFetch('/claude-md'); },
-  async regenClaudeMd() { return await apiFetch('/claude-md', 'POST'); },
-  async getBudget()     { return await apiFetch('/budget'); },
-  async getBackups()    { return await apiFetch('/backups'); },
-  async createBackup()  { return await apiFetch('/backups', 'POST'); },
+  async getHealth()      { return await apiFetch('/health'); },
+  async getContextMd()    { return await apiFetch('/context-md'); },
+  async regenContextMd()  { return await apiFetch('/context-md', 'POST'); },
+  async getBudget()      { return await apiFetch('/budget'); },
+  async getBackups()     { return await apiFetch('/backups'); },
+  async createBackup()   { return await apiFetch('/backups', 'POST'); },
   async restoreBackup(ts) { return await apiFetch('/restore', 'POST', { timestamp: ts }); },
-  async getSessionLog() { return await apiFetch('/session-log'); },
-  async logSession(e)   { return await apiFetch('/session-log', 'POST', e); },
-  async getModes()      { return await apiFetch('/modes'); },
-  async applyMode(id)   { return await apiFetch('/modes/apply', 'POST', { modeId: id }); },
-  async createMode(m)   { return await apiFetch('/modes', 'POST', m); },
+  async getSessionLog()  { return await apiFetch('/session-log'); },
+  async logSession(e)    { return await apiFetch('/session-log', 'POST', e); },
+  async getModes()       { return await apiFetch('/modes'); },
+  async applyMode(id)    { return await apiFetch('/modes/apply', 'POST', { modeId: id }); },
+  async createMode(m)    { return await apiFetch('/modes', 'POST', m); },
   async updateMode(id, m) { return await apiFetch(`/modes/${id}`, 'PUT', m); },
-  async deleteMode(id)  { return await apiFetch(`/modes/${id}`, 'DELETE'); },
-  async exportProfile() { return await apiFetch('/profile/export'); },
-  async importProfile(d){ return await apiFetch('/profile/import', 'POST', d); },
+  async deleteMode(id)   { return await apiFetch(`/modes/${id}`, 'DELETE'); },
+  async exportProfile()  { return await apiFetch('/profile/export'); },
+  async importProfile(d) { return await apiFetch('/profile/import', 'POST', d); },
 };
 
 // ---- DEFAULT RULES (used for reset from data.js) ----

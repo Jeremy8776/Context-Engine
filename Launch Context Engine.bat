@@ -1,7 +1,7 @@
 @echo off
-title Claude Manager
+title Context Engine
 echo.
-echo  Claude Manager
+echo  Context Engine
 echo  ==============
 
 :: Check if already running on port 3847

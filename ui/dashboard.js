@@ -16,14 +16,34 @@ const DashboardTab = (() => {
     const lbl = document.getElementById('db-budget-label');
     if (bar) bar.style.width = '0%';
     if (lbl) lbl.textContent = 'Loading...';
+    
     await Promise.all([loadBudget(), loadHealth(), loadBackups(), loadSessionLog()]);
+    updateStats();
+  }
+
+  function updateStats() {
+    const total = SKILL_DATA.length;
+    const active = SKILL_DATA.filter(s => SS.active(s.id)).length;
+    const tEl = document.getElementById('db-stat-total');
+    const aEl = document.getElementById('db-stat-active');
+    if (tEl && typeof animateCount !== 'undefined') animateCount(tEl, total);
+    if (aEl && typeof animateCount !== 'undefined') animateCount(aEl, active);
+  }
+
+  async function discover() {
+    Toast.info('Scanning for skills...');
+    await loadSkillData();
+    updateStats();
+    await loadHealth();
+    if (typeof SkillsTab !== 'undefined') SkillsTab.init();
+    Toast.success(`Discovery complete: ${SKILL_DATA.length} skills found`);
   }
 
   async function loadBudget() {
-    const data = await DS.getClaudeMd();
+    const data = await DS.getContextMd();
     if (!data) return;
     renderBudget(data);
-    renderClaudeMdPreview(data.content || '');
+    renderContextMdPreview(data.content || '');
   }
 
   function renderBudget(d) {
@@ -32,19 +52,22 @@ const DashboardTab = (() => {
     const bar   = document.getElementById('db-budget-bar');
     const label = document.getElementById('db-budget-label');
     const detail= document.getElementById('db-budget-detail');
+    const statB = document.getElementById('db-stat-budget');
+
     if (bar) {
       bar.style.width = pct + '%';
       bar.className = 'budget-fill' + (pct > 90 ? ' danger' : pct > 70 ? ' warn' : '');
     }
     if (label) label.textContent = `~${tokens} tokens (${pct}% of 200k context)`;
+    if (statB) statB.textContent = pct + '%';
     if (detail) detail.innerHTML =
-      `<span>CLAUDE.md: ${(d.claudeMdChars||0).toLocaleString()} chars / ${d.claudeMdLines||0} lines</span>` +
-      `<span>Memory: ${(d.memoryChars||0).toLocaleString()} chars</span>` +
-      `<span>Rules: ${(d.rulesChars||0).toLocaleString()} chars</span>`;
+      `<span>MANIFEST: ${(d.contextMdChars||0).toLocaleString()} chars</span>` +
+      `<span>MEMORY: ${(d.memoryChars||0).toLocaleString()} chars</span>` +
+      `<span>RULES: ${(d.rulesChars||0).toLocaleString()} chars</span>`;
   }
 
-  function renderClaudeMdPreview(content) {
-    const el = document.getElementById('db-claude-md-content');
+  function renderContextMdPreview(content) {
+    const el = document.getElementById('db-claude-md-content'); // ID was left as is in HTML or should be renamed
     if (el) el.textContent = content || '(empty)';
   }
 
@@ -97,7 +120,7 @@ const DashboardTab = (() => {
         s.type === 'mode_applied'  ? `Mode applied: ${s.mode} (${(s.skills||[]).length} skills)` :
         s.type === 'toggle'        ? `Skills toggled — ${s.activeSkills} active` :
         s.type === 'backup'        ? `Backup created: ${s.timestamp||''}` :
-        s.type === 'manual_regen'  ? `CLAUDE.md regenerated — ${s.activeCount} skills` :
+        s.type === 'manual_regen'  ? `CONTEXT.md regenerated — ${s.activeCount} skills` :
         JSON.stringify(s);
       return `<div class="session-item"><span class="session-icon">${svg}</span><span class="session-label">${esc(label)}</span><span class="session-ts">${ts}</span></div>`;
     }).join('');
@@ -129,10 +152,10 @@ const DashboardTab = (() => {
     } else alert('Restore failed.');
   }
 
-  async function regenCLAUDEmd() {
+  async function regenCONTEXTmd() {
     const btn = document.getElementById('db-regen-btn');
     if (btn) { btn.textContent = 'Regenerating...'; btn.disabled = true; }
-    const r = await DS.regenClaudeMd();
+    const r = await DS.regenContextMd();
     if (btn) {
       btn.innerHTML = r?.ok
         ? `<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" style="width:10px;height:10px;vertical-align:middle;margin-right:4px"><polyline points="1 6 4 10 11 2"/></svg>Done`
@@ -145,5 +168,5 @@ const DashboardTab = (() => {
 
   async function refreshBudget() { await loadBudget(); }
 
-  return { init, backup, restore, regenCLAUDEmd, refreshBudget, loadSessionLog };
+  return { init, backup, restore, regenCONTEXTmd, discover, refreshBudget, loadSessionLog };
 })();

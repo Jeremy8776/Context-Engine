@@ -1,0 +1,12 @@
+{
+  "sessions": [
+    {
+      "type": "mode_applied",
+      "mode": "all",
+      "skills": [
+        "example-skill"
+      ],
+      "ts": "2026-03-18T17:04:49.376Z"
+    }
+  ]
+}

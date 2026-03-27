@@ -12,7 +12,7 @@ const SkillsTab = (() => {
 
   function statusExplain(type, isActive) {
     const location = {
-      custom:   'File lives at E:\\Claude\\skills\\ — always on disk.',
+      custom:   'File lives at skills/ — always on disk.',
       builtin:  'Installed at /mnt/skills/public/ — part of the Claude platform.',
       external: 'Lives in /mnt/skills/examples/ — provided by Claude but requires setup to use.',
     }[type] || '';

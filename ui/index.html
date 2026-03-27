@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Claude Manager</title>
+<title>Context Engine</title>
 <link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,13 +14,13 @@
 
 <div class="loading-overlay" id="loader">
   <div class="loading-dots"><span></span><span></span><span></span></div>
-  <div class="loading-text">Loading Claude Manager</div>
+  <div class="loading-text">Loading Context Engine</div>
 </div>
 
 <div class="app">
   <nav class="nav">
     <div class="nav-inner">
-      <div class="nav-brand">Claude <span>Manager</span></div>
+      <div class="nav-brand">Context <span>Engine</span></div>
       <button class="tab-btn active"  onclick="switchTab('dashboard',this)">Dashboard</button>
       <button class="tab-btn"         onclick="switchTab('skills',this)">Skills</button>
       <button class="tab-btn"         onclick="switchTab('modes',this)">Modes</button>
@@ -36,53 +36,71 @@
     <div id="dashboard-tab" class="tab-panel active">
       <div class="simple-page"><div class="simple-inner wide">
         <div class="section-hdr">
-          <h2>Dashboard</h2>
-          <p>System status, CLAUDE.md preview, health checks, backups, session log.</p>
+          <h2>System Dashboard</h2>
+          <p>Real-time orchestrator status, context budget, and automated skill discovery.</p>
         </div>
-        <div class="db-card">
-          <div class="db-card-hdr">
-            <span class="db-card-title">Context Budget</span>
-            <span class="db-card-sub">Estimated tokens loaded into Claude Code per session</span>
-          </div>
-          <div class="budget-bar"><div class="budget-fill" id="db-budget-bar" style="width:0%"></div></div>
-          <div class="budget-label" id="db-budget-label">-</div>
-          <div class="budget-detail" id="db-budget-detail"></div>
+
+        <div class="stats" style="margin-bottom: 32px;">
+          <div class="stat"><div class="stat-n" id="db-stat-total">0</div><div class="stat-l">Skills Found</div></div>
+          <div class="stat g"><div class="stat-n" id="db-stat-active">0</div><div class="stat-l">Active</div></div>
+          <div class="stat a"><div class="stat-n" id="db-stat-budget">0%</div><div class="stat-l">Context Full</div></div>
         </div>
-        <div class="db-card">
-          <div class="db-card-hdr">
-            <span class="db-card-title">CLAUDE.md Preview</span>
-            <div class="db-card-actions">
-              <span class="db-card-sub">What Claude Code reads at session start</span>
-              <button class="mem-btn save" id="db-regen-btn" onclick="DashboardTab.regenCLAUDEmd()">Regenerate</button>
-            </div>
-          </div>
-          <pre class="claude-md-preview" id="db-claude-md-content">Loading...</pre>
-        </div>
+
         <div class="db-row">
           <div class="db-card flex1">
             <div class="db-card-hdr">
-              <span class="db-card-title">Skill Health</span>
-              <span class="db-card-sub">SKILL.md file verification</span>
+              <span class="db-card-title">Context Orchestration</span>
+              <span class="db-card-sub">Estimated tokens loaded into agents per session</span>
             </div>
-            <div id="db-health-list"><div class="db-empty">Checking...</div></div>
+            <div class="budget-bar"><div class="budget-fill" id="db-budget-bar" style="width:0%"></div></div>
+            <div class="budget-label" id="db-budget-label">-</div>
+            <div class="budget-detail" id="db-budget-detail"></div>
+          </div>
+          
+          <div class="db-card flex1">
+            <div class="db-card-hdr">
+              <span class="db-card-title">Orchestrator Control</span>
+              <span class="db-card-sub">Automated discovery and state management</span>
+            </div>
+            <div class="db-card-actions" style="margin-top: 20px;">
+              <button class="save-btn" onclick="DashboardTab.discover()">Discover Skills</button>
+              <button class="fb" onclick="DashboardTab.regenCONTEXTmd()">Regen CONTEXT.md</button>
+              <button class="fb" onclick="DashboardTab.backup()">Backup Now</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="db-card">
+          <div class="db-card-hdr">
+            <span class="db-card-title">CONTEXT.md Context Preview</span>
+            <span class="db-card-sub">The active manifest read by the AI model at session start</span>
+          </div>
+          <pre class="claude-md-preview" id="db-claude-md-content">Loading context...</pre>
+        </div>
+
+        <div class="db-row">
+          <div class="db-card flex1">
+            <div class="db-card-hdr">
+              <span class="db-card-title">Skill Health Monitor</span>
+              <span class="db-card-sub">Automated integrity check for skill definitions</span>
+            </div>
+            <div id="db-health-list"><div class="db-empty">Initializing monitor...</div></div>
           </div>
           <div class="db-card flex1">
             <div class="db-card-hdr">
-              <span class="db-card-title">Session Log</span>
-              <span class="db-card-sub">Recent changes and events</span>
+              <span class="db-card-title">Session Intelligence</span>
+              <span class="db-card-sub">Activity log and system events</span>
             </div>
-            <div id="db-session-log"><div class="db-empty">No entries yet</div></div>
+            <div id="db-session-log"><div class="db-empty">Listening for events...</div></div>
           </div>
         </div>
+
         <div class="db-card">
           <div class="db-card-hdr">
-            <span class="db-card-title">Backups</span>
-            <div class="db-card-actions">
-              <span class="db-card-sub">memory.json | rules.json | skill-states.json | CLAUDE.md</span>
-              <button class="mem-btn save" id="db-backup-btn" onclick="DashboardTab.backup()">Backup Now</button>
-            </div>
+            <span class="db-card-title">State Archive</span>
+            <span class="db-card-sub">Available snapshots of your configuration</span>
           </div>
-          <div id="db-backups-list"><div class="db-empty">No backups yet</div></div>
+          <div id="db-backups-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px;"></div>
         </div>
       </div></div>
     </div>
@@ -97,7 +115,7 @@
               <div class="stat"><div class="stat-n" id="stat-total">0</div><div class="stat-l">Total</div></div>
               <div class="stat c"><div class="stat-n" id="stat-active">0</div><div class="stat-l">Active</div></div>
               <div class="stat g"><div class="stat-n" id="stat-custom">0</div><div class="stat-l">Custom</div></div>
-              <div class="stat a"><div class="stat-n" id="stat-builtin">0</div><div class="stat-l">Built-in</div></div>
+              <div class="stat a"><div class="stat-n" id="stat-builtin" style="color:var(--amber)">0</div><div class="stat-l">Built-in</div></div>
             </div>
             <div class="toolbar">
               <input class="search" id="skills-search" type="text" placeholder="Search skills, descriptions, triggers...">
@@ -145,7 +163,7 @@
       <div class="simple-page"><div class="simple-inner">
         <div class="section-hdr">
           <h2>Memory</h2>
-          <p>What Claude knows about you. Edits write to <code>E:\Claude\data\memory.json</code></p>
+          <p>What agents know about you. Edits write to <code>data\memory.json</code></p>
         </div>
         <div id="memory-list" class="memory-list"></div>
         <div class="add-memory">
@@ -161,7 +179,7 @@
       <div class="simple-page"><div class="simple-inner">
         <div class="section-hdr">
           <h2>Soul &amp; Rules</h2>
-          <p>How Claude operates. Edits write to <code>E:\Claude\data\rules.json</code></p>
+          <p>How the system operates. Edits write to <code>data\rules.json</code></p>
         </div>
         <div class="rules-block"><div class="rules-block-hdr">Coding Rules</div><textarea class="rules-textarea" id="rules-coding" rows="5"></textarea></div>
         <div class="rules-block"><div class="rules-block-hdr">General Rules</div><textarea class="rules-textarea" id="rules-general" rows="5"></textarea></div>
@@ -200,7 +218,10 @@ function animateCount(el, target) {
 }
 async function boot() {
   const online = await ServerStatus.check();
-  if (online) await Promise.all([SS.loadFromServer(), MS.loadFromServer(), RS.loadFromServer()]);
+  if (online) {
+    await loadSkillData();
+    await Promise.all([SS.loadFromServer(), MS.loadFromServer(), RS.loadFromServer()]);
+  }
   SkillsTab.init();
   MemoryTab.init();
   ConfigTab.init();
