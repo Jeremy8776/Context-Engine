@@ -141,7 +141,7 @@ const DashboardTab = (() => {
   }
 
   async function restore(ts) {
-    if (!confirm(`Restore backup from ${ts}?\n\nThis will overwrite current memory, rules, and CLAUDE.md.`)) return;
+    if (!confirm(`Restore backup from ${ts}?\n\nThis will overwrite current memory, rules, and CONTEXT.md.`)) return;
     const r = await DS.restoreBackup(ts);
     if (r?.ok) {
       await Promise.all([MS.loadFromServer(), RS.loadFromServer(), SS.loadFromServer()]);

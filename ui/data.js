@@ -1,4 +1,4 @@
-// data.js — all static skill data for Claude Manager
+// data.js — all static skill data for Context Engine
 
 let SKILL_DATA = [
   { id:'example-skill', cat:'01', type:'custom', desc:'Example custom skill', triggers:['do something'], path:'./skills/example-skill/SKILL.md' },

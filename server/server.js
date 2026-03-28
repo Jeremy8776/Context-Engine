@@ -81,7 +81,10 @@ function regenerateCONTEXTmd() {
   const states = readData('skill-states.json') || {};
   const stateMap = states.states || states;
   const activeSkills = Object.entries(SKILL_MAP).filter(([id]) => stateMap[id] !== false);
-  const skillTable = activeSkills.map(([,s]) => `| ${s.cat.padEnd(28)} | ${s.path} |`).join('\n');
+  const skillTable = activeSkills.map(([,s]) => {
+    const relPath = path.relative(ROOT, s.path).replace(/\\/g, '/');
+    return `| ${s.cat.padEnd(28)} | ${relPath} |`;
+  }).join('\n');
   const activeCount = activeSkills.length;
   const total = Object.keys(SKILL_MAP).length;
   const now = new Date().toISOString().split('T')[0];
@@ -285,7 +288,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Context Engine v2 — http://localhost:${PORT}`);
+  console.log(`Context Engine v3 — http://localhost:${PORT}`);
   try {
     const r = regenerateCONTEXTmd();
     console.log(`CONTEXT.md regenerated — ${r.activeCount}/${r.total} skills active`);
