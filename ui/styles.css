@@ -3,16 +3,16 @@
    Liquid Glassmorphism Design System
    ============================================================ */
 :root {
-  /* Dynamic Palette - Deep Oceanic & Soft Amber */
+  /* Dynamic Palette - Deep Oceanic & Violet */
   --bg-deep: #0f172a;
   --bg-surface: rgba(30, 41, 59, 0.7);
   --bg-glass: rgba(255, 255, 255, 0.03);
-  --bg-accent: rgba(217, 119, 87, 0.1);
+  --bg-accent: rgba(139, 92, 246, 0.1);
   
-  --p0: #fb923c; /* Primary Amber */
-  --p1: #f97316;
-  --p2: #ea580c;
-  --p3: #fdba74;
+  --p0: #a78bfa; /* Primary Violet */
+  --p1: #8b5cf6;
+  --p2: #7c3aed;
+  --p3: #c4b5fd;
   
   --t0: #f8fafc; /* Text Primary */
   --t1: #cbd5e1; /* Text Secondary */
@@ -20,7 +20,7 @@
   --t3: #64748b;
   
   --border-glass: rgba(255, 255, 255, 0.1);
-  --border-accent: rgba(251, 146, 60, 0.3);
+  --border-accent: rgba(139, 92, 246, 0.3);
   
   --green: #4ade80; --green-bg: rgba(74, 222, 128, 0.1);
   --amber: #fbbf24; --amber-bg: rgba(251, 191, 36, 0.1);
@@ -56,8 +56,8 @@ body::before {
   position: fixed;
   inset: 0;
   background: 
-    radial-gradient(circle at 0% 0%, rgba(251, 146, 60, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 100% 100%, rgba(56, 189, 248, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 0% 0%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 100% 100%, rgba(56, 189, 248, 0.08) 0%, transparent 50%),
     radial-gradient(circle at 50% 50%, rgba(30, 41, 59, 1) 0%, rgba(15, 23, 42, 1) 100%);
   z-index: -1;
 }
@@ -365,7 +365,7 @@ pre.context-preview {
 
 /* ---- CARD DETAILS ---- */
 .card { cursor: pointer; animation: panelIn var(--dur) var(--ease) both; }
-.card.sel { border-color: var(--p1); background: rgba(251, 146, 60, 0.05); }
+.card.sel { border-color: var(--p1); background: rgba(139, 92, 246, 0.05); }
 .card.inactive { opacity: 0.5; }
 .card.inactive:hover { opacity: 0.8; }
 .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
@@ -390,7 +390,7 @@ pre.context-preview {
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-.badge-custom  { background: rgba(251, 146, 60, 0.15); color: var(--p3); }
+.badge-custom  { background: rgba(139, 92, 246, 0.15); color: var(--p3); }
 .badge-builtin { background: rgba(74, 222, 128, 0.15); color: var(--green); }
 .badge-external { background: rgba(148, 163, 184, 0.15); color: var(--t2); }
 
@@ -561,7 +561,7 @@ pre.context-preview {
   padding: 3px 10px; border-radius: var(--rad-sm);
   color: var(--t2);
 }
-.mode-active { border-color: var(--p1); background: rgba(251, 146, 60, 0.06); }
+.mode-active { border-color: var(--p1); background: rgba(139, 92, 246, 0.06); }
 .mode-badge { font-size: 11px; background: var(--green-bg); color: var(--green); padding: 3px 10px; border-radius: 99px; font-weight: 600; }
 .mode-icon svg { width: 28px; height: 28px; }
 
