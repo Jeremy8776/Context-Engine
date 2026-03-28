@@ -1,6 +1,6 @@
 // store.js — data layer + toast notifications for Context Engine v3
 
-const API = 'http://127.0.0.1:3847/api';
+const API = '/api';
 
 // ---- TOAST SYSTEM ----
 const Toast = (() => {
@@ -35,7 +35,12 @@ async function apiFetch(path, method = 'GET', payload = null) {
     const opts = { method, headers: { 'Content-Type': 'application/json' } };
     if (payload) opts.body = JSON.stringify(payload);
     const res = await fetch(`${API}${path}`, opts);
-    const data = await res.json();
+    let data = null;
+    try { data = await res.json(); } catch (je) {
+       console.error(`API Parse Error: ${path}`, je);
+       Toast.error(`Server error: '${path}' returned non-JSON response.`);
+       return null;
+    }
     if (!res.ok) {
       Toast.error(data.error || `Request failed (${res.status})`);
       return null;
@@ -65,11 +70,11 @@ const ServerStatus = {
 let MEMORY_CATEGORIES = [];
 
 async function loadSkillData() {
-  const data = await apiFetch('/skills');
+  const resp = await apiFetch('/skills');
+  const data = (resp && resp.skills) ? resp.skills : resp;
   if (data && Array.isArray(data)) {
     SKILL_DATA = data;
-    const cats = [...new Set(data.map(s => s.cat))].sort();
-    CATEGORIES = cats.map(c => ({ id: c, label: c }));
+    CATEGORIES = (resp && resp.categories) ? resp.categories : [];
   }
 }
 
@@ -183,9 +188,9 @@ const RS = {
 // ---- DASHBOARD DATA ----
 const DS = {
   async getHealth()      { return await apiFetch('/health'); },
-  async getContextMd()    { return await apiFetch('/context-md'); },
-  async regenContextMd()  { return await apiFetch('/context-md', 'POST'); },
-  async getBudget()      { return await apiFetch('/budget'); },
+  async getContextMd()    { return await apiFetch('/claude-md'); },
+  async regenContextMd()  { return await apiFetch('/claude-md', 'POST'); },
+  async getBudget()      { return await apiFetch('/health'); },
   async getBackups()     { return await apiFetch('/backups'); },
   async createBackup()   { return await apiFetch('/backups', 'POST'); },
   async restoreBackup(ts) { return await apiFetch('/restore', 'POST', { timestamp: ts }); },
@@ -193,6 +198,8 @@ const DS = {
   async logSession(e)    { return await apiFetch('/session-log', 'POST', e); },
   async getModes()       { return await apiFetch('/modes'); },
   async applyMode(id)    { return await apiFetch('/modes/apply', 'POST', { modeId: id }); },
+  async ingestRepo(url)  { return await apiFetch('/skills/ingest', 'POST', { url }); },
+  async pollIngestJob(jobId) { return await apiFetch(`/skills/ingest/${jobId}`); },
 };
 
 // ---- DEFAULT RULES (used for reset from data.js) ----
