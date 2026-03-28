@@ -15,7 +15,7 @@ Communicate with the running Context Engine instance to persist contextual data.
 
 ## Action: Save a Memory
 
-To save a memory, you must first read the current memory array, append to it, and then POST it back. 
+To save a memory, you must first read the current memory array, append to it, and then POST it back.
 Use this exact PowerShell script. Replace `YOUR_NEW_FACT_HERE` with a concise, factual string.
 
 ```powershell
@@ -37,9 +37,9 @@ try {
     $jsonPayload = $memoryData | ConvertTo-Json -Depth 5
     Invoke-RestMethod -Uri "http://127.0.0.1:3847/api/memory" -Method Post -Body $jsonPayload -ContentType "application/json"
     
-    Write-Output "✅ Successfully committed memory: $newFact"
+    Write-Output "[OK] Successfully committed memory: $newFact"
 } catch {
-    Write-Output "❌ Failed to update memory. Is Context Engine running on port 3847?"
+    Write-Output "[FAIL] Failed to update memory. Is Context Engine running on port 3847?"
     Write-Output $_.Exception.Message
 }
 ```

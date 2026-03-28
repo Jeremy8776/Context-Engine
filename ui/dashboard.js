@@ -67,7 +67,7 @@ const DashboardTab = (() => {
   }
 
   function renderContextMdPreview(content) {
-    const el = document.getElementById('db-claude-md-content'); // ID was left as is in HTML or should be renamed
+    const el = document.getElementById('db-context-preview');
     if (el) el.textContent = content || '(empty)';
   }
 

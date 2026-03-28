@@ -193,11 +193,6 @@ const DS = {
   async logSession(e)    { return await apiFetch('/session-log', 'POST', e); },
   async getModes()       { return await apiFetch('/modes'); },
   async applyMode(id)    { return await apiFetch('/modes/apply', 'POST', { modeId: id }); },
-  async createMode(m)    { return await apiFetch('/modes', 'POST', m); },
-  async updateMode(id, m) { return await apiFetch(`/modes/${id}`, 'PUT', m); },
-  async deleteMode(id)   { return await apiFetch(`/modes/${id}`, 'DELETE'); },
-  async exportProfile()  { return await apiFetch('/profile/export'); },
-  async importProfile(d) { return await apiFetch('/profile/import', 'POST', d); },
 };
 
 // ---- DEFAULT RULES (used for reset from data.js) ----

@@ -23,16 +23,22 @@ const MIME = {
 const readData = f => { try { return JSON.parse(fs.readFileSync(path.join(DATA_DIR, f), 'utf8')); } catch { return null; } };
 const writeData = (f, d) => fs.writeFileSync(path.join(DATA_DIR, f), JSON.stringify(d, null, 2), 'utf8');
 
-function cors(res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+function cors(req, res) {
+  const origin = req.headers.origin || '';
+  const allowed = ['http://localhost:3847', 'http://127.0.0.1:3847'];
+  if (allowed.includes(origin)) res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 }
+const MAX_BODY = 1024 * 1024; // 1 MB
 function body(req) {
-  return new Promise(r => {
+  return new Promise((resolve, reject) => {
     let d = '';
-    req.on('data', c => d += c);
-    req.on('end', () => { try { r(JSON.parse(d)); } catch { r({}); } });
+    req.on('data', c => {
+      d += c;
+      if (d.length > MAX_BODY) { req.destroy(); reject(new Error('Payload too large')); }
+    });
+    req.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve({}); } });
   });
 }
 function json(res, data, status = 200) {
@@ -230,7 +236,7 @@ function applyMode(modeId) {
 }
 
 const server = http.createServer(async (req, res) => {
-  cors(res);
+  cors(req, res);
   if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const p = url.pathname;
@@ -279,10 +285,12 @@ const server = http.createServer(async (req, res) => {
     return result ? json(res, { ok: true, states: result }) : json(res, { ok: false, error: 'Mode not found' }, 404);
   }
 
-  let filePath = path.join(UI_DIR, p === '/' ? '/index.html' : p);
-  if (fs.existsSync(filePath)) {
-    res.writeHead(200, { 'Content-Type': MIME[path.extname(filePath)] || 'text/plain' });
-    return res.end(fs.readFileSync(filePath));
+  // Path traversal protection: resolve and verify the path stays inside UI_DIR
+  const safePath = path.resolve(UI_DIR, '.' + (p === '/' ? '/index.html' : p));
+  if (!safePath.startsWith(path.resolve(UI_DIR))) { res.writeHead(403); return res.end('Forbidden'); }
+  if (fs.existsSync(safePath)) {
+    res.writeHead(200, { 'Content-Type': MIME[path.extname(safePath)] || 'text/plain' });
+    return res.end(fs.readFileSync(safePath));
   }
   res.writeHead(404); res.end('Not found');
 });

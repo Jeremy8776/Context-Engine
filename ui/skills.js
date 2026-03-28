@@ -13,12 +13,12 @@ const SkillsTab = (() => {
   function statusExplain(type, isActive) {
     const location = {
       custom:   'File lives at skills/ — always on disk.',
-      builtin:  'Installed at /mnt/skills/public/ — part of the Claude platform.',
-      external: 'Lives in /mnt/skills/examples/ — provided by Claude but requires setup to use.',
+      builtin:  'Platform-integrated skill — provided by the agent runtime.',
+      external: 'External skill — requires additional setup to use.',
     }[type] || '';
     const effect = isActive
-      ? 'Active — Claude reads this SKILL.md before handling matching tasks.'
-      : 'Inactive — Claude skips this skill. File untouched. Toggle to re-enable.';
+      ? 'Active — the agent reads this SKILL.md before handling matching tasks.'
+      : 'Inactive — the agent skips this skill. File untouched. Toggle to re-enable.';
     return { location, effect };
   }
 

@@ -1,0 +1,30 @@
+{
+  "name": "context-engine",
+  "version": "0.1.0-alpha",
+  "description": "Local, offline-first dashboard for orchestrating AI agent contexts, skills, and memory.",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node server/server.js"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "context",
+    "orchestrator",
+    "skills",
+    "CLAUDE.md",
+    "AGENTS.md",
+    "prompt-management",
+    "offline-first"
+  ],
+  "author": "Jeremy8776",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Jeremy8776/context-engine.git"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
