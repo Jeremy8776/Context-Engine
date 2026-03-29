@@ -1,8 +1,11 @@
 {
   "name": "context-engine",
-  "version": "0.1.0-alpha",
+  "version": "0.2.0",
   "description": "Local, offline-first dashboard for orchestrating AI agent contexts, skills, and memory.",
   "main": "server/server.js",
+  "bin": {
+    "context-engine": "cli/index.js"
+  },
   "scripts": {
     "start": "node server/server.js",
     "dev": "node server/server.js"

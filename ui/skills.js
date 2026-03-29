@@ -1,7 +1,8 @@
-// skills.js — skills tab v3 (simplified flat list)
+// skills.js — skills tab v3 (simplified flat list + bulk toggle)
 const SkillsTab = (() => {
   let filter = 'all';
   let view = 'grid';
+  let selected = new Set();
 
   const bc = t => t === 'custom' ? 'badge-custom' : t === 'builtin' ? 'badge-builtin' : 'badge-external';
   const bl = t => t === 'custom' ? 'custom' : t === 'builtin' ? 'built-in' : 'external';
@@ -16,6 +17,53 @@ const SkillsTab = (() => {
     document.getElementById('stat-active') && (document.getElementById('stat-active').textContent = active);
     document.getElementById('stat-custom') && (document.getElementById('stat-custom').textContent = custom);
     document.getElementById('stat-builtin') && (document.getElementById('stat-builtin').textContent = builtin);
+  }
+
+  function toggleSelect(id, e) {
+    if (e) e.stopPropagation();
+    if (selected.has(id)) selected.delete(id); else selected.add(id);
+    renderBulkBar();
+    render();
+  }
+
+  function selectAll() {
+    const q = (document.getElementById('skills-search').value || '').toLowerCase();
+    SKILL_DATA.filter(s => {
+      if (filter === 'active' && !SS.active(s.id)) return false;
+      if (filter === 'inactive' && SS.active(s.id)) return false;
+      if (q && !s.id.toLowerCase().includes(q) && !s.desc.toLowerCase().includes(q)) return false;
+      return true;
+    }).forEach(s => selected.add(s.id));
+    renderBulkBar();
+    render();
+  }
+
+  function selectNone() {
+    selected.clear();
+    renderBulkBar();
+    render();
+  }
+
+  function bulkEnable() {
+    if (!selected.size) return;
+    SS.setBulk([...selected], true);
+    selected.clear();
+    renderBulkBar(); renderStats(); render();
+  }
+
+  function bulkDisable() {
+    if (!selected.size) return;
+    SS.setBulk([...selected], false);
+    selected.clear();
+    renderBulkBar(); renderStats(); render();
+  }
+
+  function renderBulkBar() {
+    const bar = document.getElementById('bulk-bar');
+    if (!bar) return;
+    if (!selected.size) { bar.style.display = 'none'; return; }
+    bar.style.display = 'flex';
+    bar.querySelector('.bulk-count').textContent = `${selected.size} selected`;
   }
 
   function setFilter(f, btn) {
@@ -48,12 +96,16 @@ const SkillsTab = (() => {
 
   function makeCard(skill, i) {
     const isActive = SS.active(skill.id);
+    const isSel = selected.has(skill.id);
     const card = document.createElement('div');
-    card.className = `card${!isActive ? ' inactive' : ''}`;
+    card.className = `card${!isActive ? ' inactive' : ''}${isSel ? ' sel' : ''}`;
     card.style.animationDelay = `${i * 15}ms`;
 
     card.innerHTML = `
       <div class="card-status-block">
+        <div class="card-select-wrap" onclick="event.stopPropagation()">
+          <input type="checkbox" class="card-sel-check" ${isSel ? 'checked' : ''} onchange="SkillsTab.toggleSelect('${skill.id}',event)">
+        </div>
         <div class="card-toggle-wrap" onclick="event.stopPropagation()">
           ${makeToggle(skill, isActive)}
         </div>
@@ -168,5 +220,5 @@ const SkillsTab = (() => {
     ingest();
   }
 
-  return { init, render, handleToggle, setFilter, setView, ingest, quickAdd };
+  return { init, render, handleToggle, setFilter, setView, ingest, quickAdd, toggleSelect, selectAll, selectNone, bulkEnable, bulkDisable };
 })();

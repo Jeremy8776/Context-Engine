@@ -83,13 +83,20 @@ const DashboardTab = (() => {
       container.innerHTML = `<div class="health-ok"><span class="health-check">${HEALTH_SVG}</span>All ${ok.length} skill files verified</div>`;
       return;
     }
+    const stale = skills.filter(s => s.stale && !s.issue);
     container.innerHTML = issues.map(s => `
       <div class="health-issue">
         <span class="health-id">${esc(s.id)}</span>
         <span class="health-msg">${esc(s.issue)}</span>
         <span class="health-path">${esc(s.path)}</span>
       </div>`).join('') +
-      `<div class="health-ok" style="margin-top:8px"><span class="health-check">${HEALTH_SVG}</span>${ok.length} files OK / ${issues.length} issue${issues.length>1?'s':''}</div>`;
+      (stale.length ? stale.map(s => `
+      <div class="health-issue stale">
+        <span class="health-id" style="color:var(--amber)">${esc(s.id)}</span>
+        <span class="health-msg" style="color:var(--amber)">Stale (${s.daysSinceModified || '30+'}d since last edit)</span>
+        <span class="health-path">${esc(s.path)}</span>
+      </div>`).join('') : '') +
+      `<div class="health-ok" style="margin-top:8px"><span class="health-check">${HEALTH_SVG}</span>${ok.length} files OK / ${issues.length} issue${issues.length>1?'s':''}${stale.length ? ` / ${stale.length} stale` : ''}</div>`;
   }
 
   async function loadBackups() {

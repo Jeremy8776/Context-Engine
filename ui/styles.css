@@ -543,3 +543,99 @@ pre.context-preview {
 .log-done{color:var(--green)}
 @keyframes fadeIn{to{opacity:1}}
 
+/* ---- BULK BAR ---- */
+.bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  margin-bottom: 16px;
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--rad-sm);
+  animation: panelIn 0.3s var(--ease) both;
+}
+.bulk-count { font-size: 13px; font-weight: 600; color: var(--p3); margin-right: auto; }
+.fb.danger { color: var(--red); border-color: rgba(248, 113, 113, 0.3); }
+.fb.danger:hover { background: var(--red-bg); border-color: var(--red); }
+.save-btn.small { padding: 8px 20px; font-size: 13px; }
+
+/* ---- CARD SELECT ---- */
+.card-select-wrap { margin-right: 8px; }
+.card-sel-check {
+  width: 16px; height: 16px;
+  accent-color: var(--p1);
+  cursor: pointer;
+}
+
+/* ---- COMPILE TAB ---- */
+.compile-targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+.compile-target-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--rad-sm);
+  cursor: pointer;
+  transition: all var(--dur) var(--ease);
+  min-width: 200px;
+}
+.compile-target-item:hover { border-color: var(--border-accent); background: rgba(139, 92, 246, 0.06); }
+.compile-target-item input[type="checkbox"] { accent-color: var(--p1); width: 16px; height: 16px; cursor: pointer; }
+.compile-target-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.compile-target-label { font-size: 14px; font-weight: 600; color: var(--t0); }
+.compile-target-file { font-size: 11px; color: var(--t3); font-family: var(--font-mono); margin-left: auto; }
+
+.compile-actions { display: flex; gap: 12px; }
+
+.compile-summary { margin: 20px 0; }
+.compile-stat-row { font-size: 14px; color: var(--t2); margin-bottom: 12px; }
+.compile-stat { font-weight: 600; color: var(--p3); }
+.compile-result-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  font-size: 13px;
+}
+.compile-result-name { font-weight: 600; color: var(--t0); min-width: 140px; }
+.compile-result-file { font-family: var(--font-mono); font-size: 11px; color: var(--t3); flex: 1; }
+.compile-result-tokens { color: var(--p3); font-weight: 500; }
+.compile-error { color: var(--red); font-size: 13px; padding: 4px 0; }
+
+.compile-preview-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.compile-tab-btn {
+  padding: 8px 16px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--rad-sm);
+  color: var(--t2);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--dur) var(--ease);
+}
+.compile-tab-btn:hover { color: var(--t0); border-color: var(--t3); }
+.compile-tab-btn.active {
+  background: var(--bg-accent);
+  border-color: var(--tab-color, var(--p1));
+  color: var(--t0);
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.2);
+}
+
+/* ---- CARD STATUS BLOCK ---- */
+.card-status-block { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.card-toggle-lbl { font-size: 11px; color: var(--t3); text-transform: uppercase; letter-spacing: 0.04em; }
+

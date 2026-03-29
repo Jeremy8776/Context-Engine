@@ -26,6 +26,7 @@
       <button class="tab-btn"         onclick="switchTab('modes',this)">Modes</button>
       <button class="tab-btn"         onclick="switchTab('memory',this)">Memory</button>
       <button class="tab-btn"         onclick="switchTab('config',this)">Soul &amp; Rules</button>
+      <button class="tab-btn"         onclick="switchTab('compile',this)">Compile</button>
       <span class="server-status offline" id="server-status">Connecting...</span>
     </div>
   </nav>
@@ -135,6 +136,13 @@
               <button class="suggest-pill" onclick="SkillsTab.quickAdd('vercel-labs/skills')">Vercel</button>
               <button class="suggest-pill" onclick="SkillsTab.quickAdd('mattpocock/skills')">Matt Pocock</button>
             </div>
+            <div class="bulk-bar" id="bulk-bar" style="display:none">
+              <span class="bulk-count">0 selected</span>
+              <button class="fb" onclick="SkillsTab.selectAll()">Select All</button>
+              <button class="fb" onclick="SkillsTab.selectNone()">Deselect</button>
+              <button class="save-btn small" onclick="SkillsTab.bulkEnable()">Enable</button>
+              <button class="fb danger" onclick="SkillsTab.bulkDisable()">Disable</button>
+            </div>
             <div id="skills-list"></div>
           </div>
         </div>
@@ -186,6 +194,38 @@
       </div></div>
     </div>
 
+    <!-- COMPILE -->
+    <div id="compile-tab" class="tab-panel">
+      <div class="simple-page"><div class="simple-inner wide">
+        <div class="section-hdr">
+          <h2>Cross-Tool Compiler</h2>
+          <p>Compile your context for multiple AI tools from a single source of truth.</p>
+        </div>
+
+        <div class="db-card">
+          <div class="db-card-hdr">
+            <span class="db-card-title">Target Formats</span>
+            <span class="db-card-sub">Select which tools to compile for</span>
+          </div>
+          <div id="compile-targets" class="compile-targets"></div>
+          <div class="compile-actions" style="margin-top:20px;">
+            <button class="save-btn" onclick="CompileTab.compile()">Compile &amp; Write</button>
+            <button class="fb" onclick="CompileTab.preview()">Preview Only</button>
+          </div>
+        </div>
+
+        <div id="compile-summary" class="compile-summary"></div>
+
+        <div class="db-card" id="compile-preview-card" style="display:none">
+          <div class="db-card-hdr">
+            <span class="db-card-title">Output Preview</span>
+          </div>
+          <div id="compile-preview-tabs" class="compile-preview-tabs"></div>
+          <pre class="context-preview" id="compile-preview-content" style="max-height:500px"></pre>
+        </div>
+      </div></div>
+    </div>
+
   </div>
 </div>
 
@@ -196,6 +236,7 @@
 <script src="config.js"></script>
 <script src="dashboard.js"></script>
 <script src="modes.js"></script>
+<script src="compile.js"></script>
 <script>
 function switchTab(name, btn) {
   document.querySelectorAll('.tab-panel').forEach(p => { p.classList.remove('active'); p.style.display = 'none'; });
@@ -220,6 +261,7 @@ async function boot() {
   ConfigTab.init();
   DashboardTab.init();
   ModesTab.init();
+  if (typeof CompileTab !== 'undefined') CompileTab.init();
   setTimeout(() => {
     [['stat-total', SKILL_DATA.length],
      ['stat-active', SKILL_DATA.filter(s => SS.active(s.id)).length],

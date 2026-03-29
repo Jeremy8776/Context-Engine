@@ -4,6 +4,7 @@
 const http = require('http');
 const fs   = require('fs');
 const path = require('path');
+const { compile, estimateTokens, getAvailableTargets } = require('./compiler');
 
 const PORT     = 3847;
 const ROOT     = path.join(__dirname, '..');
@@ -23,6 +24,37 @@ const MIME = {
 const readData = f => { try { return JSON.parse(fs.readFileSync(path.join(DATA_DIR, f), 'utf8')); } catch { return null; } };
 const writeData = (f, d) => fs.writeFileSync(path.join(DATA_DIR, f), JSON.stringify(d, null, 2), 'utf8');
 
+// ---- VALIDATION ----
+function validateMemory(data) {
+  if (!data || typeof data !== 'object') return { valid: false, error: 'Must be a JSON object' };
+  if (data._parseError) return { valid: false, error: 'Invalid JSON in request body' };
+  if (!Array.isArray(data.entries)) return { valid: false, error: 'Missing or invalid "entries" array' };
+  for (let i = 0; i < data.entries.length; i++) {
+    const e = data.entries[i];
+    if (!e || typeof e !== 'object') return { valid: false, error: `Entry ${i}: must be an object` };
+    if (typeof e.content !== 'string' || !e.content.trim()) return { valid: false, error: `Entry ${i}: missing "content" string` };
+  }
+  return { valid: true, error: null };
+}
+function validateRules(data) {
+  if (!data || typeof data !== 'object') return { valid: false, error: 'Must be a JSON object' };
+  if (data._parseError) return { valid: false, error: 'Invalid JSON in request body' };
+  for (const key of ['coding', 'general', 'soul']) {
+    if (typeof data[key] !== 'string') return { valid: false, error: `Missing or invalid "${key}" string` };
+  }
+  return { valid: true, error: null };
+}
+function validateStates(data) {
+  if (!data || typeof data !== 'object') return { valid: false, error: 'Must be a JSON object' };
+  if (data._parseError) return { valid: false, error: 'Invalid JSON in request body' };
+  const states = data.states || data;
+  if (typeof states !== 'object' || Array.isArray(states)) return { valid: false, error: '"states" must be an object' };
+  for (const [k, v] of Object.entries(states)) {
+    if (typeof v !== 'boolean') return { valid: false, error: `State "${k}" must be boolean, got ${typeof v}` };
+  }
+  return { valid: true, error: null };
+}
+
 function cors(req, res) {
   const origin = req.headers.origin || '';
   const allowed = ['http://localhost:3847', 'http://127.0.0.1:3847'];
@@ -38,7 +70,7 @@ function body(req) {
       d += c;
       if (d.length > MAX_BODY) { req.destroy(); reject(new Error('Payload too large')); }
     });
-    req.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve({}); } });
+    req.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve({ _parseError: true }); } });
   });
 }
 function json(res, data, status = 200) {
@@ -124,7 +156,14 @@ function skillHealthCheck() {
   const SKILL_MAP = scanSkills();
   return Object.entries(SKILL_MAP).map(([id, s]) => {
     const exists = fs.existsSync(s.path);
-    return { id, path: s.path, exists, issue: exists ? null : 'SKILL.md not found' };
+    if (!exists) return { id, path: s.path, exists, issue: 'SKILL.md not found', stale: false, daysSinceModified: null };
+    try {
+      const stat = fs.statSync(s.path);
+      const daysSinceModified = Math.floor((Date.now() - stat.mtimeMs) / 86400000);
+      return { id, path: s.path, exists, issue: null, stale: daysSinceModified > 30, daysSinceModified, lastModified: stat.mtimeMs };
+    } catch {
+      return { id, path: s.path, exists, issue: null, stale: false, daysSinceModified: null };
+    }
   });
 }
 
@@ -174,12 +213,20 @@ function estimateContextBudget() {
     const memText   = JSON.stringify(readData('memory.json') || '');
     const rulesText = JSON.stringify(readData('rules.json') || '');
     const totalChars = contextMd.length + memText.length + rulesText.length;
-    const estimatedTokens = Math.round(totalChars / 4);
+    const contextTokens = estimateTokens(contextMd);
+    const memoryTokens  = estimateTokens(memText);
+    const rulesTokens   = estimateTokens(rulesText);
+    const totalTokens   = contextTokens + memoryTokens + rulesTokens;
     return {
       contextMdChars: contextMd.length, memoryChars: memText.length,
       rulesChars: rulesText.length, totalChars,
-      estimatedTokens, budgetPercent: Math.round((estimatedTokens / 200000) * 100),
-      contextMdLines: contextMd.split('\n').length
+      estimatedTokens: totalTokens, budgetPercent: Math.round((totalTokens / 200000) * 100),
+      contextMdLines: contextMd.split('\n').length,
+      breakdown: {
+        context: { chars: contextMd.length, tokens: contextTokens },
+        memory:  { chars: memText.length, tokens: memoryTokens },
+        rules:   { chars: rulesText.length, tokens: rulesTokens },
+      }
     };
   } catch(e) { return { error: e.message }; }
 }
@@ -215,24 +262,28 @@ function applyMode(modeId) {
   const modesData = getModes();
   const mode = modesData.modes.find(m => m.id === modeId);
   if (!mode) return null;
-  const states = readData('skill-states.json') || {};
-  const stateMap = states.states || {};
-  
-  // Reset all
+  const backup = readData('skill-states.json');
+  const states = backup || {};
+  const stateMap = { ...(states.states || {}) };
+
   Object.keys(SKILL_MAP).forEach(id => { stateMap[id] = false; });
-  
-  // Activate selected or everything if 'all'
+
   if (mode.id === 'all') {
     Object.keys(SKILL_MAP).forEach(id => { stateMap[id] = true; });
   } else {
     mode.skills.forEach(id => { if(SKILL_MAP[id]) stateMap[id] = true; });
   }
-  
+
   const newStates = { version: '1.0', last_updated: new Date().toISOString().split('T')[0], states: stateMap };
-  writeData('skill-states.json', newStates);
-  regenerateCONTEXTmd();
-  appendSession({ type: 'mode_applied', mode: modeId, skills: Object.keys(stateMap).filter(k => stateMap[k]) });
-  return newStates;
+  try {
+    writeData('skill-states.json', newStates);
+    regenerateCONTEXTmd();
+    appendSession({ type: 'mode_applied', mode: modeId, skills: Object.keys(stateMap).filter(k => stateMap[k]) });
+    return newStates;
+  } catch (e) {
+    if (backup) writeData('skill-states.json', backup);
+    throw e;
+  }
 }
 
 const server = http.createServer(async (req, res) => {
@@ -243,16 +294,36 @@ const server = http.createServer(async (req, res) => {
 
   if (p === '/api/skills'  && req.method === 'GET')  return json(res, Object.values(scanSkills()));
   if (p === '/api/memory'  && req.method === 'GET')  return json(res, readData('memory.json'));
-  if (p === '/api/memory'  && req.method === 'POST')  { writeData('memory.json', await body(req)); return json(res, {ok:true}); }
+  if (p === '/api/memory'  && req.method === 'POST')  {
+    const data = await body(req);
+    const v = validateMemory(data);
+    if (!v.valid) return json(res, { ok: false, error: v.error }, 400);
+    writeData('memory.json', data);
+    return json(res, { ok: true });
+  }
   if (p === '/api/rules'   && req.method === 'GET')   return json(res, readData('rules.json'));
-  if (p === '/api/rules'   && req.method === 'POST')  { writeData('rules.json', await body(req)); return json(res, {ok:true}); }
+  if (p === '/api/rules'   && req.method === 'POST')  {
+    const data = await body(req);
+    const v = validateRules(data);
+    if (!v.valid) return json(res, { ok: false, error: v.error }, 400);
+    writeData('rules.json', data);
+    return json(res, { ok: true });
+  }
   if (p === '/api/states'  && req.method === 'GET')   return json(res, readData('skill-states.json'));
   if (p === '/api/states'  && req.method === 'POST')  {
     const data = await body(req);
-    writeData('skill-states.json', data);
-    const regen = regenerateCONTEXTmd();
-    appendSession({ type: 'toggle', activeSkills: regen.activeCount });
-    return json(res, { ok: true, ...regen });
+    const v = validateStates(data);
+    if (!v.valid) return json(res, { ok: false, error: v.error }, 400);
+    const backup = readData('skill-states.json');
+    try {
+      writeData('skill-states.json', data);
+      const regen = regenerateCONTEXTmd();
+      appendSession({ type: 'toggle', activeSkills: regen.activeCount });
+      return json(res, { ok: true, ...regen });
+    } catch (e) {
+      if (backup) writeData('skill-states.json', backup);
+      return json(res, { ok: false, error: 'State update failed: ' + e.message }, 500);
+    }
   }
   if (p === '/api/context-md' && req.method === 'GET') {
     try { return json(res, { content: fs.readFileSync(CONTEXT_MD, 'utf8'), ...estimateContextBudget() }); }
@@ -285,6 +356,59 @@ const server = http.createServer(async (req, res) => {
     return result ? json(res, { ok: true, states: result }) : json(res, { ok: false, error: 'Mode not found' }, 404);
   }
 
+  // ---- API DOCS ----
+  if (p === '/api/docs' && req.method === 'GET') {
+    return json(res, {
+      version: '0.2.0',
+      endpoints: [
+        { method: 'GET',  path: '/api/skills',          description: 'List all discovered skills' },
+        { method: 'GET',  path: '/api/memory',           description: 'Get memory entries' },
+        { method: 'POST', path: '/api/memory',           description: 'Update memory (validated)' },
+        { method: 'GET',  path: '/api/rules',            description: 'Get rules configuration' },
+        { method: 'POST', path: '/api/rules',            description: 'Update rules (validated)' },
+        { method: 'GET',  path: '/api/states',           description: 'Get skill toggle states' },
+        { method: 'POST', path: '/api/states',           description: 'Update states + regenerate (transactional)' },
+        { method: 'GET',  path: '/api/context-md',       description: 'Get CONTEXT.md content + budget' },
+        { method: 'POST', path: '/api/context-md',       description: 'Force-regenerate CONTEXT.md' },
+        { method: 'GET',  path: '/api/compile/targets',  description: 'List available compile targets' },
+        { method: 'POST', path: '/api/compile/preview',  description: 'Preview compiled output' },
+        { method: 'POST', path: '/api/compile',          description: 'Compile and write files to disk' },
+        { method: 'GET',  path: '/api/health',           description: 'Skill health check + budget' },
+        { method: 'GET',  path: '/api/backups',          description: 'List backup snapshots' },
+        { method: 'POST', path: '/api/backups',          description: 'Create backup snapshot' },
+        { method: 'POST', path: '/api/restore',          description: 'Restore from backup' },
+        { method: 'GET',  path: '/api/session-log',      description: 'Get activity log' },
+        { method: 'GET',  path: '/api/modes',            description: 'List mode presets' },
+        { method: 'POST', path: '/api/modes/apply',      description: 'Apply mode preset (transactional)' },
+      ]
+    });
+  }
+
+  // ---- COMPILER ENDPOINTS ----
+  if (p === '/api/compile/targets' && req.method === 'GET') {
+    return json(res, { targets: getAvailableTargets() });
+  }
+  if (p === '/api/compile/preview' && req.method === 'POST') {
+    const { targets } = await body(req);
+    try {
+      const result = compile({ dataDir: DATA_DIR, skillsDir: SKILLS_DIR, scanSkills, targets: targets || undefined });
+      return json(res, result);
+    } catch (e) {
+      return json(res, { ok: false, error: e.message }, 500);
+    }
+  }
+  if (p === '/api/compile' && req.method === 'POST') {
+    const { targets, outputDir } = await body(req);
+    const outDir = outputDir || ROOT;
+    try {
+      const result = compile({ dataDir: DATA_DIR, skillsDir: SKILLS_DIR, scanSkills, targets: targets || undefined, outputDir: outDir });
+      appendSession({ type: 'compile', targets: targets || Object.keys(result.results), outputDir: outDir });
+      return json(res, { ok: true, ...result });
+    } catch (e) {
+      return json(res, { ok: false, error: e.message }, 500);
+    }
+  }
+
   // Path traversal protection: resolve and verify the path stays inside UI_DIR
   const safePath = path.resolve(UI_DIR, '.' + (p === '/' ? '/index.html' : p));
   if (!safePath.startsWith(path.resolve(UI_DIR))) { res.writeHead(403); return res.end('Forbidden'); }
@@ -295,7 +419,7 @@ const server = http.createServer(async (req, res) => {
   res.writeHead(404); res.end('Not found');
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, '127.0.0.1', () => {
   console.log(`Context Engine v3 — http://localhost:${PORT}`);
   try {
     const r = regenerateCONTEXTmd();

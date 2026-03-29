@@ -120,6 +120,22 @@ const SS = {
   applyServerStates(states) {
     this._cache = states;
     localStorage.setItem('ce_ss', JSON.stringify(states));
+  },
+  setBulk(ids, value) {
+    const s = this.get();
+    ids.forEach(id => { s[id] = value; });
+    this._cache = s;
+    localStorage.setItem('ce_ss', JSON.stringify(s));
+    if (ServerStatus.online) {
+      apiFetch('/states', 'POST', {
+        version: '1.0', last_updated: new Date().toISOString().split('T')[0], states: s,
+      }).then(r => {
+        if (r && r.activeCount !== undefined) {
+          Toast.success(`${r.activeCount} skills active`);
+          if (typeof DashboardTab !== 'undefined') DashboardTab.refreshBudget();
+        }
+      });
+    }
   }
 };
 // ---- MEMORY ----
@@ -200,6 +216,9 @@ const DS = {
   async applyMode(id)    { return await apiFetch('/modes/apply', 'POST', { modeId: id }); },
   async ingestRepo(url)  { return await apiFetch('/skills/ingest', 'POST', { url }); },
   async pollIngestJob(jobId) { return await apiFetch(`/skills/ingest/${jobId}`); },
+  async getCompileTargets() { return await apiFetch('/compile/targets'); },
+  async compilePreview(targets) { return await apiFetch('/compile/preview', 'POST', { targets }); },
+  async compile(targets) { return await apiFetch('/compile', 'POST', { targets }); },
 };
 
 // ---- DEFAULT RULES (used for reset from data.js) ----
