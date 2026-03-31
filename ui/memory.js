@@ -1,4 +1,4 @@
-// memory.js — memory tab rendering and editing
+// memory.js — memory tab v4 (grid layout, category badges)
 
 const MemoryTab = (() => {
   let memoryObj = { version: '1.1', entries: [] };
@@ -21,30 +21,17 @@ const MemoryTab = (() => {
 
     entries.forEach((entry, i) => {
       const text = typeof entry === 'string' ? entry : (entry.content || '');
+      const cat = (typeof entry === 'object' && entry.category) ? entry.category : 'general';
       const item = document.createElement('div');
       item.className = 'memory-item';
+      item.setAttribute('data-cat', cat);
 
-      if (editing === i) {
-        item.innerHTML = `
-          <div class="memory-item-hdr">
-            <span class="memory-idx">#${i + 1}</span>
-            <div class="memory-actions">
-              <button class="mem-btn save" onclick="MemoryTab.saveEdit(${i})">save</button>
-              <button class="mem-btn" onclick="MemoryTab.cancelEdit()">cancel</button>
-            </div>
-          </div>
-          <textarea class="memory-textarea" id="mem-edit-${i}">${escHtml(text)}</textarea>`;
-      } else {
-        item.innerHTML = `
-          <div class="memory-item-hdr">
-            <span class="memory-idx">#${i + 1}</span>
-            <div class="memory-actions">
-              <button class="mem-btn" onclick="MemoryTab.startEdit(${i})">edit</button>
-              <button class="mem-btn danger" onclick="MemoryTab.remove(${i})">remove</button>
-            </div>
-          </div>
-          <div class="memory-text">${escHtml(text)}</div>`;
-      }
+      item.innerHTML = `
+        <div class="memory-item-hdr">
+          <span class="memory-cat-badge mem-cat-${cat}">${cat}</span>
+        </div>
+        <div class="memory-text">${escHtml(text)}</div>`;
+      item.addEventListener('click', () => openDetail(i));
       container.appendChild(item);
     });
 
@@ -54,19 +41,41 @@ const MemoryTab = (() => {
     }
   }
 
-  function startEdit(i) { editing = i; render(); }
+  function openDetail(i) {
+    const entry = entries[i];
+    if (!entry) return;
+    const text = typeof entry === 'string' ? entry : (entry.content || '');
+    const cat = (typeof entry === 'object' && entry.category) ? entry.category : 'general';
+    const html = `
+      <div class="sp-detail">
+        <div class="sp-field"><label>Category</label><span class="memory-cat-badge mem-cat-${cat}">${cat}</span></div>
+        <div class="sp-field">
+          <label>Content</label>
+          <textarea class="rules-textarea" id="mem-edit-${i}" rows="10">${escHtml(text)}</textarea>
+        </div>
+        <div class="sp-actions" style="margin-top:16px">
+          <button class="save-btn" onclick="MemoryTab.saveEdit(${i})">Save</button>
+          <button class="save-btn ghost" onclick="SidePanel.close()">Cancel</button>
+          <button class="mem-btn danger" onclick="MemoryTab.remove(${i})" style="margin-left:auto">Delete</button>
+        </div>
+      </div>`;
+    SidePanel.open('Memory Entry', html);
+  }
+
+  function startEdit(i) { openDetail(i); }
 
   function saveEdit(i) {
     const ta = document.getElementById(`mem-edit-${i}`);
-    if (ta && ta.value.trim()) { 
+    if (ta && ta.value.trim()) {
       const txt = ta.value.trim();
       if (typeof entries[i] === 'string') entries[i] = txt;
       else entries[i].content = txt;
-      saveState(); 
+      saveState();
     }
     editing = null;
+    SidePanel.close();
     render();
-    flash('memory-saved');
+    if (typeof Toast !== 'undefined') Toast.success('Memory saved');
   }
 
   function cancelEdit() { editing = null; render(); }
@@ -76,6 +85,7 @@ const MemoryTab = (() => {
     entries.splice(i, 1);
     if (editing === i) editing = null;
     saveState();
+    SidePanel.close();
     render();
   }
 

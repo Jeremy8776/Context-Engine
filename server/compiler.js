@@ -1,8 +1,102 @@
 // compiler.js — Cross-tool Context Compiler
-// Generates context files for 15 AI tools from a single source of truth
+// Generates context files for 22 AI tools from a single source of truth
 
 const fs   = require('fs');
 const path = require('path');
+const os   = require('os');
+
+// ---- TOOL REGISTRY ----
+// Maps each tool to detection signals, global write path, and capabilities
+
+const TOOL_REGISTRY = {
+  claude:       { label: 'Claude Code',      detectPaths: ['.claude'],       globalPath: 'CLAUDE.md',                          supportsGlobal: true,  supportsProject: true,  category: 'auto' },
+  cursor:       { label: 'Cursor',           detectPaths: ['.cursor'],       globalPath: null,                                 supportsGlobal: false, supportsProject: true,  category: 'auto' },
+  agents:       { label: 'AGENTS.md (AAIF)', detectPaths: [],                globalPath: null,                                 supportsGlobal: false, supportsProject: true,  category: 'auto' },
+  codex:        { label: 'Codex (OpenAI)',   detectPaths: ['.codex'],        globalPath: '.codex/instructions.md',             supportsGlobal: true,  supportsProject: true,  category: 'auto' },
+  copilot:      { label: 'GitHub Copilot',   detectPaths: [],                globalPath: null,                                 supportsGlobal: false, supportsProject: true,  category: 'auto' },
+  windsurf:     { label: 'Windsurf',         detectPaths: ['.windsurf'],     globalPath: '.windsurfrules',                     supportsGlobal: true,  supportsProject: true,  category: 'auto' },
+  antigravity:  { label: 'Antigravity',      detectPaths: ['.antigravity'],  globalPath: 'GEMINI.md',                          supportsGlobal: true,  supportsProject: true,  category: 'auto' },
+  kiro:         { label: 'Kiro (AWS)',       detectPaths: ['.kiro'],         globalPath: null,                                 supportsGlobal: false, supportsProject: true,  category: 'auto' },
+  cline:        { label: 'Cline / Roo',      detectPaths: [],                globalPath: '.clinerules/context-engine.md',      supportsGlobal: true,  supportsProject: true,  category: 'auto' },
+  aider:        { label: 'Aider',            detectPaths: [],                globalPath: null,                                 supportsGlobal: false, supportsProject: true,  category: 'auto' },
+  continue:     { label: 'Continue.dev',     detectPaths: ['.continue'],     globalPath: '.continue/rules/context-engine.md',  supportsGlobal: true,  supportsProject: true,  category: 'auto' },
+  zed:          { label: 'Zed',              detectPaths: ['.config/zed'],   globalPath: null,                                 supportsGlobal: false, supportsProject: true,  category: 'auto' },
+  junie:        { label: 'Junie (JetBrains)',detectPaths: ['.junie'],        globalPath: '.junie/guidelines.md',               supportsGlobal: true,  supportsProject: true,  category: 'auto' },
+  trae:         { label: 'Trae',             detectPaths: ['.trae'],         globalPath: '.trae/rules/context-engine.md',      supportsGlobal: true,  supportsProject: true,  category: 'auto' },
+  amp:          { label: 'Amp (Sourcegraph)', detectPaths: ['.ampcoderc'],     globalPath: null,                                 supportsGlobal: false, supportsProject: true,  category: 'auto' },
+  devin:        { label: 'Devin',            detectPaths: ['.devin'],        globalPath: null,                                 supportsGlobal: false, supportsProject: true,  category: 'auto' },
+  goose:        { label: 'Goose (Block)',    detectPaths: ['.config/goose'], globalPath: '.config/goose/.goosehints',           supportsGlobal: true,  supportsProject: true,  category: 'auto' },
+  void:         { label: 'Void',             detectPaths: ['.void'],         globalPath: null,                                 supportsGlobal: false, supportsProject: true,  category: 'auto' },
+  augment:      { label: 'Augment',          detectPaths: ['.augment'],      globalPath: '.augment/instructions.md',            supportsGlobal: true,  supportsProject: true,  category: 'auto' },
+  pearai:       { label: 'PearAI',           detectPaths: ['.pearai'],       globalPath: null,                                 supportsGlobal: false, supportsProject: true,  category: 'auto' },
+  ollama:       { label: 'Ollama',           detectPaths: ['.ollama'],       globalPath: null,                                 supportsGlobal: false, supportsProject: true,  category: 'auto' },
+  kimi:         { label: 'Kimi K2',          detectPaths: [],                globalPath: null,                                 supportsGlobal: false, supportsProject: false, category: 'manual' },
+};
+
+/**
+ * Detect which AI tools are installed on the system.
+ */
+function detectTools(homedir) {
+  homedir = homedir || os.homedir();
+  const results = {};
+  for (const [id, reg] of Object.entries(TOOL_REGISTRY)) {
+    const tool = {
+      id,
+      label: reg.label,
+      installed: false,
+      signals: [],
+      supportsGlobal: reg.supportsGlobal,
+      supportsProject: reg.supportsProject,
+      category: reg.category,
+      globalPath: reg.globalPath ? path.join(homedir, reg.globalPath) : null,
+      globalInstalled: false,
+    };
+    for (const dp of reg.detectPaths) {
+      const full = path.join(homedir, dp);
+      if (fs.existsSync(full)) { tool.installed = true; tool.signals.push(dp); }
+    }
+    if (tool.globalPath && fs.existsSync(tool.globalPath)) {
+      tool.globalInstalled = true;
+    }
+    results[id] = tool;
+  }
+  return results;
+}
+
+/**
+ * Compile and write to each tool's global/home config path.
+ */
+function compileToGlobal(opts, homedir) {
+  homedir = homedir || os.homedir();
+  const { targets = [] } = opts;
+  const ctx = buildContext(opts);
+  const installed = {};
+  const errors = [];
+
+  for (const target of targets) {
+    const reg = TOOL_REGISTRY[target];
+    if (!reg || !reg.globalPath) { errors.push(`${target}: no global path`); continue; }
+
+    // Codex uses AGENTS.md format for its instructions.md
+    const adapterId = target === 'codex' ? 'agents' : target;
+    const adapter = ADAPTERS[adapterId];
+    if (!adapter) { errors.push(`${target}: no adapter`); continue; }
+
+    try {
+      const content = adapter.fn(ctx);
+      const tokens = estimateTokens(content);
+      const outPath = path.join(homedir, reg.globalPath);
+      const outDir = path.dirname(outPath);
+      if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
+      fs.writeFileSync(outPath, content, 'utf8');
+      installed[target] = { path: outPath, tokens, filename: reg.globalPath };
+    } catch (e) {
+      errors.push(`${target}: ${e.message}`);
+    }
+  }
+
+  return { ok: true, installed, errors, context: { activeSkills: ctx.activeSkills.length, totalSkills: ctx.totalSkills } };
+}
 
 // ---- FORMAT ADAPTERS ----
 
@@ -369,6 +463,68 @@ function compileForKimi(ctx) {
   return sections.join('\n\n');
 }
 
+// ---- Amp / Sourcegraph (.ampcoderc) ----
+function compileForAmp(ctx) {
+  const sections = [];
+  sections.push(`# Project Instructions\n> Generated by Context Engine.\n`);
+  if (ctx.rules) {
+    sections.push(`## Rules\n${ctx.rules.coding}\n\n${ctx.rules.general}`);
+  }
+  if (ctx.memory && ctx.memory.entries && ctx.memory.entries.length) {
+    const memLines = ctx.memory.entries.map(e => `- ${typeof e === 'string' ? e : e.content}`).join('\n');
+    sections.push(`## Context\n${memLines}`);
+  }
+  if (ctx.activeSkills.length) {
+    sections.push(`## Skills\n${ctx.activeSkills.map(s => `- **${s.id}**: ${s.desc}`).join('\n')}`);
+  }
+  return sections.join('\n\n');
+}
+
+// ---- Devin (devin.md) ----
+function compileForDevin(ctx) {
+  const sections = [];
+  sections.push(`# Devin Project Guide\n> Auto-generated by Context Engine.\n`);
+  if (ctx.rules) {
+    sections.push(`## Coding Standards\n${ctx.rules.coding}\n\n## General\n${ctx.rules.general}`);
+  }
+  if (ctx.memory && ctx.memory.entries && ctx.memory.entries.length) {
+    const memLines = ctx.memory.entries.map(e => `- ${typeof e === 'string' ? e : e.content}`).join('\n');
+    sections.push(`## Context\n${memLines}`);
+  }
+  if (ctx.activeSkills.length) {
+    sections.push(`## Skills\n${ctx.activeSkills.map(s => `- **${s.id}**: ${s.desc}`).join('\n')}`);
+  }
+  return sections.join('\n\n');
+}
+
+// ---- Goose / Block (.goosehints) ----
+function compileForGoose(ctx) {
+  const sections = [];
+  sections.push(`# Project Hints\n> Generated by Context Engine.\n`);
+  if (ctx.rules) {
+    sections.push(`${ctx.rules.coding}\n\n${ctx.rules.general}`);
+  }
+  if (ctx.activeSkills.length) {
+    sections.push(`## Skills\n${ctx.activeSkills.map(s => `- ${s.id}: ${s.desc}`).join('\n')}`);
+  }
+  return sections.join('\n\n');
+}
+
+// ---- Void (.void/rules.md) ----
+function compileForVoid(ctx) {
+  return compileForContinue(ctx); // Same markdown rules format
+}
+
+// ---- Augment (.augment/instructions.md) ----
+function compileForAugment(ctx) {
+  return compileForContinue(ctx); // Standard markdown instructions
+}
+
+// ---- PearAI (.pearai/rules.md) ----
+function compileForPearAI(ctx) {
+  return compileForCline(ctx); // Cline-based fork, same format
+}
+
 // ---- COMPILER CORE ----
 
 const ADAPTERS = {
@@ -385,6 +541,12 @@ const ADAPTERS = {
   zed:          { fn: compileForZed,          filename: '.rules' },
   junie:        { fn: compileForJunie,        filename: '.junie/guidelines.md' },
   trae:         { fn: compileForTrae,         filename: '.trae/rules/context-engine.md' },
+  amp:          { fn: compileForAmp,           filename: '.ampcoderc' },
+  devin:        { fn: compileForDevin,        filename: 'devin.md' },
+  goose:        { fn: compileForGoose,        filename: '.goosehints' },
+  void:         { fn: compileForVoid,         filename: '.void/rules.md' },
+  augment:      { fn: compileForAugment,      filename: '.augment/instructions.md' },
+  pearai:       { fn: compileForPearAI,       filename: '.pearai/rules.md' },
   ollama:       { fn: compileForOllama,       filename: 'Modelfile.context' },
   kimi:         { fn: compileForKimi,         filename: '.kimi-system-prompt.md' },
 };
@@ -473,4 +635,4 @@ function getAvailableTargets() {
   return Object.entries(ADAPTERS).map(([id, a]) => ({ id, filename: a.filename }));
 }
 
-module.exports = { compile, buildContext, estimateTokens, getAvailableTargets, ADAPTERS };
+module.exports = { compile, buildContext, estimateTokens, getAvailableTargets, detectTools, compileToGlobal, ADAPTERS, TOOL_REGISTRY };

@@ -1,4 +1,4 @@
-// dashboard.js — Dashboard tab
+// dashboard.js — Dashboard tab v4 (expanded stats, section blocks)
 
 const SESS_ICONS = {
   mode_applied: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="9 2 2 9 8 9 7 14 14 7 8 7 9 2"/></svg>`,
@@ -16,9 +16,10 @@ const DashboardTab = (() => {
     const lbl = document.getElementById('db-budget-label');
     if (bar) bar.style.width = '0%';
     if (lbl) lbl.textContent = 'Loading...';
-    
+
     await Promise.all([loadBudget(), loadHealth(), loadBackups(), loadSessionLog()]);
     updateStats();
+    updateExtendedStats();
   }
 
   function updateStats() {
@@ -28,6 +29,38 @@ const DashboardTab = (() => {
     const aEl = document.getElementById('db-stat-active');
     if (tEl && typeof animateCount !== 'undefined') animateCount(tEl, total);
     if (aEl && typeof animateCount !== 'undefined') animateCount(aEl, active);
+  }
+
+  async function updateExtendedStats() {
+    // Connections: count detected tools
+    try {
+      const toolData = await DS.detectTools();
+      const connCount = toolData ? Object.values(toolData).filter(t => t.installed).length : 0;
+      const connEl = document.getElementById('db-stat-connections');
+      if (connEl && typeof animateCount !== 'undefined') animateCount(connEl, connCount);
+    } catch {}
+
+    // Modes count
+    try {
+      const modesData = await DS.getModes();
+      const modesCount = modesData?.modes?.length || 0;
+      const modesEl = document.getElementById('db-stat-modes');
+      if (modesEl && typeof animateCount !== 'undefined') animateCount(modesEl, modesCount);
+    } catch {}
+
+    // Rules tokens (rough: chars / 4)
+    const rules = RS.get();
+    const rulesText = [rules.coding || '', rules.general || '', rules.soul || ''].join(' ');
+    const rulesTokens = Math.ceil(rulesText.length / 4);
+    const rtEl = document.getElementById('db-stat-rules-tokens');
+    if (rtEl && typeof animateCount !== 'undefined') animateCount(rtEl, rulesTokens);
+
+    // Memory tokens
+    const mem = MS.getData();
+    const memText = (mem.entries || []).map(e => typeof e === 'string' ? e : e.content || '').join(' ');
+    const memTokens = Math.ceil(memText.length / 4);
+    const mtEl = document.getElementById('db-stat-memory-tokens');
+    if (mtEl && typeof animateCount !== 'undefined') animateCount(mtEl, memTokens);
   }
 
   async function discover() {
@@ -134,15 +167,10 @@ const DashboardTab = (() => {
   }
 
   async function backup() {
-    const btn = document.getElementById('db-backup-btn');
-    if (btn) { btn.textContent = 'Saving...'; btn.disabled = true; }
+    Toast.info('Creating backup...');
     const r = await DS.createBackup();
-    if (btn) {
-      btn.innerHTML = r?.ok
-        ? `<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" style="width:10px;height:10px;vertical-align:middle;margin-right:4px"><polyline points="1 6 4 10 11 2"/></svg>Saved`
-        : 'Failed';
-      setTimeout(() => { btn.textContent = 'Backup Now'; btn.disabled = false; }, 2000);
-    }
+    if (r?.ok) Toast.success('Backup saved');
+    else Toast.error('Backup failed');
     await loadBackups();
     await loadSessionLog();
   }
@@ -155,20 +183,15 @@ const DashboardTab = (() => {
       await loadBudget();
       if (typeof MemoryTab !== 'undefined') MemoryTab.init();
       if (typeof ConfigTab  !== 'undefined') ConfigTab.init();
-      alert('Restored. Memory and Rules tabs refreshed.');
-    } else alert('Restore failed.');
+      Toast.success('Restored successfully');
+    } else Toast.error('Restore failed');
   }
 
   async function regenCONTEXTmd() {
-    const btn = document.getElementById('db-regen-btn');
-    if (btn) { btn.textContent = 'Regenerating...'; btn.disabled = true; }
+    Toast.info('Regenerating...');
     const r = await DS.regenContextMd();
-    if (btn) {
-      btn.innerHTML = r?.ok
-        ? `<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" style="width:10px;height:10px;vertical-align:middle;margin-right:4px"><polyline points="1 6 4 10 11 2"/></svg>Done`
-        : 'Failed';
-      setTimeout(() => { btn.textContent = 'Regenerate'; btn.disabled = false; }, 2000);
-    }
+    if (r?.ok) Toast.success('CONTEXT.md regenerated');
+    else Toast.error('Failed');
     await loadBudget();
     await loadSessionLog();
   }

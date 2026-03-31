@@ -1,6 +1,8 @@
 node_modules/
 data/backups/
 data/session-log.json
+data/.keys.enc
+data/skill-parse-cache.json
 *.log
 .DS_Store
 Thumbs.db
@@ -19,3 +21,9 @@ CONVENTIONS.md
 .trae/
 Modelfile.context
 .kimi-system-prompt.md
+.ampcoderc
+devin.md
+.goosehints
+.void/
+.augment/
+.pearai/

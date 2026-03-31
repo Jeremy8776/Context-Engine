@@ -204,8 +204,8 @@ const RS = {
 // ---- DASHBOARD DATA ----
 const DS = {
   async getHealth()      { return await apiFetch('/health'); },
-  async getContextMd()    { return await apiFetch('/claude-md'); },
-  async regenContextMd()  { return await apiFetch('/claude-md', 'POST'); },
+  async getContextMd()    { return await apiFetch('/context-md'); },
+  async regenContextMd()  { return await apiFetch('/context-md', 'POST'); },
   async getBudget()      { return await apiFetch('/health'); },
   async getBackups()     { return await apiFetch('/backups'); },
   async createBackup()   { return await apiFetch('/backups', 'POST'); },
@@ -216,9 +216,16 @@ const DS = {
   async applyMode(id)    { return await apiFetch('/modes/apply', 'POST', { modeId: id }); },
   async ingestRepo(url)  { return await apiFetch('/skills/ingest', 'POST', { url }); },
   async pollIngestJob(jobId) { return await apiFetch(`/skills/ingest/${jobId}`); },
+  async parseSkills() { return await apiFetch('/skills/parse', 'POST'); },
   async getCompileTargets() { return await apiFetch('/compile/targets'); },
   async compilePreview(targets) { return await apiFetch('/compile/preview', 'POST', { targets }); },
   async compile(targets) { return await apiFetch('/compile', 'POST', { targets }); },
+  async detectTools() { return await apiFetch('/tools/detect'); },
+  async installGlobal(targets) { return await apiFetch('/tools/install-global', 'POST', { targets }); },
+  async getWorkspaces() { return await apiFetch('/workspaces'); },
+  async addWorkspace(wsPath, label) { return await apiFetch('/workspaces', 'POST', { action: 'add', path: wsPath, label }); },
+  async removeWorkspace(wsPath) { return await apiFetch('/workspaces', 'POST', { action: 'remove', path: wsPath }); },
+  async compileWorkspaces(targets, workspacePath) { return await apiFetch('/workspaces/compile', 'POST', { targets, workspacePath }); },
 };
 
 // ---- DEFAULT RULES (used for reset from data.js) ----

@@ -1,18 +1,22 @@
 // server.js — Context Engine v3
 // Dynamic Skill Discovery & Orchestrator Backend
 
-const http = require('http');
-const fs   = require('fs');
-const path = require('path');
-const { compile, estimateTokens, getAvailableTargets } = require('./compiler');
+const http   = require('http');
+const fs     = require('fs');
+const path   = require('path');
+const os     = require('os');
+const crypto = require('crypto');
+const { compile, estimateTokens, getAvailableTargets, detectTools, compileToGlobal, TOOL_REGISTRY } = require('./compiler');
 
-const PORT     = 3847;
-const ROOT     = path.join(__dirname, '..');
+const PORT     = parseInt(process.env.CE_PORT, 10) || 3847;
+const ROOT     = process.env.CE_ROOT || path.join(__dirname, '..');
 const DATA_DIR = path.join(ROOT, 'data');
-const UI_DIR   = path.join(ROOT, 'ui');
+const UI_DIR   = path.join(__dirname, '..', 'ui');  // UI always from repo
 const CONTEXT_MD  = path.join(ROOT, 'CONTEXT.md');
 const SKILLS_DIR  = path.join(ROOT, 'skills');
+const HOMEDIR     = os.homedir();
 const BACKUPS_DIR = path.join(DATA_DIR, 'backups');
+const WORKSPACES_FILE = path.join(DATA_DIR, 'workspaces.json');
 const SESSION_LOG = path.join(DATA_DIR, 'session-log.json');
 const MODES_FILE  = path.join(DATA_DIR, 'modes.json');
 
@@ -23,6 +27,110 @@ const MIME = {
 
 const readData = f => { try { return JSON.parse(fs.readFileSync(path.join(DATA_DIR, f), 'utf8')); } catch { return null; } };
 const writeData = (f, d) => fs.writeFileSync(path.join(DATA_DIR, f), JSON.stringify(d, null, 2), 'utf8');
+
+const ingestJobs = {};
+function countSkillFiles(dir) {
+  let count = 0;
+  const walk = d => {
+    try {
+      for (const f of fs.readdirSync(d)) {
+        const full = path.join(d, f);
+        const stat = fs.statSync(full);
+        if (stat.isDirectory()) walk(full);
+        else if (f === 'SKILL.md') count++;
+      }
+    } catch {}
+  };
+  walk(dir);
+  return count;
+}
+
+// ---- SKILL PARSE CACHE ----
+const SKILL_CACHE_FILE = path.join(DATA_DIR, 'skill-parse-cache.json');
+function loadParseCache() { try { return JSON.parse(fs.readFileSync(SKILL_CACHE_FILE, 'utf8')); } catch { return {}; } }
+function saveParseCache(cache) { fs.writeFileSync(SKILL_CACHE_FILE, JSON.stringify(cache, null, 2), 'utf8'); }
+
+async function llmParseSkill(skillPath) {
+  const apiKey = getApiKey('ANTHROPIC_API_KEY');
+  if (!apiKey) return null;
+
+  const content = fs.readFileSync(skillPath, 'utf8').substring(0, 4000); // Cap input
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-20250414',
+        max_tokens: 300,
+        messages: [{ role: 'user', content: `Parse this SKILL.md and return ONLY a JSON object with these fields:
+- "description": one-sentence summary of what this skill does (max 120 chars)
+- "triggers": array of 3-5 short trigger phrases a user would say to invoke this skill
+
+SKILL.md content:
+${content}` }]
+      })
+    });
+    const data = await resp.json();
+    const text = data?.content?.[0]?.text || '';
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) return JSON.parse(jsonMatch[0]);
+  } catch (e) { console.error('LLM parse error:', e.message); }
+  return null;
+}
+
+// ---- ENCRYPTED KEY STORE ----
+const KEYS_FILE = path.join(DATA_DIR, '.keys.enc');
+
+// Derive encryption key from machine-specific data (hostname + homedir + username)
+function deriveKey() {
+  const material = `${os.hostname()}:${os.homedir()}:${os.userInfo().username}:context-engine-v3`;
+  return crypto.createHash('sha256').update(material).digest();
+}
+
+function encryptValue(plaintext) {
+  const key = deriveKey();
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return { iv: iv.toString('hex'), tag: tag.toString('hex'), data: encrypted.toString('hex') };
+}
+
+function decryptValue(envelope) {
+  const key = deriveKey();
+  const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(envelope.iv, 'hex'));
+  decipher.setAuthTag(Buffer.from(envelope.tag, 'hex'));
+  return decipher.update(envelope.data, 'hex', 'utf8') + decipher.final('utf8');
+}
+
+function loadKeys() { try { return JSON.parse(fs.readFileSync(KEYS_FILE, 'utf8')); } catch { return {}; } }
+function saveKeys(keys) { fs.writeFileSync(KEYS_FILE, JSON.stringify(keys, null, 2), 'utf8'); }
+
+function getApiKey(name) {
+  // Env var takes precedence
+  const envKey = process.env[name];
+  if (envKey) return envKey;
+  // Fall back to encrypted store
+  const keys = loadKeys();
+  if (keys[name]) { try { return decryptValue(keys[name]); } catch { return null; } }
+  return null;
+}
+
+function setApiKey(name, value) {
+  const keys = loadKeys();
+  keys[name] = encryptValue(value);
+  saveKeys(keys);
+}
+
+function removeApiKey(name) {
+  const keys = loadKeys();
+  delete keys[name];
+  saveKeys(keys);
+}
 
 // ---- VALIDATION ----
 function validateMemory(data) {
@@ -78,10 +186,62 @@ function json(res, data, status = 200) {
   res.end(JSON.stringify(data));
 }
 
+function parseSkillFrontmatter(content) {
+  const fm = {};
+  const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!fmMatch) return fm;
+  const block = fmMatch[1].replace(/\r\n/g, '\n');
+  // Parse YAML-like key: value (handles quoted and unquoted values)
+  for (const line of block.split('\n')) {
+    const m = line.match(/^(\w[\w_-]*):\s*(.+)/);
+    if (m) {
+      let val = m[2].trim();
+      // Strip surrounding quotes
+      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+        val = val.slice(1, -1);
+      }
+      fm[m[1]] = val;
+    }
+  }
+  return fm;
+}
+
+function extractTriggers(content, desc) {
+  const triggers = [];
+
+  // Check for explicit ## Triggers section
+  const trigSection = content.match(/## Triggers\n([\s\S]*?)(?:\n##|$)/);
+  if (trigSection) {
+    trigSection[1].trim().split('\n').forEach(line => {
+      const t = line.replace(/^-\s*/, '').trim();
+      if (t) triggers.push(t);
+    });
+  }
+
+  // Extract trigger phrases from description ("open X", "launch Y", slash commands)
+  const slashCmds = (desc || '').match(/\/[a-z][\w-]+/g);
+  if (slashCmds) slashCmds.forEach(c => { if (!triggers.includes(c)) triggers.push(c); });
+
+  // Extract quoted trigger phrases like "open Photoshop", "launch ComfyUI"
+  const quoted = (desc || '').match(/"([^"]{3,40})"/g);
+  if (quoted) {
+    quoted.forEach(q => {
+      const phrase = q.replace(/"/g, '');
+      // Only keep short action-like phrases
+      if (phrase.split(' ').length <= 5 && /^[a-z]/i.test(phrase)) {
+        if (!triggers.includes(phrase)) triggers.push(phrase);
+      }
+    });
+  }
+
+  return triggers.slice(0, 10); // Cap at 10
+}
+
 function scanSkills() {
   const map = {};
   if (!fs.existsSync(SKILLS_DIR)) return map;
-  
+  const cache = loadParseCache();
+
   const scan = (dir, cat = 'Uncategorized') => {
     const items = fs.readdirSync(dir);
     items.forEach(item => {
@@ -92,24 +252,35 @@ function scanSkills() {
         if (fs.existsSync(skillFile)) {
           const id = item;
           const content = fs.readFileSync(skillFile, 'utf8');
-          const descriptionMatch = content.match(/# (.*?)\n(.*?)\n/);
-          const triggersMatch = content.match(/## Triggers\n([\s\S]*?)\n##/);
-          
+          const fm = parseSkillFrontmatter(content);
+          const cached = cache[id];
+
+          // Description: cache > frontmatter > first paragraph after heading > fallback
+          let desc = cached?.description || fm.description || '';
+          if (!desc) {
+            const headingMatch = content.match(/^#\s+.+\r?\n\r?\n(.+)/m);
+            if (headingMatch) desc = headingMatch[1].trim();
+          }
+
+          const triggers = cached?.triggers || extractTriggers(content, desc);
+
           map[id] = {
             id,
+            name: fm.name || id,
             cat,
             type: dir.includes('builtin') ? 'builtin' : 'custom',
             path: skillFile,
-            desc: descriptionMatch ? descriptionMatch[2].trim() : 'No description',
-            triggers: triggersMatch ? triggersMatch[1].trim().split('\n').map(t => t.replace(/^-\s*/, '').trim()) : []
+            desc: desc || 'No description',
+            triggers,
+            needsParse: !fm.description && !cached
           };
         } else {
-          scan(fullPath, item); // Recursive for nested categories
+          scan(fullPath, item);
         }
       }
     });
   };
-  
+
   scan(SKILLS_DIR);
   return map;
 }
@@ -293,6 +464,89 @@ const server = http.createServer(async (req, res) => {
   const p = url.pathname;
 
   if (p === '/api/skills'  && req.method === 'GET')  return json(res, Object.values(scanSkills()));
+
+  // ---- LLM Parse unparsed skills ----
+  if (p === '/api/skills/parse' && req.method === 'POST') {
+    if (!getApiKey('ANTHROPIC_API_KEY')) return json(res, { ok: false, error: 'No API key configured. Add one in Soul & Rules > API Keys.' }, 400);
+    const skills = Object.values(scanSkills()).filter(s => s.needsParse);
+    if (!skills.length) return json(res, { ok: true, parsed: 0, message: 'All skills already parsed' });
+
+    const cache = loadParseCache();
+    let parsed = 0;
+    for (const skill of skills) {
+      const result = await llmParseSkill(skill.path);
+      if (result) {
+        cache[skill.id] = {
+          description: result.description || '',
+          triggers: Array.isArray(result.triggers) ? result.triggers : [],
+          parsedAt: Date.now()
+        };
+        parsed++;
+      }
+    }
+    saveParseCache(cache);
+    return json(res, { ok: true, parsed, total: skills.length });
+  }
+
+  // ---- Skill Ingest (GitHub clone) ----
+  if (p === '/api/skills/ingest' && req.method === 'POST') {
+    const data = await body(req);
+    let repoUrl = data?.url;
+    if (!repoUrl || !repoUrl.startsWith('http')) return json(res, { ok: false, error: 'Invalid URL' }, 400);
+
+    // Normalize URL — strip /tree/main/..., trailing slashes, .git
+    repoUrl = repoUrl.replace(/\/tree\/[^/]+.*$/, '').replace(/\.git$/, '').replace(/\/+$/, '');
+
+    // Extract owner/repo for the slug
+    const urlParts = repoUrl.replace(/^https?:\/\/github\.com\//, '').split('/');
+    if (urlParts.length < 2) return json(res, { ok: false, error: 'Invalid GitHub URL — need owner/repo' }, 400);
+    const slug = `${urlParts[0]}-${urlParts[1]}`.toLowerCase();
+
+    const jobId = 'ingest_' + Date.now();
+    const destDir = path.join(SKILLS_DIR, 'ingested', slug);
+
+    ingestJobs[jobId] = { status: 'running', log: [], count: 0 };
+    const job = ingestJobs[jobId];
+
+    // Run git clone in background
+    const { exec } = require('child_process');
+    job.log.push(`Cloning ${repoUrl}...`);
+
+    if (fs.existsSync(destDir)) {
+      job.log.push(`Directory exists, pulling latest...`);
+      exec(`git -C "${destDir}" pull`, (err, stdout, stderr) => {
+        if (err) { job.log.push(`Error: ${err.message}`); job.status = 'error'; return; }
+        job.log.push(stdout.trim() || 'Up to date.');
+        // Count SKILL.md files
+        const count = countSkillFiles(destDir);
+        job.count = count;
+        job.log.push(`Found: ${count} skill(s)`);
+        job.log.push('Done');
+        job.status = 'done';
+      });
+    } else {
+      exec(`git clone --depth 1 "${repoUrl}" "${destDir}"`, (err, stdout, stderr) => {
+        if (err) { job.log.push(`Error: ${err.message}`); job.status = 'error'; return; }
+        job.log.push('Clone complete.');
+        const count = countSkillFiles(destDir);
+        job.count = count;
+        job.log.push(`Found: ${count} skill(s)`);
+        job.log.push('Done');
+        job.status = 'done';
+      });
+    }
+
+    return json(res, { ok: true, jobId });
+  }
+
+  // Poll ingest job status
+  if (p.startsWith('/api/skills/ingest/') && req.method === 'GET') {
+    const jobId = p.split('/').pop();
+    const job = ingestJobs[jobId];
+    if (!job) return json(res, { ok: false, error: 'Job not found' }, 404);
+    return json(res, { ok: true, status: job.status, log: job.log, count: job.count });
+  }
+
   if (p === '/api/memory'  && req.method === 'GET')  return json(res, readData('memory.json'));
   if (p === '/api/memory'  && req.method === 'POST')  {
     const data = await body(req);
@@ -309,6 +563,31 @@ const server = http.createServer(async (req, res) => {
     writeData('rules.json', data);
     return json(res, { ok: true });
   }
+  // ---- API Keys (encrypted at rest) ----
+  if (p === '/api/keys/status' && req.method === 'GET') {
+    const hasKey = !!getApiKey('ANTHROPIC_API_KEY');
+    return json(res, { ANTHROPIC_API_KEY: hasKey });
+  }
+  if (p === '/api/keys' && req.method === 'POST') {
+    const data = await body(req);
+    if (!data?.name || !data?.value) return json(res, { ok: false, error: 'Missing name or value' }, 400);
+    // Only allow known key names
+    const allowed = ['ANTHROPIC_API_KEY'];
+    if (!allowed.includes(data.name)) return json(res, { ok: false, error: 'Unknown key name' }, 400);
+    // Basic validation
+    if (data.name === 'ANTHROPIC_API_KEY' && !data.value.startsWith('sk-ant-')) {
+      return json(res, { ok: false, error: 'Invalid key format — should start with sk-ant-' }, 400);
+    }
+    setApiKey(data.name, data.value);
+    return json(res, { ok: true });
+  }
+  if (p === '/api/keys' && req.method === 'DELETE') {
+    const data = await body(req);
+    if (!data?.name) return json(res, { ok: false, error: 'Missing key name' }, 400);
+    removeApiKey(data.name);
+    return json(res, { ok: true });
+  }
+
   if (p === '/api/states'  && req.method === 'GET')   return json(res, readData('skill-states.json'));
   if (p === '/api/states'  && req.method === 'POST')  {
     const data = await body(req);
@@ -350,6 +629,14 @@ const server = http.createServer(async (req, res) => {
   if (p === '/api/session-log' && req.method === 'GET')  return json(res, getSessionLog());
   if (p === '/api/session-log' && req.method === 'POST') { appendSession(await body(req)); return json(res, {ok:true}); }
   if (p === '/api/modes'       && req.method === 'GET')  return json(res, getModes());
+  if (p === '/api/modes'       && req.method === 'POST') {
+    const data = await body(req);
+    if (data && Array.isArray(data.modes)) {
+      fs.writeFileSync(MODES_FILE, JSON.stringify({ modes: data.modes }, null, 2), 'utf8');
+      return json(res, { ok: true });
+    }
+    return json(res, { ok: false, error: 'Invalid modes data' }, 400);
+  }
   if (p === '/api/modes/apply' && req.method === 'POST') {
     const { modeId } = await body(req);
     const result = applyMode(modeId);
@@ -380,6 +667,11 @@ const server = http.createServer(async (req, res) => {
         { method: 'GET',  path: '/api/session-log',      description: 'Get activity log' },
         { method: 'GET',  path: '/api/modes',            description: 'List mode presets' },
         { method: 'POST', path: '/api/modes/apply',      description: 'Apply mode preset (transactional)' },
+        { method: 'GET',  path: '/api/tools/detect',       description: 'Auto-detect installed AI tools' },
+        { method: 'POST', path: '/api/tools/install-global',description: 'Install compiled context to global tool paths' },
+        { method: 'GET',  path: '/api/workspaces',          description: 'List registered project workspaces' },
+        { method: 'POST', path: '/api/workspaces',          description: 'Add or remove a workspace' },
+        { method: 'POST', path: '/api/workspaces/compile',  description: 'Compile into one or all workspaces' },
       ]
     });
   }
@@ -407,6 +699,90 @@ const server = http.createServer(async (req, res) => {
     } catch (e) {
       return json(res, { ok: false, error: e.message }, 500);
     }
+  }
+
+  // ---- TOOL DETECTION & GLOBAL INSTALL ----
+  if (p === '/api/tools/detect' && req.method === 'GET') {
+    return json(res, detectTools(HOMEDIR));
+  }
+  if (p === '/api/tools/install-global' && req.method === 'POST') {
+    const { targets } = await body(req);
+    if (!targets || !Array.isArray(targets) || !targets.length) {
+      return json(res, { ok: false, error: 'targets must be a non-empty array' }, 400);
+    }
+    try {
+      const result = compileToGlobal({ dataDir: DATA_DIR, skillsDir: SKILLS_DIR, scanSkills, targets }, HOMEDIR);
+      appendSession({ type: 'global_install', targets, count: Object.keys(result.installed).length });
+      return json(res, result);
+    } catch (e) {
+      return json(res, { ok: false, error: e.message }, 500);
+    }
+  }
+
+  // ---- WORKSPACES ----
+  if (p === '/api/workspaces' && req.method === 'GET') {
+    try {
+      const data = JSON.parse(fs.readFileSync(WORKSPACES_FILE, 'utf8'));
+      return json(res, data);
+    } catch {
+      return json(res, { version: '1.0', workspaces: [] });
+    }
+  }
+  if (p === '/api/workspaces' && req.method === 'POST') {
+    const { action, path: wsPath, label } = await body(req);
+    let data;
+    try { data = JSON.parse(fs.readFileSync(WORKSPACES_FILE, 'utf8')); } catch { data = {}; }
+    if (!Array.isArray(data.workspaces)) data.workspaces = [];
+
+    if (action === 'add') {
+      if (!wsPath) return json(res, { ok: false, error: 'path is required' }, 400);
+      const resolved = path.resolve(wsPath);
+      if (!fs.existsSync(resolved) || !fs.statSync(resolved).isDirectory()) {
+        return json(res, { ok: false, error: 'Directory does not exist: ' + resolved }, 400);
+      }
+      if (data.workspaces.some(w => path.resolve(w.path) === resolved)) {
+        return json(res, { ok: false, error: 'Workspace already registered' }, 400);
+      }
+      data.workspaces.push({ path: resolved, label: label || path.basename(resolved), added: new Date().toISOString().split('T')[0], lastCompiled: null });
+      fs.writeFileSync(WORKSPACES_FILE, JSON.stringify(data, null, 2), 'utf8');
+      return json(res, { ok: true, workspaces: data.workspaces });
+    }
+    if (action === 'remove') {
+      if (!wsPath) return json(res, { ok: false, error: 'path is required' }, 400);
+      const resolved = path.resolve(wsPath);
+      data.workspaces = data.workspaces.filter(w => path.resolve(w.path) !== resolved);
+      fs.writeFileSync(WORKSPACES_FILE, JSON.stringify(data, null, 2), 'utf8');
+      return json(res, { ok: true, workspaces: data.workspaces });
+    }
+    return json(res, { ok: false, error: 'action must be add or remove' }, 400);
+  }
+  if (p === '/api/workspaces/compile' && req.method === 'POST') {
+    const { targets, workspacePath } = await body(req);
+    const selectedTargets = targets || Object.keys(TOOL_REGISTRY).filter(id => TOOL_REGISTRY[id].supportsProject);
+    let data;
+    try { data = JSON.parse(fs.readFileSync(WORKSPACES_FILE, 'utf8')); } catch { data = {}; }
+    if (!Array.isArray(data.workspaces)) data.workspaces = [];
+
+    const toCompile = workspacePath
+      ? data.workspaces.filter(w => path.resolve(w.path) === path.resolve(workspacePath))
+      : data.workspaces;
+
+    if (!toCompile.length) return json(res, { ok: false, error: 'No matching workspaces' }, 400);
+
+    const results = {};
+    const errors = [];
+    for (const ws of toCompile) {
+      try {
+        const r = compile({ dataDir: DATA_DIR, skillsDir: SKILLS_DIR, scanSkills, targets: selectedTargets, outputDir: ws.path });
+        results[ws.path] = { targets: Object.keys(r.results), errors: r.errors };
+        ws.lastCompiled = new Date().toISOString().split('T')[0];
+      } catch (e) {
+        errors.push(`${ws.path}: ${e.message}`);
+      }
+    }
+    fs.writeFileSync(WORKSPACES_FILE, JSON.stringify(data, null, 2), 'utf8');
+    appendSession({ type: 'workspace_compile', count: Object.keys(results).length });
+    return json(res, { ok: true, results, errors, workspaces: data.workspaces });
   }
 
   // Path traversal protection: resolve and verify the path stays inside UI_DIR

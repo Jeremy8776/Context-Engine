@@ -20,14 +20,19 @@
 <div class="app">
   <nav class="nav">
     <div class="nav-inner">
-      <div class="nav-brand">Context <span>Engine</span></div>
-      <button class="tab-btn active"  onclick="switchTab('dashboard',this)">Dashboard</button>
-      <button class="tab-btn"         onclick="switchTab('skills',this)">Skills</button>
-      <button class="tab-btn"         onclick="switchTab('modes',this)">Modes</button>
-      <button class="tab-btn"         onclick="switchTab('memory',this)">Memory</button>
-      <button class="tab-btn"         onclick="switchTab('config',this)">Soul &amp; Rules</button>
-      <button class="tab-btn"         onclick="switchTab('compile',this)">Compile</button>
-      <span class="server-status offline" id="server-status">Connecting...</span>
+      <div class="nav-brand">
+        Context <span>Engine</span>
+        <span class="nav-version">v0.2</span>
+      </div>
+      <div class="nav-tabs">
+        <button class="tab-btn active"  onclick="switchTab('dashboard',this)">Dashboard</button>
+        <button class="tab-btn"         onclick="switchTab('skills',this)">Skills</button>
+        <button class="tab-btn"         onclick="switchTab('modes',this)">Modes</button>
+        <button class="tab-btn"         onclick="switchTab('memory',this)">Memory</button>
+        <button class="tab-btn"         onclick="switchTab('config',this)">Soul &amp; Rules</button>
+        <button class="tab-btn"         onclick="switchTab('compile',this)">Compile</button>
+      </div>
+      <div class="nav-end"><span class="server-status offline" id="server-status">Connecting...</span></div>
     </div>
   </nav>
 
@@ -36,73 +41,72 @@
     <!-- DASHBOARD -->
     <div id="dashboard-tab" class="tab-panel active">
       <div class="simple-page"><div class="simple-inner wide">
-        <div class="section-hdr">
-          <h2>System Dashboard</h2>
-          <p>Real-time orchestrator status, context budget, and automated skill discovery.</p>
-        </div>
-
-        <div class="stats" style="margin-bottom: 32px;">
-          <div class="stat"><div class="stat-n" id="db-stat-total">0</div><div class="stat-l">Skills Found</div></div>
-          <div class="stat g"><div class="stat-n" id="db-stat-active">0</div><div class="stat-l">Active</div></div>
-          <div class="stat a"><div class="stat-n" id="db-stat-budget">0%</div><div class="stat-l">Context Full</div></div>
+        <div class="stat-strip" id="db-stats">
+          <div class="stat-chip"><span class="sc-value" id="db-stat-total">0</span><span class="sc-label">Skills</span></div>
+          <div class="stat-chip g"><span class="sc-value" id="db-stat-active">0</span><span class="sc-label">Active</span></div>
+          <div class="stat-chip p"><span class="sc-value" id="db-stat-connections">0</span><span class="sc-label">Connections</span></div>
+          <div class="stat-chip"><span class="sc-value" id="db-stat-modes">0</span><span class="sc-label">Modes</span></div>
+          <div class="stat-chip a"><span class="sc-value" id="db-stat-budget">0%</span><span class="sc-label">Context</span></div>
+          <div class="stat-chip"><span class="sc-value" id="db-stat-rules-tokens">0</span><span class="sc-label">Rules Tokens</span></div>
+          <div class="stat-chip"><span class="sc-value" id="db-stat-memory-tokens">0</span><span class="sc-label">Memory Tokens</span></div>
         </div>
 
         <div class="db-row">
-          <div class="db-card flex1">
-            <div class="db-card-hdr">
-              <span class="db-card-title">Context Orchestration</span>
-              <span class="db-card-sub">Estimated tokens loaded into agents per session</span>
+          <section class="section-block flex1">
+            <div class="sb-header">
+              <span class="sb-title">Context Orchestration</span>
+              <span class="sb-sub">Estimated tokens loaded into agents per session</span>
             </div>
             <div class="budget-bar"><div class="budget-fill" id="db-budget-bar" style="width:0%"></div></div>
             <div class="budget-label" id="db-budget-label">-</div>
             <div class="budget-detail" id="db-budget-detail"></div>
-          </div>
-          
-          <div class="db-card flex1">
-            <div class="db-card-hdr">
-              <span class="db-card-title">Orchestrator Control</span>
-              <span class="db-card-sub">Automated discovery and state management</span>
+          </section>
+
+          <section class="section-block flex1">
+            <div class="sb-header">
+              <span class="sb-title">Orchestrator Control</span>
+              <span class="sb-sub">Automated discovery and state management</span>
             </div>
             <div class="db-card-actions" style="margin-top: 20px;">
               <button class="save-btn" onclick="DashboardTab.discover()">Discover Skills</button>
               <button class="fb" onclick="DashboardTab.regenCONTEXTmd()">Regen CONTEXT.md</button>
               <button class="fb" onclick="DashboardTab.backup()">Backup Now</button>
             </div>
-          </div>
+          </section>
         </div>
 
-        <div class="db-card">
-          <div class="db-card-hdr">
-            <span class="db-card-title">CONTEXT.md Context Preview</span>
-            <span class="db-card-sub">The active manifest read by the AI model at session start</span>
+        <section class="section-block">
+          <div class="sb-header">
+            <span class="sb-title">CONTEXT.md Preview</span>
+            <span class="sb-sub">The active manifest read by the AI model at session start</span>
           </div>
           <pre class="context-preview" id="db-context-preview">Loading context...</pre>
-        </div>
+        </section>
 
         <div class="db-row">
-          <div class="db-card flex1">
-            <div class="db-card-hdr">
-              <span class="db-card-title">Skill Health Monitor</span>
-              <span class="db-card-sub">Automated integrity check for skill definitions</span>
+          <section class="section-block flex1">
+            <div class="sb-header">
+              <span class="sb-title">Skill Health Monitor</span>
+              <span class="sb-sub">Automated integrity check for skill definitions</span>
             </div>
             <div id="db-health-list"><div class="db-empty">Initializing monitor...</div></div>
-          </div>
-          <div class="db-card flex1">
-            <div class="db-card-hdr">
-              <span class="db-card-title">Session Intelligence</span>
-              <span class="db-card-sub">Activity log and system events</span>
+          </section>
+          <section class="section-block flex1">
+            <div class="sb-header">
+              <span class="sb-title">Session Intelligence</span>
+              <span class="sb-sub">Activity log and system events</span>
             </div>
             <div id="db-session-log"><div class="db-empty">Listening for events...</div></div>
-          </div>
+          </section>
         </div>
 
-        <div class="db-card">
-          <div class="db-card-hdr">
-            <span class="db-card-title">State Archive</span>
-            <span class="db-card-sub">Available snapshots of your configuration</span>
+        <section class="section-block">
+          <div class="sb-header">
+            <span class="sb-title">State Archive</span>
+            <span class="sb-sub">Available snapshots of your configuration</span>
           </div>
-          <div id="db-backups-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px;"></div>
-        </div>
+          <div id="db-backups-list" style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;"></div>
+        </section>
       </div></div>
     </div>
 
@@ -112,30 +116,43 @@
         <div class="skills-main-area">
           <div class="skills-scroll" id="skills-main">
             <div class="toolbar">
-              <input class="search" id="skills-search" type="text" placeholder="Search skills...">
-              <div class="filters">
-                <button class="fb on" onclick="SkillsTab.setFilter('all',this)">All</button>
-                <button class="fb" onclick="SkillsTab.setFilter('active',this)">On</button>
-                <button class="fb" onclick="SkillsTab.setFilter('inactive',this)">Off</button>
+              <div class="search-group">
+                <div class="search-wrap">
+                  <input class="search" id="skills-search" type="text" placeholder="Search skills...">
+                  <div class="search-suggest" id="search-suggest"></div>
+                </div>
+                <div class="filters">
+                  <button class="fb on" onclick="SkillsTab.setFilter('all',this)">All</button>
+                  <button class="fb" onclick="SkillsTab.setFilter('active',this)">Active</button>
+                  <button class="fb" onclick="SkillsTab.setFilter('inactive',this)">Inactive</button>
+                </div>
+                <div class="view-toggle">
+                  <button class="view-btn on" id="btn-grid" title="Card view" onclick="SkillsTab.setView('grid')">
+                    <svg viewBox="0 0 14 14"><rect x="0" y="0" width="6" height="6"/><rect x="8" y="0" width="6" height="6"/><rect x="0" y="8" width="6" height="6"/><rect x="8" y="8" width="6" height="6"/></svg>
+                  </button>
+                  <button class="view-btn" id="btn-list" title="List view" onclick="SkillsTab.setView('list')">
+                    <svg viewBox="0 0 14 14"><rect x="0" y="1" width="14" height="2"/><rect x="0" y="6" width="14" height="2"/><rect x="0" y="11" width="14" height="2"/></svg>
+                  </button>
+                </div>
               </div>
-              <div class="ingest-wrap" title="Add a skill repository from GitHub">
-                <input class="ingest-mini-input" id="ingest-url" type="text" placeholder="Connect GitHub Repo..." onkeypress="if(event.key==='Enter') SkillsTab.ingest()">
-                <button class="ingest-mini-btn" id="btn-ingest" title="Import" onclick="SkillsTab.ingest()">
-                  <svg viewBox="0 0 16 16" width="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 8h6M8 5v6"/><circle cx="8" cy="8" r="7"/></svg>
-                </button>
-              </div>
-              <div class="view-toggle">
-                <button class="view-btn on" id="btn-grid" title="Grid view" onclick="SkillsTab.setView('grid')">
-                  <svg viewBox="0 0 14 14"><rect x="0" y="0" width="6" height="6"/><rect x="8" y="0" width="6" height="6"/><rect x="0" y="8" width="6" height="6"/><rect x="8" y="8" width="6" height="6"/></svg>
-                </button>
+              <div class="ingest-col">
+                <div class="ingest-wrap" title="Add a skill repository from GitHub">
+                  <input class="ingest-mini-input" id="ingest-url" type="text" placeholder="Connect GitHub Repo..." onkeypress="if(event.key==='Enter') SkillsTab.ingest()">
+                  <button class="ingest-mini-btn" id="btn-ingest" title="Import" onclick="SkillsTab.ingest()">
+                    <svg viewBox="0 0 16 16" width="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 8h6M8 5v6"/><circle cx="8" cy="8" r="7"/></svg>
+                  </button>
+                </div>
+                <div class="skills-ingest-suggest">
+                  <span class="suggest-lbl">Recommended:</span>
+                  <button class="suggest-pill" onclick="SkillsTab.quickAdd('anthropics/skills')">Anthropic</button>
+                  <button class="suggest-pill" onclick="SkillsTab.quickAdd('openai/skills')">OpenAI</button>
+                  <button class="suggest-pill" onclick="SkillsTab.quickAdd('mattpocock/skills')">Matt Pocock</button>
+                  <span class="suggest-lbl" style="margin-left:8px">Tools:</span>
+                  <button class="suggest-pill" onclick="SkillsTab.parseDescriptions()" title="Use LLM to parse descriptions for skills without frontmatter">Parse All</button>
+                </div>
               </div>
             </div>
-            <div class="skills-ingest-suggest" style="margin-top: -12px; margin-bottom: 24px;">
-              <span class="suggest-lbl">Marketplace:</span>
-              <button class="suggest-pill" onclick="SkillsTab.quickAdd('openai/skills')">OpenAI</button>
-              <button class="suggest-pill" onclick="SkillsTab.quickAdd('vercel-labs/skills')">Vercel</button>
-              <button class="suggest-pill" onclick="SkillsTab.quickAdd('mattpocock/skills')">Matt Pocock</button>
-            </div>
+            <div class="category-bar" id="category-bar"></div>
             <div class="bulk-bar" id="bulk-bar" style="display:none">
               <span class="bulk-count">0 selected</span>
               <button class="fb" onclick="SkillsTab.selectAll()">Select All</button>
@@ -154,22 +171,25 @@
       <div class="simple-page"><div class="simple-inner wide">
         <div class="section-hdr">
           <h2>Modes</h2>
-          <p>One-click presets that activate the right skill groups for your current context. Toggles are adjustable afterwards.</p>
+          <p>One-click presets that activate the right skill groups for your current context.</p>
         </div>
-        <div id="modes-list" class="modes-grid"></div>
+        <div class="modes-toolbar">
+          <button class="save-btn" onclick="ModesTab.createNew()">+ New Mode</button>
+        </div>
+        <div id="modes-list" class="modes-list"></div>
       </div></div>
     </div>
 
     <!-- MEMORY -->
     <div id="memory-tab" class="tab-panel">
-      <div class="simple-page"><div class="simple-inner">
+      <div class="simple-page"><div class="simple-inner wide">
         <div class="section-hdr">
           <h2>Memory</h2>
           <p>What agents know about you. Edits write to <code>data\memory.json</code></p>
         </div>
         <div id="memory-list" class="memory-list"></div>
         <div class="add-memory">
-          <input class="add-input" id="memory-add-input" type="text" placeholder="Add a memory entry — press Enter to save">
+          <input class="add-input" id="memory-add-input" type="text" placeholder="Add a memory entry -- press Enter to save">
           <button class="add-btn" onclick="MemoryTab.addEntry()">+ Add</button>
         </div>
         <div class="save-bar"><span class="saved-msg" id="memory-saved">Saved to disk</span></div>
@@ -191,6 +211,29 @@
           <button class="save-btn ghost" onclick="ConfigTab.reset()">Reset defaults</button>
           <button class="save-btn" onclick="ConfigTab.save()">Save changes</button>
         </div>
+
+        <hr class="section-divider">
+
+        <div class="section-block">
+          <div class="sb-header">
+            <span class="sb-title">API Keys</span>
+            <span class="sb-sub">Keys are encrypted at rest. Used for optional features like LLM skill parsing.</span>
+          </div>
+          <div class="api-key-row">
+            <label class="api-key-label">Anthropic API Key</label>
+            <div class="api-key-input-wrap">
+              <input class="api-key-input" id="anthropic-api-key" type="password" placeholder="sk-ant-..." autocomplete="off">
+              <button class="fb small" onclick="ConfigTab.toggleKeyVisibility('anthropic-api-key')" title="Show/hide">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+            <div class="api-key-actions">
+              <button class="save-btn small" onclick="ConfigTab.saveApiKey()">Save Key</button>
+              <button class="fb small danger" onclick="ConfigTab.removeApiKey()">Remove</button>
+            </div>
+            <span class="api-key-status" id="api-key-status"></span>
+          </div>
+        </div>
       </div></div>
     </div>
 
@@ -199,38 +242,85 @@
       <div class="simple-page"><div class="simple-inner wide">
         <div class="section-hdr">
           <h2>Cross-Tool Compiler</h2>
-          <p>Compile your context for multiple AI tools from a single source of truth.</p>
+          <p>Deploy your context configuration to every AI coding tool on your system.</p>
         </div>
 
-        <div class="db-card">
-          <div class="db-card-hdr">
-            <span class="db-card-title">Target Formats</span>
-            <span class="db-card-sub">Select which tools to compile for</span>
+
+        <section class="section-block">
+          <div class="sb-header">
+            <span class="sb-title">Detected Tools</span>
+            <span class="sb-sub">Auto-scanned your system for installed AI coding tools</span>
           </div>
-          <div id="compile-targets" class="compile-targets"></div>
-          <div class="compile-actions" style="margin-top:20px;">
-            <button class="save-btn" onclick="CompileTab.compile()">Compile &amp; Write</button>
-            <button class="fb" onclick="CompileTab.preview()">Preview Only</button>
+          <div id="compile-tools-grid" class="compile-tools-grid"></div>
+        </section>
+
+        <hr class="section-divider">
+
+        <section class="section-block">
+          <div class="sb-header">
+            <span class="sb-title">Deploy Strategy</span>
+            <span class="sb-sub">Choose how to deploy your configuration</span>
           </div>
-        </div>
+          <div class="compile-strategy-cards">
+            <div class="strategy-option" id="strategy-global" onclick="CompileTab.selectStrategy('global')">
+              <h4>Global Install</h4>
+              <p>Write rules to your home directory. Every project inherits them.</p>
+              <button class="save-btn" onclick="event.stopPropagation(); CompileTab.installAllDetected()">Install All Globally</button>
+            </div>
+            <div class="strategy-option" id="strategy-workspace" onclick="CompileTab.selectStrategy('workspace')">
+              <h4>Per-Project</h4>
+              <p>Write tool-specific files into registered project folders.</p>
+              <button class="fb" onclick="event.stopPropagation(); CompileTab.preview()">Preview Output</button>
+            </div>
+          </div>
+        </section>
+
+        <hr class="section-divider">
+
+        <section class="section-block">
+          <div class="sb-header">
+            <span class="sb-title">Project Workspaces</span>
+            <span class="sb-sub">Register project directories for per-project compilation</span>
+          </div>
+          <div id="compile-workspaces-list"></div>
+          <div class="compile-ws-add" style="margin-top:16px;">
+            <input id="ws-path-input" class="add-input" type="text" placeholder="E:\Projects\my-app" onkeypress="if(event.key==='Enter') CompileTab.addWorkspace()">
+            <input id="ws-label-input" class="add-input" type="text" placeholder="Label (optional)" style="max-width:200px">
+            <button class="add-btn" onclick="CompileTab.addWorkspace()">+ Add</button>
+          </div>
+          <div class="compile-actions" style="margin-top:16px;">
+            <button class="save-btn" onclick="CompileTab.compileAllWorkspaces()">Compile All Workspaces</button>
+          </div>
+        </section>
 
         <div id="compile-summary" class="compile-summary"></div>
 
-        <div class="db-card" id="compile-preview-card" style="display:none">
-          <div class="db-card-hdr">
-            <span class="db-card-title">Output Preview</span>
+        <section class="section-block" id="compile-preview-card" style="display:none">
+          <div class="sb-header">
+            <span class="sb-title">Output Preview</span>
           </div>
           <div id="compile-preview-tabs" class="compile-preview-tabs"></div>
           <pre class="context-preview" id="compile-preview-content" style="max-height:500px"></pre>
-        </div>
+        </section>
       </div></div>
     </div>
 
   </div>
 </div>
 
+<!-- Side Panel -->
+<div class="side-panel-overlay" id="side-panel-overlay"></div>
+<aside class="side-panel" id="side-panel">
+  <div class="sp-header">
+    <h3 class="sp-title" id="sp-title"></h3>
+    <button class="sp-close" id="sp-close" onclick="SidePanel.close()">&times;</button>
+  </div>
+  <div class="sp-body" id="sp-body"></div>
+</aside>
+
 <script src="data.js"></script>
 <script src="store.js"></script>
+<script src="panel.js"></script>
 <script src="skills.js"></script>
 <script src="memory.js"></script>
 <script src="config.js"></script>
@@ -247,7 +337,14 @@ function switchTab(name, btn) {
 }
 function animateCount(el, target) {
   const dur = 700, t0 = performance.now();
-  const tick = now => { const p = Math.min((now-t0)/dur,1); el.textContent = Math.round(target*(1-Math.pow(1-p,3))); if(p<1) requestAnimationFrame(tick); };
+  const isPercent = typeof target === 'string' && target.includes('%');
+  const num = isPercent ? parseInt(target) : target;
+  const suffix = isPercent ? '%' : '';
+  const tick = now => {
+    const p = Math.min((now-t0)/dur,1);
+    el.textContent = Math.round(num*(1-Math.pow(1-p,3))) + suffix;
+    if(p<1) requestAnimationFrame(tick);
+  };
   requestAnimationFrame(tick);
 }
 async function boot() {
@@ -262,13 +359,6 @@ async function boot() {
   DashboardTab.init();
   ModesTab.init();
   if (typeof CompileTab !== 'undefined') CompileTab.init();
-  setTimeout(() => {
-    [['stat-total', SKILL_DATA.length],
-     ['stat-active', SKILL_DATA.filter(s => SS.active(s.id)).length],
-     ['stat-custom', SKILL_DATA.filter(s => s.type==='custom').length],
-     ['stat-builtin', SKILL_DATA.filter(s => s.type==='builtin').length]
-    ].forEach(([id,val]) => animateCount(document.getElementById(id), val));
-  }, 200);
   document.getElementById('loader').classList.add('hidden');
 }
 boot();
