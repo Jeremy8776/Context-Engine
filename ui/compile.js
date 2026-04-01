@@ -32,8 +32,6 @@ const CompileTab = (() => {
     kimi:         { label: 'Kimi K2',          color: '#6366f1' },
   };
 
-  function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
   function highlightStep(n) {
     currentStep = n;
     document.querySelectorAll('.cs-step').forEach(el => {

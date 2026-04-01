@@ -569,10 +569,13 @@ function buildContext(opts) {
   const allSkills = Object.values(SKILL_MAP);
   const activeSkills = allSkills.filter(s => stateMap[s.id] !== false);
 
-  // Read skill file content for formats that inline it
+  // Read skill file content and compute relative paths for output formats
+  const skillsDir = opts.skillsDir || path.join(dataDir, '..', 'skills');
+  const rootDir = opts.skillsDir ? path.dirname(opts.skillsDir) : path.join(dataDir, '..');
   activeSkills.forEach(s => {
     try { s.skillContent = fs.readFileSync(s.path, 'utf8'); }
     catch { s.skillContent = ''; }
+    s.relativePath = path.relative(rootDir, s.path).replace(/\\/g, '/');
   });
 
   return {

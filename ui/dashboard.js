@@ -9,8 +9,6 @@ const SESS_ICONS = {
 const HEALTH_SVG = `<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="2 7 5.5 11 12 3"/></svg>`;
 
 const DashboardTab = (() => {
-  function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
   async function init() {
     const bar = document.getElementById('db-budget-bar');
     const lbl = document.getElementById('db-budget-label');

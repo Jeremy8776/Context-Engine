@@ -100,9 +100,8 @@ const MemoryTab = (() => {
     document.getElementById('memory-list').lastElementChild?.scrollIntoView({ behavior: 'smooth' });
   }
 
-  function escHtml(str) {
-    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
+  // Use global esc() from utils.js — alias for backward compatibility
+  const escHtml = esc;
 
   function flash(id) {
     const el = document.getElementById(id);

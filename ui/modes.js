@@ -41,8 +41,6 @@ const ModesTab = (() => {
     }).join('');
   }
 
-  function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
   // ---- SIDE PANEL: VIEW DETAIL ----
   function openDetail(modeId) {
     const mode = modes.find(m => m.id === modeId);
