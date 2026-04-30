@@ -3,7 +3,7 @@
 const path = require('path');
 const os   = require('os');
 
-const PORT     = parseInt(process.env.CE_PORT, 10) || 3847;
+const PORT     = parseInt(process.env.CE_PORT || process.env.PORT, 10) || 3847;
 const ROOT     = process.env.CE_ROOT || path.join(__dirname, '..', '..', '..');
 const DATA_DIR = path.join(ROOT, 'data');
 const UI_DIR   = path.join(__dirname, '..', '..', 'ui');
@@ -20,6 +20,7 @@ const SKILL_CACHE_FILE = path.join(DATA_DIR, 'skill-parse-cache.json');
 const MIME = {
   '.html': 'text/html', '.js': 'application/javascript',
   '.css': 'text/css',   '.json': 'application/json',
+  '.svg': 'image/svg+xml',
 };
 
 module.exports = {

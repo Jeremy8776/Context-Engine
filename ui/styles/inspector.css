@@ -1,0 +1,209 @@
+/* inspector.css — side rail. Replaces modal panel with persistent dock.
+   Keeps legacy `.side-panel` / `#side-panel` IDs so JS (panel.js) works. */
+
+.side-panel-overlay {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  backdrop-filter: none;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: var(--z-rail);
+  transition: opacity var(--out), visibility var(--out);
+}
+.side-panel-overlay.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.side-panel {
+  position: fixed;
+  top: calc(var(--side-panel-top, var(--top-h)) + 18px);
+  right: var(--rail-inset);
+  bottom: 18px;
+  width: min(calc(var(--rail-w) - var(--rail-inner-gutter)), calc(100vw - var(--rail-max-gutter)));
+  max-width: calc(100vw - var(--rail-max-gutter));
+  background: var(--bg-raised);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-3);
+  z-index: calc(var(--z-rail) + 1);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform var(--spring);
+  box-shadow: -24px 0 64px -16px rgba(0, 0, 0, 0.6);
+}
+.side-panel.open { transform: translateX(0); }
+
+.sp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--s-4) var(--s-6);
+  border-bottom: 1px solid var(--line);
+  gap: var(--s-3);
+  flex-shrink: 0;
+}
+.sp-title {
+  font-family: var(--display);
+  font-variation-settings: 'opsz' 24, 'wght' 500;
+  font-size: var(--fs-07);
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: var(--tr-tight);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.sp-close {
+  width: 32px; height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: var(--text-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-1);
+  line-height: 1;
+  transition: all var(--out);
+  flex-shrink: 0;
+}
+.sp-close:hover {
+  color: var(--text);
+  border-color: var(--line-2);
+  background: var(--bg-hover);
+}
+
+.sp-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--s-6);
+}
+
+.sp-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+.sp-status {
+  display: flex;
+  align-items: center;
+  padding: var(--s-3) var(--s-4);
+  background: var(--bg-sunken);
+  border: 1px solid var(--line);
+  border-radius: var(--r-1);
+}
+
+.sp-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding-bottom: var(--s-4);
+  border-bottom: 1px solid var(--line);
+}
+.sp-field:last-child { border-bottom: none; }
+
+.sp-field label {
+  font-family: var(--mono);
+  font-size: var(--fs-01);
+  font-weight: 500;
+  color: var(--text-3);
+  letter-spacing: var(--tr-wide);
+  text-transform: uppercase;
+}
+.sp-field p {
+  font-family: var(--sans);
+  font-size: var(--fs-04);
+  color: var(--text);
+  line-height: 1.6;
+  letter-spacing: var(--tr-body);
+}
+.sp-field span,
+.sp-field div {
+  font-size: var(--fs-03);
+  color: var(--text-2);
+}
+.sp-field code {
+  font-family: var(--mono);
+  font-size: var(--fs-02);
+  color: var(--text-2);
+  background: var(--bg-sunken);
+  padding: 2px 6px;
+  border-radius: var(--r-1);
+  border: 1px solid var(--line);
+  word-break: break-all;
+  display: inline-block;
+}
+
+.sp-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding-bottom: var(--s-5);
+  border-bottom: 1px solid var(--line);
+}
+.sp-section h4 {
+  font-family: var(--mono);
+  font-size: var(--fs-01);
+  font-weight: 500;
+  color: var(--text-3);
+  letter-spacing: var(--tr-wide);
+  text-transform: uppercase;
+}
+
+.sp-skill-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--r-1);
+  padding: 4px;
+}
+.sp-skill-item,
+.sp-skill-toggle,
+.sp-mcp-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: 6px var(--s-3);
+  font-size: var(--fs-03);
+  color: var(--text);
+  border-radius: var(--r-1);
+  transition: background var(--out);
+}
+.sp-skill-toggle { cursor: pointer; }
+.sp-skill-toggle:hover,
+.sp-skill-item:hover { background: var(--bg-hover); }
+
+.sp-actions {
+  display: flex;
+  gap: var(--s-3);
+  align-items: center;
+  padding-top: var(--s-4);
+  margin-top: var(--s-2);
+  border-top: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+
+/* "Mode skill tag" chip used in mode detail view */
+.mode-skill-tag {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--mono);
+  font-size: var(--fs-01);
+  font-weight: 500;
+  color: var(--accent);
+  padding: 2px 6px;
+  background: var(--accent-bg);
+  border: 1px solid var(--line-accent);
+  border-radius: var(--r-1);
+  letter-spacing: var(--tr-body);
+  margin: 2px;
+}

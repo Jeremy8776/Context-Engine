@@ -1,0 +1,453 @@
+/* surface-final.css -- app-wide card surfaces. Loaded last by design. */
+
+:root {
+  --side-w-mini: 64px;
+}
+
+.app {
+  transition: grid-template-columns var(--out);
+}
+
+:root[data-nav="full"] .app,
+.app[data-nav="full"] {
+  grid-template-columns: 248px minmax(0, 1fr);
+}
+
+:root[data-nav="mini"] .app,
+.app[data-nav="mini"] {
+  grid-template-columns: var(--side-w-mini) minmax(0, 1fr);
+}
+
+.nav-brand {
+  gap: 10px;
+  height: var(--shell-divider-h);
+  min-height: var(--shell-divider-h);
+}
+
+.nav-brand .nav-crumbs {
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.nav-brand .nav-crumbs span:first-child {
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav-brand .nav-crumbs .here {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.nav-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  margin: 0 -4px 0 0;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--text-3);
+  background: transparent;
+  transition: color var(--out), background var(--out), border-color var(--out);
+  flex: 0 0 auto;
+}
+
+.nav-toggle svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.nav-toggle:hover {
+  border-color: var(--soft-line);
+  background: var(--bg-elevated);
+  color: var(--text);
+}
+
+[hidden],
+.modes-create-shortcut[hidden] {
+  display: none;
+}
+
+:root[data-nav="mini"] .nav-brand,
+.app[data-nav="mini"] .nav-brand {
+  justify-content: center;
+  padding: 0 8px;
+}
+
+#skills-tab .skills-layout {
+  grid-template-rows: var(--shell-divider-h) minmax(0, 1fr);
+}
+
+#skills-tab .toolbar {
+  min-height: var(--shell-divider-h);
+  padding-top: 0;
+  padding-bottom: 0;
+  align-items: center;
+}
+
+:root[data-nav="mini"] .nav-brand::before,
+.app[data-nav="mini"] .nav-brand::before,
+:root[data-nav="mini"] .nav-crumbs,
+.app[data-nav="mini"] .nav-crumbs {
+  display: none;
+}
+
+:root[data-nav="mini"] .nav-toggle,
+.app[data-nav="mini"] .nav-toggle {
+  margin: 0;
+}
+
+:root[data-nav="mini"] .nav-tabs,
+.app[data-nav="mini"] .nav-tabs {
+  align-items: center;
+  padding: 12px 8px;
+}
+
+:root[data-nav="mini"] .tab-btn,
+.app[data-nav="mini"] .tab-btn {
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  gap: 0;
+}
+
+:root[data-nav="mini"] .tab-btn::after,
+.app[data-nav="mini"] .tab-btn::after {
+  left: -8px;
+}
+
+:root[data-nav="mini"] .tab-btn::before,
+.app[data-nav="mini"] .tab-btn::before {
+  display: none;
+}
+
+:root[data-nav="mini"] .nav-icon,
+.app[data-nav="mini"] .nav-icon {
+  width: 18px;
+  height: 18px;
+}
+
+:root[data-nav="mini"] .nav-text,
+.app[data-nav="mini"] .nav-text {
+  display: none;
+}
+
+:root[data-nav="mini"] .nav-end,
+.app[data-nav="mini"] .nav-end {
+  align-items: center;
+  padding: 10px 8px 14px;
+}
+
+:root[data-nav="mini"] .server-status,
+.app[data-nav="mini"] .server-status {
+  justify-content: center;
+  width: 42px;
+  height: 38px;
+  padding: 0;
+  font-size: 0;
+  gap: 0;
+}
+
+.keyline,
+.section-block,
+.hero-stat,
+.stat-strip,
+.integration-primary,
+.integrations-layout > section,
+#memory-tab .memory-sidebar,
+#memory-tab .memory-results,
+#memory-tab .memory-detail,
+.compile-summary {
+  border: 1px solid var(--soft-line);
+  border-radius: var(--r-3);
+  background: var(--bg-card);
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.keyline,
+.section-block,
+.integration-primary,
+.integrations-layout > section {
+  padding: 18px;
+}
+
+.keyline-head,
+.surface-head,
+.memory-detail-head,
+.memory-detail-actions {
+  border-color: var(--soft-line-2);
+}
+
+.integrations-layout {
+  gap: 16px;
+}
+
+.workflow-card,
+.mcp-row,
+.sync-card,
+.market-card,
+.mode-card,
+.skill-row,
+.memory-item,
+.backup-item {
+  border-color: var(--soft-line);
+  border-radius: var(--r-3);
+  background: var(--bg-card);
+  box-shadow: none;
+}
+
+#memory-tab .memory-workbench {
+  gap: 14px;
+}
+
+#memory-tab .memory-sidebar,
+#memory-tab .memory-results,
+#memory-tab .memory-detail {
+  border-bottom: 1px solid var(--soft-line);
+}
+
+.compile-tools-grid,
+.compile-strategy-cards,
+#compile-workspaces-list {
+  gap: 12px;
+  border: 0;
+}
+
+.compile-tool,
+.strategy-option,
+.compile-ws-item {
+  border: 1px solid var(--soft-line);
+  border-radius: var(--r-3);
+  background: var(--bg-card);
+}
+
+.compile-tool {
+  min-height: 118px;
+}
+
+.compile-tool:hover,
+.strategy-option:hover,
+.compile-ws-item:hover {
+  background: var(--accent-bg);
+  border-color: var(--accent-line);
+}
+
+.strategy-option:last-child {
+  border-right: 1px solid var(--soft-line);
+}
+
+#compile-workspaces-list {
+  display: grid;
+}
+
+.compile-ws-item {
+  padding: var(--s-4);
+}
+
+.side-panel,
+.memory-modal,
+.app-dialog,
+.toast {
+  border-radius: var(--r-3);
+}
+
+.side-panel {
+  transform: translateX(calc(100% + var(--rail-offscreen-extra)));
+  pointer-events: none;
+}
+
+.side-panel.open {
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.mode-detail-actions {
+  bottom: 0;
+  margin: 4px -18px 0;
+}
+
+.mode-card.selected {
+  border-color: var(--accent-line);
+  background: var(--accent-bg);
+}
+
+#skills-tab .skill-group-header,
+.skill-group-header {
+  position: static;
+  top: auto;
+  z-index: auto;
+  background: transparent;
+  backdrop-filter: none;
+}
+
+#memory-tab {
+  overflow: hidden;
+}
+
+#memory-tab .simple-page {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#memory-tab .simple-inner,
+#memory-tab .memory-list,
+#memory-tab .memory-workbench {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#memory-tab .simple-inner {
+  display: flex;
+  flex-direction: column;
+}
+
+#memory-tab .memory-toolbar {
+  flex: 0 0 auto;
+}
+
+#memory-tab .memory-list {
+  flex: 1 1 auto;
+}
+
+#memory-tab .memory-workbench {
+  align-items: stretch;
+}
+
+#memory-tab .memory-results {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: none;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+#memory-tab .memory-sidebar,
+#memory-tab .memory-detail {
+  position: relative;
+  top: auto;
+  align-self: stretch;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  z-index: var(--z-base);
+}
+
+#memory-tab .memory-sidebar {
+  overflow: visible;
+}
+
+#memory-tab .memory-detail {
+  overflow: hidden;
+}
+
+#memory-tab .memory-results-scroll {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--s-2);
+  min-height: 0;
+  overflow: auto;
+  padding: var(--s-3);
+}
+
+#memory-tab .memory-pagination {
+  display: grid;
+  align-items: center;
+  grid-template-columns: 1fr auto auto auto 1fr;
+  gap: var(--s-3);
+  flex: 0 0 auto;
+  min-height: 48px;
+  padding: var(--s-2) var(--s-3);
+  border-top: 1px solid var(--soft-line-2);
+  color: var(--text-3);
+  font-family: var(--mono);
+  font-size: var(--fs-02);
+}
+
+#memory-tab .memory-pagination > span:first-child {
+  justify-self: start;
+}
+
+#memory-tab .memory-pagination > .mem-btn:first-of-type {
+  justify-self: end;
+}
+
+#memory-tab .memory-pagination > .mem-btn:last-of-type {
+  justify-self: start;
+}
+
+#memory-tab .memory-page-count {
+  color: var(--text-4);
+  justify-self: center;
+  white-space: nowrap;
+}
+
+#memory-tab .memory-pagination .mem-btn {
+  align-items: center;
+  min-height: 30px;
+}
+
+#memory-tab .memory-pagination .mem-btn svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#memory-tab .memory-pagination .mem-btn:disabled {
+  cursor: default;
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+@media (max-width: 760px) {
+  .keyline,
+  .section-block,
+  .integration-primary,
+  .integrations-layout > section {
+    padding: 14px;
+  }
+
+  #memory-tab {
+    overflow-y: auto;
+  }
+
+  #memory-tab .simple-page,
+  #memory-tab .simple-inner,
+  #memory-tab .memory-list,
+  #memory-tab .memory-workbench,
+  #memory-tab .memory-sidebar,
+  #memory-tab .memory-results,
+  #memory-tab .memory-detail {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  #memory-tab .memory-results-scroll {
+    overflow: visible;
+  }
+
+  #memory-tab .memory-pagination {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+}

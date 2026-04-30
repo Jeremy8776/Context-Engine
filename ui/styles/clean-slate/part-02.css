@@ -1,0 +1,433 @@
+.market-card {
+  border-radius: var(--r-1);
+}
+
+.mcp-logo,
+.sync-logo {
+  background: var(--bg-sunken);
+  color: var(--text);
+  box-shadow: none;
+}
+
+.mcp-tools span,
+.mcp-status,
+.sync-status,
+.market-title span {
+  background: var(--bg);
+  border-color: var(--line);
+  color: var(--text-3);
+}
+
+.market-body {
+  padding: 14px;
+}
+
+.market-foot {
+  color: var(--text-3);
+}
+
+.server-status.online {
+  color: var(--ok);
+}
+
+.server-status.online::before {
+  box-shadow: none;
+  animation: none;
+}
+
+.nav-end {
+  align-items: center;
+  padding: 12px 0 18px;
+}
+
+.server-status {
+  width: 36px;
+  height: 36px;
+  justify-content: center;
+  padding: 0;
+  font-size: 0;
+}
+
+.server-status::before {
+  width: 7px;
+  height: 7px;
+}
+
+.skills-scroll {
+  padding: 22px 28px 56px;
+}
+
+.toolbar {
+  grid-template-columns: minmax(360px, 1fr) minmax(360px, auto);
+  align-items: start;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 0;
+}
+
+.search-wrap {
+  max-width: 448px;
+}
+
+.search,
+.add-input,
+.rules-textarea,
+.api-key-input,
+.ingest-mini-input {
+  background: var(--bg-glass-2);
+  min-height: 38px;
+}
+
+#skills-list {
+  border-left: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.skill-row {
+  grid-template-columns: minmax(240px, 0.36fr) minmax(280px, 1fr) minmax(180px, 0.32fr) auto;
+  grid-template-rows: auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 14px;
+}
+
+.skill-row .sr-header,
+.skill-row .sr-info,
+.skill-row .sr-tags {
+  grid-column: auto;
+}
+
+.skill-row .sr-header {
+  min-width: 0;
+}
+
+.skill-row .sr-info {
+  gap: 2px;
+}
+
+.skill-row .sr-desc {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+}
+
+.skill-row .sr-triggers {
+  display: none;
+}
+
+.sr-name {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.sr-tags {
+  justify-content: flex-start;
+  padding-top: 0;
+}
+
+.grid-mode .skills-container {
+  display: flex;
+}
+
+.grid-mode .skill-row {
+  border-right: none;
+}
+
+.skill-group-header {
+  top: auto;
+  background: var(--bg);
+  backdrop-filter: none;
+  padding: 9px 14px;
+}
+
+.mode-row,
+.memory-item,
+.compile-ws-row,
+.mcp-row,
+.sync-card,
+.market-card,
+.workflow-card {
+  background: var(--bg-raised);
+}
+
+.sync-grid,
+.market-grid {
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+@media (max-width: 900px) {
+  .dashboard-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .ops-pipeline,
+  .simple-budget {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+
+  .simple-page {
+    padding: 18px 16px 44px;
+  }
+
+  .nav {
+    min-width: 0;
+  }
+
+  .nav-tabs {
+    align-items: stretch;
+    padding: 8px;
+  }
+
+  .tab-btn {
+    min-width: 36px;
+  }
+
+  .tab-btn:hover::before {
+    display: none;
+  }
+
+  .toolbar,
+  .skill-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Memory final pass: applied after the AI Model DB role-model section. */
+#memory-tab {
+  overflow: hidden;
+}
+
+#memory-tab .simple-page {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: 22px 32px 28px;
+}
+
+#memory-tab .simple-inner {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+#memory-tab .memory-toolbar {
+  flex-shrink: 0;
+  margin-bottom: 14px;
+  padding-top: 0;
+}
+
+#memory-tab .memory-list {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#memory-tab .memory-workbench {
+  height: 100%;
+  min-height: 0;
+}
+
+#memory-tab .memory-sidebar {
+  position: relative;
+  top: 0;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+}
+
+#memory-tab .memory-results,
+#memory-tab .memory-detail {
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+}
+
+#memory-tab .add-memory,
+#memory-tab .save-bar {
+  display: none;
+}
+
+/* Final Memory overrides. Keep these last so older row/list rules cannot reintroduce page scroll or the bottom add bar. */
+#memory-tab {
+  overflow: hidden;
+}
+
+#memory-tab .simple-page {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: 22px 32px 28px;
+}
+
+#memory-tab .simple-inner {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+#memory-tab .memory-toolbar {
+  flex-shrink: 0;
+  margin-bottom: 14px;
+  padding-top: 0;
+}
+
+.memory-toolbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+}
+
+.memory-add-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.memory-add-open svg,
+.memory-modal .icon-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#memory-tab .memory-list {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#memory-tab .memory-workbench {
+  height: 100%;
+  min-height: 0;
+}
+
+#memory-tab .memory-sidebar {
+  position: relative;
+  top: 0;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+}
+
+#memory-tab .memory-results,
+#memory-tab .memory-detail {
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+}
+
+.add-memory,
+#memory-tab .save-bar {
+  display: none;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.66);
+}
+
+.modal-overlay.open {
+  display: flex;
+}
+
+.memory-modal {
+  width: min(620px, 100%);
+  border: 1px solid var(--soft-line);
+  border-radius: var(--r-3);
+  background: var(--bg-card);
+  box-shadow: 0 22px 80px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+
+.memory-modal-head,
+.memory-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.memory-modal-head {
+  border-bottom: 1px solid var(--soft-line-2);
+}
+
+.memory-modal-head h3 {
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+.memory-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+}
+
+.modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.modal-field > span {
+  color: var(--text-3);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.memory-modal-actions {
+  justify-content: flex-end;
+  border-top: 1px solid var(--soft-line-2);
+}
+
+@media (max-width: 760px) {
+  #memory-tab {
+    overflow-y: auto;
+  }
+
+  #memory-tab .simple-page,
+  #memory-tab .simple-inner,
+  #memory-tab .memory-list,
+  #memory-tab .memory-workbench,
+  #memory-tab .memory-sidebar,
+  #memory-tab .memory-results,
+  #memory-tab .memory-detail {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .memory-toolbar-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

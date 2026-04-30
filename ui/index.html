@@ -7,155 +7,229 @@
 <link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
+<script>
+try { document.documentElement.dataset.nav = localStorage.getItem('ce_nav_collapsed') === '1' ? 'mini' : 'full'; }
+catch { document.documentElement.dataset.nav = 'full'; }
+</script>
 </head>
 <body>
-
 <div class="loading-overlay" id="loader">
   <div class="loading-dots"><span></span><span></span><span></span></div>
   <div class="loading-text">Loading Context Engine</div>
 </div>
-
 <div class="app">
   <nav class="nav">
     <div class="nav-inner">
       <div class="nav-brand">
-        Context <span>Engine</span>
-        <span class="nav-version">v0.2</span>
+        <button class="nav-toggle" id="nav-toggle" type="button" title="Collapse navigation" aria-label="Collapse navigation" aria-expanded="true" onclick="toggleNavCollapse()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div class="crumbs nav-crumbs">
+          <span>Context Engine</span>
+          <span class="crumb-sep">&#8250;</span>
+          <span class="here" id="crumb-here">Context</span>
+        </div>
       </div>
       <div class="nav-tabs">
-        <button class="tab-btn active"  onclick="switchTab('dashboard',this)">Dashboard</button>
-        <button class="tab-btn"         onclick="switchTab('skills',this)">Skills</button>
-        <button class="tab-btn"         onclick="switchTab('modes',this)">Modes</button>
-        <button class="tab-btn"         onclick="switchTab('memory',this)">Memory</button>
-        <button class="tab-btn"         onclick="switchTab('config',this)">Soul &amp; Rules</button>
-        <button class="tab-btn"         onclick="switchTab('compile',this)">Compile</button>
+        <button class="tab-btn active" data-label="Context" title="Context" onclick="switchTab('dashboard',this)"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5"/><path d="M6.5 9.5V20h11V9.5"/><path d="M9.5 20v-6h5v6"/></svg></span><span class="nav-text">Context</span></button>
+        <button class="tab-btn" data-label="Skills" title="Skills" onclick="switchTab('skills',this)"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M14.5 5.5l4 4"/><path d="M12 8l4 4-7 7H5v-4l7-7z"/><path d="M4 6h5"/><path d="M6.5 3.5v5"/></svg></span><span class="nav-text">Skills</span></button>
+        <button class="tab-btn" data-label="Modes" title="Modes" onclick="switchTab('modes',this)"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M5 6h14M5 12h14M5 18h14"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="11" cy="18" r="2"/></svg></span><span class="nav-text">Modes</span></button>
+        <button class="tab-btn" data-label="Memory" title="Memory" onclick="switchTab('memory',this)"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M6 7c0-2 2.7-3.5 6-3.5S18 5 18 7s-2.7 3.5-6 3.5S6 9 6 7z"/><path d="M6 7v5c0 2 2.7 3.5 6 3.5s6-1.5 6-3.5V7"/><path d="M6 12v5c0 2 2.7 3.5 6 3.5s6-1.5 6-3.5v-5"/></svg></span><span class="nav-text">Memory</span></button>
+        <button class="tab-btn" data-label="Rules" title="Rules" onclick="switchTab('config',this)"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.4-2.8 8.1-7 10-4.2-1.9-7-5.6-7-10V6l7-3z"/><path d="M9 12l2 2 4-5"/></svg></span><span class="nav-text">Rules</span></button>
+        <button class="tab-btn" data-label="Outputs" title="Outputs" onclick="switchTab('compile',this)"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M5 5h6v6H5zM5 13h6v6H5z"/><path d="M14 7h3a2 2 0 0 1 2 2v8"/><path d="M16 15l3 3 3-3"/></svg></span><span class="nav-text">Outputs</span></button>
       </div>
-      <div class="nav-end"><span class="server-status offline" id="server-status">Connecting...</span></div>
+      <div class="nav-end">
+        <span class="server-status offline" id="server-status">Connecting</span>
+      </div>
     </div>
   </nav>
-
   <div class="content">
-
-    <!-- DASHBOARD -->
     <div id="dashboard-tab" class="tab-panel active">
       <div class="simple-page"><div class="simple-inner wide">
-        <div class="stat-strip" id="db-stats">
-          <div class="stat-chip"><span class="sc-value" id="db-stat-total">0</span><span class="sc-label">Skills</span></div>
-          <div class="stat-chip g"><span class="sc-value" id="db-stat-active">0</span><span class="sc-label">Active</span></div>
-          <div class="stat-chip p"><span class="sc-value" id="db-stat-connections">0</span><span class="sc-label">Connections</span></div>
-          <div class="stat-chip"><span class="sc-value" id="db-stat-modes">0</span><span class="sc-label">Modes</span></div>
-          <div class="stat-chip a"><span class="sc-value" id="db-stat-budget">0%</span><span class="sc-label">Context</span></div>
-          <div class="stat-chip"><span class="sc-value" id="db-stat-rules-tokens">0</span><span class="sc-label">Rules Tokens</span></div>
-          <div class="stat-chip"><span class="sc-value" id="db-stat-memory-tokens">0</span><span class="sc-label">Memory Tokens</span></div>
-        </div>
-
-        <div class="db-row">
-          <section class="section-block flex1">
-            <div class="sb-header">
-              <span class="sb-title">Context Orchestration</span>
-              <span class="sb-sub">Estimated tokens loaded into agents per session</span>
-            </div>
-            <div class="budget-bar"><div class="budget-fill" id="db-budget-bar" style="width:0%"></div></div>
-            <div class="budget-label" id="db-budget-label">-</div>
-            <div class="budget-detail" id="db-budget-detail"></div>
-          </section>
-
-          <section class="section-block flex1">
-            <div class="sb-header">
-              <span class="sb-title">Orchestrator Control</span>
-              <span class="sb-sub">Automated discovery and state management</span>
-            </div>
-            <div class="db-card-actions" style="margin-top: 20px;">
-              <button class="save-btn" onclick="DashboardTab.discover()">Discover Skills</button>
-              <button class="fb" onclick="DashboardTab.regenCONTEXTmd()">Regen CONTEXT.md</button>
-              <button class="fb" onclick="DashboardTab.backup()">Backup Now</button>
-            </div>
-          </section>
-        </div>
-
-        <section class="section-block">
-          <div class="sb-header">
-            <span class="sb-title">CONTEXT.md Preview</span>
-            <span class="sb-sub">The active manifest read by the AI model at session start</span>
+        <section class="dashboard-head dashboard-hero">
+          <div>
+            <span class="eyebrow">Context Engine</span>
+            <h1>Orchestrate skills, memory, and rules</h1>
+            <p id="db-context-status">Checking the shared source of truth that will be deployed to your AI tools.</p>
           </div>
-          <pre class="context-preview" id="db-context-preview">Loading context...</pre>
         </section>
 
-        <div class="db-row">
-          <section class="section-block flex1">
-            <div class="sb-header">
-              <span class="sb-title">Skill Health Monitor</span>
-              <span class="sb-sub">Automated integrity check for skill definitions</span>
+        <section class="dashboard-metrics" aria-label="Context summary">
+          <article class="dashboard-metric">
+            <span>Active skills</span>
+            <strong id="db-stat-active">0</strong>
+            <small><span id="db-stat-total">0</span> discovered</small>
+          </article>
+          <article class="dashboard-metric">
+            <span>Workflow</span>
+            <strong id="db-active-mode">Manual</strong>
+            <small><span id="db-stat-modes">0</span> presets available</small>
+          </article>
+          <article class="dashboard-metric">
+            <span>Tool targets</span>
+            <strong id="db-stat-connections">0</strong>
+            <small>detected tools</small>
+          </article>
+          <article class="dashboard-metric">
+            <span>Base manifest</span>
+            <strong id="db-stat-budget">0%</strong>
+            <small>before adapters</small>
+          </article>
+        </section>
+
+        <div class="dashboard-grid dashboard-run-grid">
+          <section class="dashboard-panel dashboard-panel-primary dashboard-run-panel">
+            <div class="dashboard-panel-head">
+              <div>
+                <span class="eyebrow">Workflows</span>
+                <h2>Apply a mode</h2>
+              </div>
             </div>
-            <div id="db-health-list"><div class="db-empty">Initializing monitor...</div></div>
+            <div class="dashboard-mode-list" id="db-mode-list">
+              <div class="db-empty">Loading modes&hellip;</div>
+            </div>
+            <p class="dashboard-note">Modes are reusable bundles of skills for a job. Edit them in Modes; apply them here.</p>
           </section>
-          <section class="section-block flex1">
-            <div class="sb-header">
-              <span class="sb-title">Session Intelligence</span>
-              <span class="sb-sub">Activity log and system events</span>
+
+          <section class="dashboard-panel">
+            <div class="dashboard-panel-head">
+              <div>
+                <span class="eyebrow">Deploy</span>
+                <h2>Push context to tools</h2>
+              </div>
             </div>
-            <div id="db-session-log"><div class="db-empty">Listening for events...</div></div>
+            <div class="dashboard-run-actions">
+              <button class="save-btn" onclick="DashboardTab.installGlobals()">Install Globals</button>
+              <button class="fb" onclick="DashboardTab.compileWorkspaces()">Compile Workspaces</button>
+              <button class="fb" onclick="DashboardTab.previewOutput()">Preview Output</button>
+            </div>
+            <p class="dashboard-note" id="db-output-status">Detected output targets will appear after the first scan.</p>
+            <div class="dashboard-token-list" id="db-output-tokens">
+              <div class="db-empty">Token estimates appear after preview</div>
+            </div>
           </section>
         </div>
 
-        <section class="section-block">
-          <div class="sb-header">
-            <span class="sb-title">State Archive</span>
-            <span class="sb-sub">Available snapshots of your configuration</span>
+        <div class="dashboard-grid">
+          <section class="dashboard-panel">
+            <div class="dashboard-panel-head">
+              <div>
+                <span class="eyebrow">Source of truth</span>
+                <h2>What the tools inherit</h2>
+              </div>
+            </div>
+            <div class="package-breakdown">
+              <div><span>Rules</span><strong id="db-rules-footprint">0 tokens</strong></div>
+              <div><span>Memory</span><strong id="db-memory-footprint">0 tokens</strong></div>
+              <div><span>Manifest</span><strong id="db-manifest-size">0 chars</strong></div>
+            </div>
+            <div class="budget-bar"><div class="budget-fill" id="db-budget-bar"></div></div>
+            <span class="budget-label" id="db-budget-label">Measuring base manifest&hellip;</span>
+          </section>
+
+          <section class="dashboard-panel">
+            <div class="dashboard-panel-head">
+              <div>
+                <span class="eyebrow">Maintain</span>
+                <h2>Improve the source</h2>
+              </div>
+            </div>
+            <div class="db-card-actions">
+              <button class="save-btn" onclick="DashboardTab.discover()">Scan Skills</button>
+              <button class="fb" onclick="DashboardTab.regenCONTEXTmd()">Rebuild Manifest</button>
+              <button class="fb" onclick="DashboardTab.backup()">Backup Source</button>
+            </div>
+            <p class="dashboard-note" id="db-compile-status">Manifest status will appear after the first check.</p>
+            <div class="dashboard-edit-links">
+              <button class="mem-btn" onclick="DashboardTab.openTab('skills')">Manage Skills</button>
+              <button class="mem-btn" onclick="DashboardTab.openTab('modes')">Manage Modes</button>
+              <button class="mem-btn" onclick="DashboardTab.openTab('memory')">Manage Memory</button>
+              <button class="mem-btn" onclick="DashboardTab.openTab('config')">Manage Rules</button>
+            </div>
+          </section>
+        </div>
+
+        <div class="dashboard-grid lower">
+          <section class="dashboard-panel">
+            <div class="dashboard-panel-head">
+              <div>
+                <span class="eyebrow">Health</span>
+                <h2>Skill library health</h2>
+              </div>
+              <span class="keyline-actions" id="db-health-summary"></span>
+            </div>
+            <div id="db-health-list"><div class="db-empty">Initializing monitor&hellip;</div></div>
+          </section>
+
+          <section class="dashboard-panel">
+            <div class="dashboard-panel-head">
+              <div>
+                <span class="eyebrow">Activity</span>
+                <h2>Orchestration log</h2>
+              </div>
+            </div>
+            <div id="db-session-log"><div class="db-empty">Listening for events&hellip;</div></div>
+          </section>
+        </div>
+
+        <section class="dashboard-panel">
+          <div class="dashboard-panel-head">
+            <div>
+              <span class="eyebrow">Archive</span>
+              <h2>Backups</h2>
+            </div>
           </div>
-          <div id="db-backups-list" style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;"></div>
+            <div id="db-backups-list"></div>
         </section>
       </div></div>
     </div>
-
-    <!-- SKILLS -->
     <div id="skills-tab" class="tab-panel">
       <div class="skills-layout">
+        <div class="toolbar">
+          <div class="search-group">
+            <div class="search-wrap">
+              <input class="search" id="skills-search" type="text" placeholder="Search skills...">
+              <div class="search-suggest" id="search-suggest"></div>
+            </div>
+            <div class="filters">
+              <button class="fb on" onclick="SkillsTab.setFilter('all',this)">All</button>
+              <button class="fb" onclick="SkillsTab.setFilter('active',this)">Active</button>
+              <button class="fb" onclick="SkillsTab.setFilter('inactive',this)">Inactive</button>
+            </div>
+            <div class="view-toggle">
+              <button class="view-btn on" id="btn-grid" title="Grid view" onclick="SkillsTab.setView('grid')">
+                <svg viewBox="0 0 14 14"><rect x="0" y="0" width="6" height="6"/><rect x="8" y="0" width="6" height="6"/><rect x="0" y="8" width="6" height="6"/><rect x="8" y="8" width="6" height="6"/></svg>
+              </button>
+              <button class="view-btn" id="btn-list" title="List view" onclick="SkillsTab.setView('list')">
+                <svg viewBox="0 0 14 14"><rect x="0" y="1" width="14" height="2"/><rect x="0" y="6" width="14" height="2"/><rect x="0" y="11" width="14" height="2"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="skills-actions">
+            <button class="fb" onclick="SkillsMaintenance.open()" title="Clean folders, enrich missing metadata, and flag overlapping skills">Clean Up Skills</button>
+            <button class="save-btn skills-install-btn" onclick="SkillsTab.openConnectModal()">
+              <span>Install Skills</span>
+            </button>
+          </div>
+        </div>
+        <aside class="skills-sidebar">
+          <div class="skills-side-section">
+            <span class="skills-side-label">Sources</span>
+            <div id="skills-source-list" class="skills-side-list"></div>
+          </div>
+          <div class="skills-side-section">
+            <span class="skills-side-label">Categories</span>
+            <div id="skills-category-list" class="skills-side-list"></div>
+          </div>
+        </aside>
         <div class="skills-main-area">
           <div class="skills-scroll" id="skills-main">
-            <div class="toolbar">
-              <div class="search-group">
-                <div class="search-wrap">
-                  <input class="search" id="skills-search" type="text" placeholder="Search skills...">
-                  <div class="search-suggest" id="search-suggest"></div>
-                </div>
-                <div class="filters">
-                  <button class="fb on" onclick="SkillsTab.setFilter('all',this)">All</button>
-                  <button class="fb" onclick="SkillsTab.setFilter('active',this)">Active</button>
-                  <button class="fb" onclick="SkillsTab.setFilter('inactive',this)">Inactive</button>
-                </div>
-                <div class="view-toggle">
-                  <button class="view-btn on" id="btn-grid" title="Card view" onclick="SkillsTab.setView('grid')">
-                    <svg viewBox="0 0 14 14"><rect x="0" y="0" width="6" height="6"/><rect x="8" y="0" width="6" height="6"/><rect x="0" y="8" width="6" height="6"/><rect x="8" y="8" width="6" height="6"/></svg>
-                  </button>
-                  <button class="view-btn" id="btn-list" title="List view" onclick="SkillsTab.setView('list')">
-                    <svg viewBox="0 0 14 14"><rect x="0" y="1" width="14" height="2"/><rect x="0" y="6" width="14" height="2"/><rect x="0" y="11" width="14" height="2"/></svg>
-                  </button>
-                </div>
-              </div>
-              <div class="ingest-col">
-                <div class="ingest-wrap" title="Add a skill repository from GitHub">
-                  <input class="ingest-mini-input" id="ingest-url" type="text" placeholder="Connect GitHub Repo..." onkeypress="if(event.key==='Enter') SkillsTab.ingest()">
-                  <button class="ingest-mini-btn" id="btn-ingest" title="Import" onclick="SkillsTab.ingest()">
-                    <svg viewBox="0 0 16 16" width="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 8h6M8 5v6"/><circle cx="8" cy="8" r="7"/></svg>
-                  </button>
-                </div>
-                <div class="skills-ingest-suggest">
-                  <span class="suggest-lbl">Recommended:</span>
-                  <button class="suggest-pill" onclick="SkillsTab.quickAdd('anthropics/skills')">Anthropic</button>
-                  <button class="suggest-pill" onclick="SkillsTab.quickAdd('openai/skills')">OpenAI</button>
-                  <button class="suggest-pill" onclick="SkillsTab.quickAdd('mattpocock/skills')">Matt Pocock</button>
-                  <span class="suggest-lbl" style="margin-left:8px">Tools:</span>
-                  <button class="suggest-pill" onclick="SkillsTab.parseDescriptions()" title="Use LLM to parse descriptions for skills without frontmatter">Parse All</button>
-                </div>
-              </div>
-            </div>
-            <div class="category-bar" id="category-bar"></div>
-            <div class="bulk-bar" id="bulk-bar" style="display:none">
-              <span class="bulk-count">0 selected</span>
-              <button class="fb" onclick="SkillsTab.selectAll()">Select All</button>
+              <div class="category-bar" id="category-bar"></div>
+              <div class="bulk-bar" id="bulk-bar" hidden>
+                <span class="bulk-count">0 selected</span>
+                <button class="fb" onclick="SkillsTab.selectAll()">Select All</button>
               <button class="fb" onclick="SkillsTab.selectNone()">Deselect</button>
               <button class="save-btn small" onclick="SkillsTab.bulkEnable()">Enable</button>
               <button class="fb danger" onclick="SkillsTab.bulkDisable()">Disable</button>
@@ -165,150 +239,88 @@
         </div>
       </div>
     </div>
-
-    <!-- MODES -->
     <div id="modes-tab" class="tab-panel">
       <div class="simple-page"><div class="simple-inner wide">
         <div class="section-hdr">
           <h2>Modes</h2>
-          <p>One-click presets that activate the right skill groups for your current context.</p>
+          <p>Presets and repeatable workflows. Pick a working context first; then inspect the chain it activates.</p>
         </div>
         <div class="modes-toolbar">
-          <button class="save-btn" onclick="ModesTab.createNew()">+ New Mode</button>
+          <button class="save-btn modes-create-shortcut" id="modes-create-shortcut" onclick="ModesTab.createNew()" hidden>+ New Mode</button>
         </div>
         <div id="modes-list" class="modes-list"></div>
       </div></div>
     </div>
-
-    <!-- MEMORY -->
     <div id="memory-tab" class="tab-panel">
       <div class="simple-page"><div class="simple-inner wide">
-        <div class="section-hdr">
-          <h2>Memory</h2>
-          <p>What agents know about you. Edits write to <code>data\memory.json</code></p>
+        <div class="memory-toolbar">
+          <div class="memory-search">
+            <input class="search" id="memory-search-input" type="search" placeholder="Search memory">
+          </div>
+          <div class="memory-toolbar-actions">
+            <button class="save-btn memory-add-open" onclick="MemoryTab.openAddModal()" title="Add memory">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              <span>Add</span>
+            </button>
+          </div>
         </div>
         <div id="memory-list" class="memory-list"></div>
-        <div class="add-memory">
-          <input class="add-input" id="memory-add-input" type="text" placeholder="Add a memory entry -- press Enter to save">
-          <button class="add-btn" onclick="MemoryTab.addEntry()">+ Add</button>
-        </div>
-        <div class="save-bar"><span class="saved-msg" id="memory-saved">Saved to disk</span></div>
       </div></div>
     </div>
-
-    <!-- SOUL & RULES -->
     <div id="config-tab" class="tab-panel">
-      <div class="simple-page"><div class="simple-inner">
-        <div class="section-hdr">
-          <h2>Soul &amp; Rules</h2>
-          <p>How the system operates. Edits write to <code>data\rules.json</code></p>
-        </div>
-        <div class="rules-block"><div class="rules-block-hdr">Coding Rules</div><textarea class="rules-textarea" id="rules-coding" rows="5"></textarea></div>
-        <div class="rules-block"><div class="rules-block-hdr">General Rules</div><textarea class="rules-textarea" id="rules-general" rows="5"></textarea></div>
-        <div class="rules-block"><div class="rules-block-hdr">Soul</div><textarea class="rules-textarea" id="rules-soul" rows="6"></textarea></div>
-        <div class="save-bar">
-          <span class="saved-msg" id="rules-saved">Saved to disk</span>
-          <button class="save-btn ghost" onclick="ConfigTab.reset()">Reset defaults</button>
-          <button class="save-btn" onclick="ConfigTab.save()">Save changes</button>
-        </div>
-
-        <hr class="section-divider">
-
-        <div class="section-block">
-          <div class="sb-header">
-            <span class="sb-title">API Keys</span>
-            <span class="sb-sub">Keys are encrypted at rest. Used for optional features like LLM skill parsing.</span>
-          </div>
-          <div class="api-key-row">
-            <label class="api-key-label">Anthropic API Key</label>
-            <div class="api-key-input-wrap">
-              <input class="api-key-input" id="anthropic-api-key" type="password" placeholder="sk-ant-..." autocomplete="off">
-              <button class="fb small" onclick="ConfigTab.toggleKeyVisibility('anthropic-api-key')" title="Show/hide">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-              </button>
-            </div>
-            <div class="api-key-actions">
-              <button class="save-btn small" onclick="ConfigTab.saveApiKey()">Save Key</button>
-              <button class="fb small danger" onclick="ConfigTab.removeApiKey()">Remove</button>
-            </div>
-            <span class="api-key-status" id="api-key-status"></span>
-          </div>
-        </div>
-      </div></div>
+      <div class="simple-page"><div class="simple-inner wide" id="rules-root"></div></div>
     </div>
-
-    <!-- COMPILE -->
     <div id="compile-tab" class="tab-panel">
       <div class="simple-page"><div class="simple-inner wide">
-        <div class="section-hdr">
-          <h2>Cross-Tool Compiler</h2>
-          <p>Deploy your context configuration to every AI coding tool on your system.</p>
+        <div class="compile-primary-actions">
+          <button class="fb" onclick="CompileTab.preview()">Preview Output</button>
+          <button class="save-btn" onclick="CompileTab.installAllDetected()">Install Globals</button>
+          <button class="fb" onclick="CompileTab.compileAllWorkspaces()">Compile Workspaces</button>
         </div>
-
-
-        <section class="section-block">
-          <div class="sb-header">
-            <span class="sb-title">Detected Tools</span>
-            <span class="sb-sub">Auto-scanned your system for installed AI coding tools</span>
-          </div>
-          <div id="compile-tools-grid" class="compile-tools-grid"></div>
-        </section>
-
-        <hr class="section-divider">
-
-        <section class="section-block">
-          <div class="sb-header">
-            <span class="sb-title">Deploy Strategy</span>
-            <span class="sb-sub">Choose how to deploy your configuration</span>
-          </div>
-          <div class="compile-strategy-cards">
-            <div class="strategy-option" id="strategy-global" onclick="CompileTab.selectStrategy('global')">
-              <h4>Global Install</h4>
-              <p>Write rules to your home directory. Every project inherits them.</p>
+        <div id="compile-tools-grid" class="compile-tools-grid"></div>
+        <div class="compile-grid">
+          <section class="compile-card">
+            <div class="compile-card-head">
+              <div><span class="compile-kicker">Strategy</span><h3>Deployment mode</h3></div>
+            </div>
+            <div class="compile-strategy-cards">
+              <div class="strategy-option" id="strategy-global" onclick="CompileTab.selectStrategy('global')">
+                <h4>Global Install</h4>
+                <p>Write rules to your home directory. Every project inherits them.</p>
               <button class="save-btn" onclick="event.stopPropagation(); CompileTab.installAllDetected()">Install All Globally</button>
             </div>
             <div class="strategy-option" id="strategy-workspace" onclick="CompileTab.selectStrategy('workspace')">
               <h4>Per-Project</h4>
               <p>Write tool-specific files into registered project folders.</p>
-              <button class="fb" onclick="event.stopPropagation(); CompileTab.preview()">Preview Output</button>
+                <button class="fb" onclick="event.stopPropagation(); CompileTab.preview()">Preview Output</button>
+              </div>
             </div>
-          </div>
-        </section>
-
-        <hr class="section-divider">
-
-        <section class="section-block">
-          <div class="sb-header">
-            <span class="sb-title">Project Workspaces</span>
-            <span class="sb-sub">Register project directories for per-project compilation</span>
-          </div>
-          <div id="compile-workspaces-list"></div>
-          <div class="compile-ws-add" style="margin-top:16px;">
-            <input id="ws-path-input" class="add-input" type="text" placeholder="E:\Projects\my-app" onkeypress="if(event.key==='Enter') CompileTab.addWorkspace()">
-            <input id="ws-label-input" class="add-input" type="text" placeholder="Label (optional)" style="max-width:200px">
-            <button class="add-btn" onclick="CompileTab.addWorkspace()">+ Add</button>
-          </div>
-          <div class="compile-actions" style="margin-top:16px;">
-            <button class="save-btn" onclick="CompileTab.compileAllWorkspaces()">Compile All Workspaces</button>
-          </div>
-        </section>
-
+          </section>
+          <section class="compile-card">
+            <div class="compile-card-head">
+              <div><span class="compile-kicker">Projects</span><h3>Workspace targets</h3></div>
+              <button class="save-btn small" onclick="CompileTab.compileAllWorkspaces()">Compile All</button>
+            </div>
+            <div id="compile-workspaces-list"></div>
+            <div class="compile-ws-add">
+              <input id="ws-path-input" class="add-input" type="text" placeholder="E:\Projects\my-app" onkeypress="if(event.key==='Enter') CompileTab.addWorkspace()">
+              <input id="ws-label-input" class="add-input compile-label-input" type="text" placeholder="Label">
+              <button class="add-btn" onclick="CompileTab.addWorkspace()">Add</button>
+            </div>
+          </section>
+        </div>
         <div id="compile-summary" class="compile-summary"></div>
-
-        <section class="section-block" id="compile-preview-card" style="display:none">
-          <div class="sb-header">
-            <span class="sb-title">Output Preview</span>
+        <section class="compile-card compile-preview-card" id="compile-preview-card" hidden>
+          <div class="compile-card-head">
+            <div><span class="compile-kicker">Preview</span><h3>Generated output</h3></div>
           </div>
           <div id="compile-preview-tabs" class="compile-preview-tabs"></div>
-          <pre class="context-preview" id="compile-preview-content" style="max-height:500px"></pre>
+          <pre class="context-preview compile-preview-content" id="compile-preview-content"></pre>
         </section>
       </div></div>
     </div>
-
   </div>
 </div>
-
-<!-- Side Panel -->
 <div class="side-panel-overlay" id="side-panel-overlay"></div>
 <aside class="side-panel" id="side-panel">
   <div class="sp-header">
@@ -317,52 +329,173 @@
   </div>
   <div class="sp-body" id="sp-body"></div>
 </aside>
-
+<div class="modal-overlay" id="memory-modal-overlay" onclick="MemoryTab.closeAddModal(event)">
+  <section class="memory-modal" role="dialog" aria-modal="true" aria-labelledby="memory-modal-title">
+    <div class="memory-modal-head">
+      <h3 id="memory-modal-title">Add memory</h3>
+      <button class="icon-btn" onclick="MemoryTab.closeAddModal()" title="Close">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="memory-modal-body">
+      <label class="modal-field">
+        <span>Category</span>
+        <select class="add-input" id="memory-modal-category">
+          <option value="general">General</option>
+          <option value="profile">Profile</option>
+          <option value="career">Career</option>
+          <option value="technical">Technical</option>
+          <option value="workspace">Workspace</option>
+          <option value="people">People</option>
+          <option value="health">Health</option>
+          <option value="finance">Finance</option>
+          <option value="photography">Photo</option>
+          <option value="travel">Travel</option>
+          <option value="personal">Personal</option>
+        </select>
+      </label>
+      <label class="modal-field">
+        <span>Memory</span>
+        <textarea class="rules-textarea" id="memory-modal-input" rows="7" placeholder="Write the memory agents should know."></textarea>
+      </label>
+    </div>
+    <div class="memory-modal-actions">
+      <button class="fb" onclick="MemoryTab.closeAddModal()">Cancel</button>
+      <button class="save-btn" onclick="MemoryTab.createFromModal()">Save memory</button>
+    </div>
+  </section>
+</div>
+<div class="modal-overlay" id="mode-modal-overlay" onclick="ModesTab.closeCreateModal(event)">
+  <section class="memory-modal mode-modal" role="dialog" aria-modal="true" aria-labelledby="mode-modal-title">
+    <div class="memory-modal-head">
+      <h3 id="mode-modal-title">New mode</h3>
+      <button class="icon-btn" onclick="ModesTab.closeCreateModal()" title="Close">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="memory-modal-body">
+      <label class="modal-field">
+        <span>Name</span>
+        <input class="add-input" id="mode-modal-name" type="text" placeholder="Heavy Coding">
+      </label>
+      <label class="modal-field">
+        <span>Description</span>
+        <textarea class="rules-textarea" id="mode-modal-desc" rows="3" placeholder="What this preset is for."></textarea>
+      </label>
+      <div class="mode-modal-grid">
+        <label class="modal-field">
+          <span>Icon</span>
+          <select class="add-input" id="mode-modal-icon">
+            <option value="bolt">Bolt</option>
+            <option value="target">Target</option>
+            <option value="focus">Focus</option>
+            <option value="palette">Palette</option>
+            <option value="image">Image</option>
+            <option value="unlock">Unlock</option>
+          </select>
+        </label>
+        <label class="modal-field">
+          <span>Initial skills</span>
+          <select class="add-input" id="mode-modal-seed" onchange="ModesTab.renderCreateSkills(this.value)">
+            <option value="active">Use currently active skills</option>
+            <option value="empty">Start empty</option>
+            <option value="all">All discovered skills</option>
+          </select>
+        </label>
+      </div>
+      <div class="modal-field">
+        <span>Enable skills</span>
+        <div class="mode-skill-picker-head">
+          <small id="mode-modal-skill-count">0 selected</small>
+          <button class="mem-btn" type="button" onclick="ModesTab.renderCreateSkills('all')">All</button>
+          <button class="mem-btn" type="button" onclick="ModesTab.renderCreateSkills('empty')">None</button>
+        </div>
+        <input class="add-input mode-skill-search" id="mode-modal-skill-search" type="search" placeholder="Search skills..." oninput="ModesTab.filterCreateSkills(this.value)">
+        <div class="mode-skill-picker" id="mode-modal-skills"></div>
+      </div>
+    </div>
+    <div class="memory-modal-actions">
+      <button class="fb" onclick="ModesTab.closeCreateModal()">Cancel</button>
+      <button class="save-btn" onclick="ModesTab.createFromModal()">Create mode</button>
+    </div>
+  </section>
+</div>
+<div class="modal-overlay" id="skills-maintenance-overlay" onclick="SkillsMaintenance.close(event)">
+  <section class="memory-modal skills-maintenance-modal" role="dialog" aria-modal="true" aria-labelledby="skills-maintenance-title">
+    <div class="memory-modal-head">
+      <h3 id="skills-maintenance-title">Clean Up Skills</h3>
+      <button class="icon-btn" onclick="SkillsMaintenance.close()" title="Close">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="memory-modal-body">
+      <label class="maintenance-option">
+        <input type="checkbox" id="maintain-tidy" checked>
+        <span><strong>Tidy library</strong><small>Move loose skills, remove duplicate imports, and clear empty folders.</small></span>
+      </label>
+      <label class="maintenance-option">
+        <input type="checkbox" id="maintain-metadata" checked>
+        <span><strong>Parse missing metadata</strong><small>Use the configured LLM to infer descriptions and triggers for skills without metadata.</small></span>
+      </label>
+      <label class="maintenance-option">
+        <input type="checkbox" id="maintain-review" checked>
+        <span><strong>Review overlapping skills</strong><small>Use the configured LLM to flag skills that appear to do the same job. No skill files are edited.</small></span>
+      </label>
+        <div class="maintenance-llm">
+          <select class="add-input" id="maintain-provider" onchange="SkillsMaintenance.updateProvider()"><option value="anthropic">Anthropic</option><option value="ollama">Local Ollama</option></select>
+          <input class="add-input" id="maintain-api-key" type="password" placeholder="Anthropic key for this run, or use stored key">
+          <input class="add-input" id="maintain-local-model" type="text" value="llama3.1:8b" list="maintain-local-models" hidden>
+          <datalist id="maintain-local-models"></datalist>
+        </div>
+      <div class="skills-maintenance-results" id="skills-maintenance-results"></div>
+    </div>
+    <div class="memory-modal-actions">
+      <button class="fb" onclick="SkillsMaintenance.close()">Cancel</button>
+      <button class="save-btn" id="skills-maintenance-run" onclick="SkillsMaintenance.run()">Run Cleanup</button>
+    </div>
+  </section>
+</div>
+<div class="modal-overlay" id="skills-connect-overlay" onclick="SkillsTab.closeConnectModal(event)">
+  <section class="memory-modal skills-connect-modal" role="dialog" aria-modal="true" aria-labelledby="skills-connect-title">
+    <div class="memory-modal-head">
+      <h3 id="skills-connect-title">Install Skills</h3>
+      <button class="icon-btn" onclick="SkillsTab.closeConnectModal()" title="Close">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="memory-modal-body">
+      <label class="modal-field">
+        <span>Repository URL</span>
+        <input class="add-input" id="ingest-url" type="url" placeholder="https://github.com/owner/repo">
+      </label>
+      <div class="repo-preset-grid">
+        <button onclick="SkillsTab.quickAdd('anthropics/skills')"><strong>Anthropic</strong><span>Official skill examples</span></button>
+        <button onclick="SkillsTab.quickAdd('openai/skills')"><strong>OpenAI</strong><span>Agent and coding skills</span></button>
+        <button onclick="SkillsTab.quickAdd('meta-llama/llama-cookbook')"><strong>Meta</strong><span>Llama workflow examples</span></button>
+      </div>
+      <div id="ingest-progress" class="ingest-progress"></div>
+    </div>
+    <div class="memory-modal-actions">
+      <button class="fb" onclick="SkillsTab.closeConnectModal()">Cancel</button>
+      <button class="save-btn" id="btn-ingest" onclick="SkillsTab.ingest()">Import skills</button>
+    </div>
+  </section>
+</div>
 <script src="utils.js"></script>
-<script src="data.js"></script>
-<script src="store.js"></script>
-<script src="panel.js"></script>
+  <script src="data.js"></script>
+  <script src="store.js"></script>
+  <script src="app-update.js"></script>
+  <script src="panel.js"></script>
 <script src="skills.js"></script>
+<script src="skills-maintenance.js"></script>
 <script src="memory.js"></script>
 <script src="config.js"></script>
+<script src="rules-lab.js"></script>
 <script src="dashboard.js"></script>
 <script src="modes.js"></script>
 <script src="compile.js"></script>
-<script>
-function switchTab(name, btn) {
-  document.querySelectorAll('.tab-panel').forEach(p => { p.classList.remove('active'); p.style.display = 'none'; });
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  const panel = document.getElementById(name + '-tab');
-  panel.style.display = 'flex'; panel.offsetHeight; panel.classList.add('active');
-  btn.classList.add('active');
-}
-function animateCount(el, target) {
-  const dur = 700, t0 = performance.now();
-  const isPercent = typeof target === 'string' && target.includes('%');
-  const num = isPercent ? parseInt(target) : target;
-  const suffix = isPercent ? '%' : '';
-  const tick = now => {
-    const p = Math.min((now-t0)/dur,1);
-    el.textContent = Math.round(num*(1-Math.pow(1-p,3))) + suffix;
-    if(p<1) requestAnimationFrame(tick);
-  };
-  requestAnimationFrame(tick);
-}
-async function boot() {
-  const online = await ServerStatus.check();
-  if (online) {
-    await loadSkillData();
-    await Promise.all([SS.loadFromServer(), MS.loadFromServer(), RS.loadFromServer()]);
-  }
-  SkillsTab.init();
-  MemoryTab.init();
-  ConfigTab.init();
-  DashboardTab.init();
-  ModesTab.init();
-  if (typeof CompileTab !== 'undefined') CompileTab.init();
-  document.getElementById('loader').classList.add('hidden');
-}
-boot();
-</script>
+<script src="context-flow.js"></script>
+<script src="command-bar.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

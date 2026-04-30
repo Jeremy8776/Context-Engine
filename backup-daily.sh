@@ -1,11 +1,14 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # backup-daily.sh — Create a Context Engine backup via the API
 # Schedule with Windows Task Scheduler or cron equivalent
-# Example: schtasks /create /sc daily /tn "ContextEngineBackup" /tr "bash E:\Claude\context-engine\backup-daily.sh" /st 02:00
+# Example: schtasks /create /sc daily /tn "ContextEngineBackup" /tr "bash \"E:\DataCert\Context Engine\app\backup-daily.sh\"" /st 02:00
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 CE_PORT="${CE_PORT:-3847}"
 CE_URL="http://127.0.0.1:${CE_PORT}"
-BACKUP_DIR="E:/Claude/data/backups"
+BACKUP_DIR="${ROOT_DIR}/data/backups"
 MAX_BACKUPS=14
 
 # Try API-based backup first (preferred if server is running)
@@ -18,10 +21,10 @@ else
   dest="${BACKUP_DIR}/${ts}"
   mkdir -p "${dest}"
   for f in memory.json rules.json skill-states.json; do
-    src="E:/Claude/data/${f}"
+    src="${ROOT_DIR}/data/${f}"
     [ -f "${src}" ] && cp "${src}" "${dest}/"
   done
-  [ -f "E:/Claude/CONTEXT.md" ] && cp "E:/Claude/CONTEXT.md" "${dest}/"
+  [ -f "${ROOT_DIR}/CONTEXT.md" ] && cp "${ROOT_DIR}/CONTEXT.md" "${dest}/"
   echo "[$(date -Iseconds)] File backup: ${dest}"
 fi
 

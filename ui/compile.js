@@ -8,29 +8,39 @@ const CompileTab = (() => {
   let currentStep = 1;
 
   const TARGET_META = {
-    claude:       { label: 'Claude Code',      color: '#8b5cf6' },
-    cursor:       { label: 'Cursor',           color: '#3b82f6' },
-    agents:       { label: 'AGENTS.md',        color: '#10b981' },
-    codex:        { label: 'Codex (OpenAI)',   color: '#00a67e' },
-    copilot:      { label: 'GitHub Copilot',   color: '#f59e0b' },
-    windsurf:     { label: 'Windsurf',         color: '#ec4899' },
-    antigravity:  { label: 'Antigravity',      color: '#4285f4' },
-    kiro:         { label: 'Kiro (AWS)',       color: '#ff9900' },
-    cline:        { label: 'Cline / Roo',      color: '#06b6d4' },
-    aider:        { label: 'Aider',            color: '#84cc16' },
-    continue:     { label: 'Continue.dev',     color: '#be185d' },
-    zed:          { label: 'Zed',              color: '#a3e635' },
-    junie:        { label: 'Junie (JetBrains)',color: '#fe315d' },
-    trae:         { label: 'Trae',             color: '#22d3ee' },
-    amp:          { label: 'Amp (Sourcegraph)', color: '#ff5543' },
-    devin:        { label: 'Devin',            color: '#635bff' },
-    goose:        { label: 'Goose (Block)',    color: '#f97316' },
-    void:         { label: 'Void',             color: '#a78bfa' },
-    augment:      { label: 'Augment',          color: '#14b8a6' },
-    pearai:       { label: 'PearAI',           color: '#84cc16' },
-    ollama:       { label: 'Ollama',           color: '#f8f8f8' },
-    kimi:         { label: 'Kimi K2',          color: '#6366f1' },
+    claude:      { label: 'Claude Code', logo: 'https://cdn.jsdelivr.net/npm/simple-icons/icons/claude.svg' },
+    cursor:      { label: 'Cursor', logo: 'https://cdn.jsdelivr.net/npm/simple-icons/icons/cursor.svg' },
+    agents:      { label: 'AGENTS.md', logo: 'https://cdn.jsdelivr.net/npm/simple-icons/icons/markdown.svg' },
+    codex:       { label: 'Codex', logo: 'https://upload.wikimedia.org/wikipedia/commons/9/97/OpenAI_logo_2025.svg' },
+    copilot:     { label: 'GitHub Copilot', logo: 'https://cdn.jsdelivr.net/npm/simple-icons/icons/githubcopilot.svg' },
+    windsurf:    { label: 'Windsurf', logo: 'https://cdn.jsdelivr.net/npm/simple-icons/icons/windsurf.svg' },
+    antigravity: { label: 'Antigravity', logo: 'https://cdn.jsdelivr.net/npm/simple-icons/icons/google.svg' },
+    kiro:        { label: 'Kiro', logo: 'https://upload.wikimedia.org/wikipedia/commons/f/f1/Aws_logo.svg' },
+    cline:       { label: 'Cline / Roo', logo: 'https://cdn.jsdelivr.net/npm/simple-icons/icons/cline.svg' },
+    aider:       { label: 'Aider', logo: 'https://aider.chat/assets/logo.svg' },
+    continue:    { label: 'Continue.dev', logo: 'https://raw.githubusercontent.com/continuedev/continue/main/extensions/vscode/media/sidebar-icon.png' },
+    zed:         { label: 'Zed', logo: 'https://cdn.jsdelivr.net/npm/simple-icons/icons/zedindustries.svg' },
+    junie:       { label: 'Junie', logo: 'https://cdn.jsdelivr.net/npm/simple-icons/icons/jetbrains.svg' },
+    trae:        { label: 'Trae', logo: 'https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@latest/icons/trae.svg' },
+    amp:         { label: 'Amp', logo: 'https://upload.wikimedia.org/wikipedia/commons/8/8f/Sourcegraph-logo-light.svg' },
+    devin:       { label: 'Devin', logo: 'https://static.cdnlogo.com/logos/d/97/devin.svg' },
+    goose:       { label: 'Goose', logo: 'https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@latest/icons/goose.svg' },
+    void:        { label: 'Void', logo: 'https://static.cdnlogo.com/logos/v/51/void.svg' },
+    augment:     { label: 'Augment', logo: 'https://static.cdnlogo.com/logos/a/44/augment-code.svg' },
+    pearai:      { label: 'PearAI', logo: 'assets/logos/pearai.svg' },
+    ollama:      { label: 'Ollama', logo: 'https://cdn.jsdelivr.net/npm/simple-icons/icons/ollama.svg' },
+    kimi:        { label: 'Kimi K2', logo: 'https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/kimi-ai.svg' },
   };
+
+  function targetClass(id) {
+    return String(id || 'target').replace(/[^a-z0-9-]/gi, '-').toLowerCase();
+  }
+
+  function targetLogo(id) {
+    const meta = TARGET_META[id] || {};
+    if (!meta.logo) return '';
+    return `<span class="compile-target-logo target-${targetClass(id)}"><img src="${esc(meta.logo)}" alt="" loading="lazy"></span>`;
+  }
 
   function highlightStep(n) {
     currentStep = n;
@@ -62,36 +72,44 @@ const CompileTab = (() => {
     const container = document.getElementById('compile-tools-grid');
     if (!container) return;
 
-    const ids = Object.keys(detectedTools).filter(id => detectedTools[id].installed);
-    if (!ids.length) { container.innerHTML = '<div class="db-empty">No tools detected on this system</div>'; return; }
+    const ids = Object.keys(detectedTools).sort((a, b) => {
+      const ai = detectedTools[a].installed ? 0 : 1;
+      const bi = detectedTools[b].installed ? 0 : 1;
+      if (ai !== bi) return ai - bi;
+      return (TARGET_META[a]?.label || a).localeCompare(TARGET_META[b]?.label || b);
+    });
+    if (!ids.length) { container.innerHTML = '<div class="db-empty">No output targets are registered.</div>'; return; }
 
     container.innerHTML = ids.map(id => {
       const t = detectedTools[id];
-      const meta = TARGET_META[id] || { label: id, color: 'var(--t2)' };
+      const meta = TARGET_META[id] || { label: id };
       const installed = t.installed;
       const globalActive = t.globalInstalled;
       const isManual = t.category === 'manual';
+      const projectReady = t.supportsProject && (installed || isManual);
 
       let badges = '';
       if (installed) badges += '<span class="ct-badge ct-installed">Installed</span>';
       else if (!isManual) badges += '<span class="ct-badge ct-notfound">Not Found</span>';
       if (globalActive) badges += '<span class="ct-badge ct-global-active">Global Active</span>';
-      if (!t.supportsGlobal && !isManual) badges += '<span class="ct-badge ct-project-only">Project Only</span>';
+      if (projectReady) badges += '<span class="ct-badge ct-project-only">Project Ready</span>';
       if (isManual) badges += '<span class="ct-badge ct-manual">Manual / Copy</span>';
 
       let action = '';
       if (t.supportsGlobal && installed && !globalActive) {
-        action = `<button class="mem-btn save" onclick="CompileTab.installGlobal('${id}')">Install Globally</button>`;
+        action = `<button class="mem-btn save" onclick="CompileTab.installGlobal('${id}')">Install</button>`;
       } else if (t.supportsGlobal && globalActive) {
-        action = `<button class="mem-btn" onclick="CompileTab.installGlobal('${id}')">Update Global</button>`;
+        action = `<button class="mem-btn" onclick="CompileTab.installGlobal('${id}')">Update</button>`;
       } else if (isManual) {
-        action = `<button class="mem-btn" onclick="CompileTab.copyOutput('${id}')">Copy Output</button>`;
+        action = `<button class="mem-btn" onclick="CompileTab.copyOutput('${id}')">Copy</button>`;
       }
 
       const pathInfo = t.globalPath ? `<div class="ct-path">${esc(t.globalPath)}</div>` : '';
+      const cardState = installed || isManual ? ' ct-detected' : ' ct-muted';
 
-      return `<div class="compile-tool-card${installed ? ' ct-detected' : ''}">
+      return `<div class="compile-tool-card target-${targetClass(id)}${cardState}">
         <div class="ct-header">
+          ${targetLogo(id)}
           <span class="ct-label">${meta.label}</span>
         </div>
         <div class="ct-badges">${badges}</div>
@@ -100,12 +118,6 @@ const CompileTab = (() => {
       </div>`;
     }).join('');
 
-    // Show uninstalled tools as a subtle hint
-    const otherIds = Object.keys(detectedTools).filter(id => !detectedTools[id].installed);
-    if (otherIds.length) {
-      const names = otherIds.map(id => (TARGET_META[id] || { label: id }).label).join(', ');
-      container.innerHTML += `<div class="ct-others">Also supported: ${names}</div>`;
-    }
   }
 
   // ---- WORKSPACES ----
@@ -239,7 +251,7 @@ const CompileTab = (() => {
     lastResults = data.results;
     renderSummary(data);
     renderPreviewTabs(data.results);
-    document.getElementById('compile-preview-card').style.display = '';
+    document.getElementById('compile-preview-card').hidden = false;
 
     const firstTarget = Object.keys(data.results)[0];
     if (firstTarget) showPreview(firstTarget);
@@ -258,9 +270,9 @@ const CompileTab = (() => {
     </div>`;
 
     html += Object.entries(results).map(([id, r]) => {
-      const meta = TARGET_META[id] || { label: id, color: 'var(--t2)' };
+      const meta = TARGET_META[id] || { label: id };
       return `<div class="compile-result-row">
-        <span class="compile-target-dot" style="background:${meta.color}"></span>
+        ${targetLogo(id)}
         <span class="compile-result-name">${meta.label}</span>
         <span class="compile-result-file">${r.filename}</span>
         <span class="compile-result-tokens">~${r.tokens.toLocaleString()} tokens</span>
@@ -274,10 +286,9 @@ const CompileTab = (() => {
     const container = document.getElementById('compile-preview-tabs');
     if (!container) return;
     container.innerHTML = Object.keys(results).map(id => {
-      const meta = TARGET_META[id] || { label: id, color: 'var(--t2)' };
+      const meta = TARGET_META[id] || { label: id };
       return `<button class="compile-tab-btn ${activePreview === id ? 'active' : ''}"
-                onclick="CompileTab.showPreview('${id}')"
-                style="--tab-color:${meta.color}">${meta.label}</button>`;
+                onclick="CompileTab.showPreview('${id}')">${meta.label}</button>`;
     }).join('');
   }
 

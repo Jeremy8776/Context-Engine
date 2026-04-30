@@ -1,0 +1,429 @@
+
+/* Memory flow corrections: no bottom add strip, fixed workbench height, modal creation. */
+#memory-tab {
+  overflow: hidden;
+}
+
+#memory-tab .simple-page {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: 22px 32px 28px;
+}
+
+#memory-tab .simple-inner {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+#memory-tab .memory-toolbar {
+  flex-shrink: 0;
+  margin-bottom: 14px;
+}
+
+.memory-toolbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+}
+
+.memory-add-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.memory-add-open svg,
+.memory-modal .icon-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#memory-tab .memory-list {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#memory-tab .memory-workbench {
+  height: 100%;
+  min-height: 0;
+}
+
+#memory-tab .memory-sidebar {
+  position: relative;
+  top: 0;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+}
+
+#memory-tab .memory-results,
+#memory-tab .memory-detail {
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+}
+
+.add-memory,
+#memory-tab .save-bar {
+  display: none;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.66);
+}
+
+.modal-overlay.open {
+  display: flex;
+}
+
+.memory-modal {
+  width: min(620px, 100%);
+  border: 1px solid var(--soft-line);
+  border-radius: var(--r-3);
+  background: var(--bg-card);
+  box-shadow: 0 22px 80px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+
+.memory-modal-head,
+.memory-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.memory-modal-head {
+  border-bottom: 1px solid var(--soft-line-2);
+}
+
+.memory-modal-head h3 {
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+.memory-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+}
+
+.modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.modal-field > span {
+  color: var(--text-3);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.memory-modal-actions {
+  justify-content: flex-end;
+  border-top: 1px solid var(--soft-line-2);
+}
+
+@media (max-width: 760px) {
+  #memory-tab {
+    overflow-y: auto;
+  }
+
+  #memory-tab .simple-page,
+  #memory-tab .simple-inner,
+  #memory-tab .memory-list,
+  #memory-tab .memory-workbench,
+  #memory-tab .memory-sidebar,
+  #memory-tab .memory-results,
+  #memory-tab .memory-detail {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .memory-toolbar-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+/* Memory workbench: category -> summary -> detail, instead of raw full-width dumps. */
+.memory-toolbar {
+  display: grid;
+  grid-template-columns: minmax(280px, 520px) 1fr;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 18px;
+  padding-top: 2px;
+}
+
+#memory-tab .simple-page {
+  padding-top: 22px;
+}
+
+.memory-search {
+  min-width: 0;
+}
+
+.memory-stats {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.memory-stats span {
+  display: inline-flex;
+  gap: 6px;
+  align-items: baseline;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--soft-line);
+  border-radius: var(--r-full);
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.memory-stats b {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.memory-list {
+  border: 0;
+}
+
+.memory-workbench {
+  display: grid;
+  grid-template-columns: 190px minmax(420px, 0.95fr) minmax(360px, 0.85fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.memory-sidebar,
+.memory-results,
+.memory-detail {
+  border: 1px solid var(--soft-line);
+  border-radius: var(--r-3);
+  background: var(--bg-card);
+}
+
+.memory-sidebar {
+  position: sticky;
+  top: 84px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+}
+
+.memory-filter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-3);
+  font: 650 13px/1 var(--sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+.memory-filter small {
+  color: var(--text-4);
+  font: 600 11px/1 var(--mono);
+}
+
+.memory-filter:hover,
+.memory-filter.active {
+  border-color: rgba(139, 92, 246, 0.35);
+  background: rgba(139, 92, 246, 0.1);
+  color: var(--text);
+}
+
+.memory-results {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: calc(100vh - 260px);
+  min-height: 420px;
+  overflow: auto;
+  padding: 10px;
+}
+
+.memory-card {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  width: 100%;
+  padding: 14px;
+  border: 1px solid var(--soft-line-2);
+  border-radius: var(--r-2);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.memory-card:hover,
+.memory-card.active {
+  border-color: rgba(139, 92, 246, 0.45);
+  background: rgba(139, 92, 246, 0.06);
+}
+
+.memory-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.memory-title {
+  min-width: 0;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.memory-preview {
+  display: -webkit-box;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.memory-detail {
+  position: sticky;
+  top: 84px;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 260px);
+  min-height: 420px;
+  overflow: hidden;
+}
+
+.memory-detail.empty {
+  align-items: center;
+  justify-content: center;
+  color: var(--text-3);
+}
+
+.memory-detail-head {
+  padding: 18px;
+  border-bottom: 1px solid var(--soft-line-2);
+}
+
+.memory-detail-head h3 {
+  margin: 12px 0 6px;
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.memory-detail-head p {
+  margin: 0;
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.memory-detail-body {
+  flex: 1;
+  overflow: auto;
+  padding: 18px;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 14px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.memory-detail-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px;
+  border-top: 1px solid var(--soft-line-2);
+}
+
+.memory-cat-badge {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
+  min-height: 22px;
+  padding: 0 8px;
+  border: 1px solid rgba(139, 92, 246, 0.28);
+  border-radius: var(--r-full);
+  background: rgba(139, 92, 246, 0.1);
+  color: rgba(255, 255, 255, 0.76);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mem-cat-health { border-color: rgba(34, 197, 94, 0.28); background: rgba(34, 197, 94, 0.08); }
+.mem-cat-career { border-color: rgba(139, 92, 246, 0.34); background: rgba(139, 92, 246, 0.11); }
+.mem-cat-technical,
+.mem-cat-workspace { border-color: rgba(59, 130, 246, 0.28); background: rgba(59, 130, 246, 0.08); }
+.mem-cat-people,
+.mem-cat-personal { border-color: rgba(244, 114, 182, 0.28); background: rgba(244, 114, 182, 0.08); }
+.mem-cat-finance { border-color: rgba(245, 158, 11, 0.28); background: rgba(245, 158, 11, 0.08); }
+.mem-cat-photography,
+.mem-cat-travel { border-color: rgba(20, 184, 166, 0.28); background: rgba(20, 184, 166, 0.08); }
+
+.add-memory {
+  margin-top: 18px;
+  padding: 14px;
+  border: 1px solid var(--soft-line);
+  border-radius: var(--r-3);
+  background: var(--bg-card);
+}
+
+@media (max-width: 1180px) {
+  .memory-workbench {
+    grid-template-columns: 170px minmax(360px, 1fr);
+  }
+
+  .memory-detail {
+    position: relative;
+    top: 0;
+    grid-column: 1 / -1;
+    max-height: none;
+    min-height: 260px;
+  }
+}

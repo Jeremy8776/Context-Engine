@@ -1,0 +1,470 @@
+/* memory-final.css -- final Memory tab layout overrides. */
+
+.topbar {
+  display: none;
+}
+
+.app {
+  grid-template-columns: 224px minmax(0, 1fr);
+  grid-template-rows: 1fr;
+  grid-template-areas:
+    "side main";
+}
+
+.nav-brand {
+  min-width: 0;
+}
+
+.nav-brand .nav-crumbs {
+  display: flex;
+  min-width: 0;
+  gap: 7px;
+  color: var(--text-4);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.nav-brand .nav-crumbs span {
+  display: inline;
+  color: inherit;
+  min-width: 0;
+}
+
+.nav-brand .nav-crumbs .here {
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav-brand .nav-crumbs .crumb-sep {
+  color: var(--text-4);
+  flex: 0 0 auto;
+}
+
+.nav-version {
+  display: none;
+}
+
+.side-panel-overlay {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  pointer-events: none;
+}
+
+.side-panel-overlay.open {
+  opacity: 1;
+}
+
+.side-panel {
+  top: calc(var(--side-panel-top, 72px) + 18px);
+  right: var(--rail-inset);
+  bottom: 18px;
+  width: min(calc(var(--rail-w) - var(--rail-inner-gutter)), calc(100vw - var(--rail-max-gutter)));
+  max-width: calc(100vw - var(--rail-max-gutter));
+  border: 1px solid var(--soft-line);
+  border-radius: var(--r-3);
+  background: rgba(0, 0, 0, 0.96);
+  box-shadow: -22px 0 80px rgba(0, 0, 0, 0.52);
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.sp-header {
+  align-items: flex-start;
+  padding: 18px;
+  border-bottom-color: var(--soft-line-2);
+}
+
+.sp-title {
+  font-family: var(--sans);
+  font-size: 20px;
+  font-weight: 750;
+  letter-spacing: 0;
+}
+
+.sp-close {
+  width: 34px;
+  height: 34px;
+  border-color: var(--soft-line);
+  border-radius: 12px;
+  font-size: 18px;
+}
+
+.sp-body {
+  padding: 18px;
+}
+
+.sp-detail {
+  gap: 14px;
+}
+
+.detail-panel-intro,
+.detail-section,
+.sp-section,
+.sp-field {
+  border: 1px solid var(--soft-line);
+  border-radius: var(--r-2);
+  background: var(--bg-card);
+  padding: 14px;
+}
+
+.sp-field,
+.sp-section {
+  border-bottom: 1px solid var(--soft-line);
+}
+
+.detail-panel-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.detail-panel-meta span {
+  min-height: 24px;
+  padding: 5px 8px;
+  border: 1px solid var(--soft-line-2);
+  border-radius: var(--r-full);
+  background: var(--bg-elevated);
+  color: var(--text-3);
+  font-family: var(--mono);
+  font-size: 10px;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.detail-panel-intro p {
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.detail-section h4,
+.sp-section h4 {
+  margin-bottom: 10px;
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.sp-skill-list {
+  border-color: var(--soft-line-2);
+  border-radius: var(--r-2);
+  background: var(--bg);
+  padding: 6px;
+}
+
+.sp-skill-item,
+.sp-skill-toggle,
+.sp-mcp-item {
+  min-height: 34px;
+  border-radius: 10px;
+}
+
+.mode-detail-actions {
+  position: sticky;
+  bottom: -18px;
+  margin: 4px -18px -18px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--soft-line-2);
+  background: rgba(0, 0, 0, 0.96);
+}
+
+.section-hdr,
+.dashboard-head > div:first-child {
+  display: none;
+}
+
+.dashboard-head {
+  justify-content: flex-end;
+  padding-bottom: 0;
+  margin-bottom: 16px;
+  border-bottom: 0;
+}
+
+.simple-page,
+.skills-scroll {
+  padding-top: 22px;
+}
+
+#memory-tab {
+  overflow: hidden;
+}
+
+#modes-tab .simple-page {
+  padding: 22px 32px 32px;
+}
+
+#modes-tab .simple-inner {
+  max-width: none;
+  width: 100%;
+}
+
+.modes-toolbar {
+  justify-content: flex-end;
+  padding-bottom: 14px;
+}
+
+.modes-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 14px;
+  border: 0;
+}
+
+.mode-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  width: 100%;
+  min-height: 138px;
+  padding: 16px;
+  border: 1px solid var(--soft-line);
+  border-radius: var(--r-3);
+  background: var(--bg-card);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.mode-card:hover,
+.mode-card.mode-active {
+  border-color: rgba(139, 92, 246, 0.45);
+  background: rgba(139, 92, 246, 0.06);
+}
+
+.mode-card-ghost {
+  place-items: center;
+  align-content: center;
+  justify-content: center;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  border-style: dashed;
+  background: transparent;
+  color: var(--text-3);
+  text-align: center;
+}
+
+.mode-card-ghost:hover {
+  color: var(--text);
+}
+
+.mode-card-ghost .mode-add-title {
+  color: var(--accent-hi);
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+.mode-card-ghost .mode-add-copy {
+  color: var(--text-3);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.mode-card-ghost .mode-add-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--soft-line);
+  border-radius: var(--r-full);
+  background: var(--bg-elevated);
+  color: var(--accent-hi);
+}
+
+.mode-card-ghost .mode-add-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.mode-card-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.mode-card-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.mode-card .mode-row-icon {
+  color: var(--accent-hi);
+  flex: 0 0 auto;
+}
+
+.mode-card .mode-row-name {
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+.mode-card .mode-row-desc {
+  display: -webkit-box;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.mode-card-preview {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-content: flex-start;
+}
+
+.mode-card-preview span {
+  min-height: 24px;
+  padding: 4px 8px;
+  border: 1px solid var(--soft-line-2);
+  border-radius: var(--r-full);
+  background: var(--bg-elevated);
+  color: var(--text-3);
+  font-family: var(--mono);
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.mode-card-meta {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.mode-detail-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0 18px;
+}
+
+.mode-detail-summary div {
+  padding: 12px;
+  border: 1px solid var(--soft-line);
+  border-radius: var(--r-2);
+  background: var(--bg-elevated);
+}
+
+.mode-detail-summary strong,
+.mode-detail-summary span {
+  display: block;
+}
+
+.mode-detail-summary strong {
+  color: var(--text);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.mode-detail-summary span {
+  margin-top: 6px;
+  color: var(--text-3);
+  font-size: 11px;
+}
+
+.mode-skill-chain {
+  max-height: 420px;
+  overflow: auto;
+}
+
+#memory-tab .simple-page {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: 22px 32px 28px;
+}
+
+#memory-tab .simple-inner {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+#memory-tab .memory-toolbar {
+  grid-template-columns: minmax(260px, 520px) auto;
+  flex-shrink: 0;
+  margin-bottom: 14px;
+  padding-top: 0;
+}
+
+.memory-toolbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+}
+
+.memory-stats {
+  display: none;
+}
+
+.memory-add-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.memory-add-open svg,
+.memory-modal .icon-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#memory-tab .memory-list {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#memory-tab .memory-workbench {
+  height: 100%;
+  min-height: 0;
+}
+
+#memory-tab .memory-sidebar {
+  position: relative;
+  top: 0;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+}
+
+#memory-tab .memory-results,
+#memory-tab .memory-detail {
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+}
+
+#memory-tab .add-memory,
+#memory-tab .save-bar {
+  display: none;
+}

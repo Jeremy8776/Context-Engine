@@ -1,0 +1,420 @@
+/* clean-slate.css -- neutral reset layer.
+   Purpose: remove decorative glass/gradient styling and expose the product model plainly. */
+
+:root {
+  --bg: #000000;
+  --bg-sunken: #030303;
+  --bg-raised: #000000;
+  --bg-glass: #050506;
+  --bg-glass-2: #09090b;
+  --bg-hover: #0a0a0b;
+  --accent: #7c3aed;
+  --accent-hi: #8b5cf6;
+  --accent-lo: #5b21b6;
+  --accent-bg: rgba(124, 58, 237, 0.1);
+  --accent-glow: rgba(124, 58, 237, 0.2);
+  --line: #1c1c1e;
+  --line-2: #27272a;
+  --line-hi: #3f3f46;
+  --line-accent: #7c3aed;
+  --text: #f5f5f7;
+  --text-2: #e2e2e7;
+  --text-3: #8e8e93;
+  --text-4: #48484a;
+  --text-on-accent: #ffffff;
+  --ok: #22c55e;
+  --ok-bg: rgba(34, 197, 94, 0.1);
+  --warn: #f59e0b;
+  --err: #ef4444;
+  --sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --display: var(--sans);
+  --mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  --r-1: 2px;
+  --r-2: 2px;
+  --r-3: 2px;
+  --r-full: 999px;
+  --shadow-glass: none;
+  --shadow-glow: none;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+body::before,
+body::after,
+.nav-brand::before,
+.hero-stat::before,
+.card.accent::before,
+.keyline::before,
+.flow-hero::before,
+.ops-hero::before,
+.market-banner,
+.hero-spark {
+  display: none;
+}
+
+.nav,
+.topbar,
+.card,
+.keyline,
+.hero-stat,
+.stat-strip,
+.workflow-card,
+.mcp-row,
+.sync-card,
+.market-card,
+.pipe-step,
+.cmd-k-hint,
+.side-panel,
+.cmd-shell {
+  background: var(--bg-raised);
+  border-color: var(--line);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.app {
+  grid-template-columns: 56px 1fr;
+}
+
+.nav {
+  color: var(--text);
+}
+
+.nav-brand {
+  justify-content: center;
+  font-family: var(--sans);
+  font-size: 0;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--text);
+  padding: 0;
+}
+
+.nav-brand::after {
+  content: 'CE';
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.12em;
+  border: 1px solid var(--line);
+  padding: 4px 5px;
+  border-radius: var(--r-1);
+  background: var(--bg-hover);
+}
+
+.nav-brand span,
+.nav-version {
+  display: none;
+}
+
+.nav-tabs {
+  align-items: center;
+  gap: 8px;
+  padding: 16px 0;
+}
+
+.tab-btn {
+  width: 36px;
+  height: 36px;
+  justify-content: center;
+  gap: 0;
+  padding: 0;
+  color: var(--text-4);
+  font-size: 0;
+  font-weight: 600;
+  border-radius: var(--r-1);
+}
+
+.tab-btn::before {
+  display: none;
+}
+
+.tab-btn::after {
+  left: -10px;
+  top: 9px;
+  bottom: 9px;
+  background: var(--accent);
+}
+
+.tab-btn:hover,
+.tab-btn.active {
+  color: var(--text);
+  background: transparent;
+}
+
+.tab-btn.active {
+  color: var(--accent);
+}
+
+.nav-icon {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+}
+
+.nav-icon svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nav-text {
+  display: none;
+}
+
+.tab-btn:hover::before {
+  content: attr(data-label);
+  display: block;
+  position: absolute;
+  left: 44px;
+  top: 50%;
+  width: max-content;
+  transform: translateY(-50%);
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-1);
+  background: var(--bg-glass-2);
+  color: var(--text-2);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  z-index: 20;
+}
+
+.topbar {
+  padding-inline: 22px;
+  background: var(--bg);
+}
+
+.crumbs {
+  color: var(--text-4);
+  letter-spacing: 0.14em;
+}
+
+.simple-page {
+  padding: 22px 28px 56px;
+}
+
+.simple-inner.wide,
+.simple-inner {
+  max-width: none;
+}
+
+.dashboard-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 28px;
+  padding-bottom: 22px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.dashboard-head h1,
+.section-hdr h2 {
+  font-family: var(--sans);
+  font-size: 30px;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.dashboard-head p,
+.section-hdr p {
+  max-width: 660px;
+  margin-top: 8px;
+  color: var(--text-3);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.dashboard-actions,
+.ops-actions,
+.db-card-actions,
+.modes-toolbar,
+.compile-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.save-btn,
+.fb,
+.add-btn,
+.mem-btn,
+.cmd-k-hint {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-1);
+  background: var(--bg-raised);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.save-btn {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-on-accent);
+}
+
+.save-btn.ghost,
+.fb {
+  background: var(--bg-raised);
+  color: var(--text);
+}
+
+.save-btn:hover,
+.fb:hover,
+.add-btn:hover,
+.mem-btn:hover,
+.cmd-k-hint:hover {
+  transform: none;
+  border-color: var(--text);
+  box-shadow: none;
+}
+
+.ops-pipeline {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.pipe-arrow {
+  display: none;
+}
+
+.pipe-step {
+  padding: 12px;
+}
+
+.pipe-step.active {
+  background: var(--bg-raised);
+  border-color: var(--accent);
+}
+
+.pipe-step strong {
+  font-size: 14px;
+}
+
+.pipe-kicker,
+.sc-label,
+.hero-eyebrow,
+.sb-title,
+.surface-head span,
+.card-head .eyebrow,
+.keyline-head .eyebrow {
+  color: var(--text-4);
+  letter-spacing: 0.12em;
+}
+
+.simple-budget {
+  grid-template-columns: 190px minmax(220px, 1fr);
+  margin-bottom: 14px;
+}
+
+.hero-value {
+  font-family: var(--sans);
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.hero-value .unit {
+  color: var(--text-4);
+  font-size: 11px;
+}
+
+.budget-fill {
+  background: var(--accent);
+}
+
+.budget-fill::after {
+  display: none;
+}
+
+.stat-strip {
+  border-radius: var(--r-1);
+  margin-bottom: 16px;
+}
+
+.stat-chip {
+  padding: 10px 12px;
+}
+
+.sc-value {
+  font-family: var(--sans);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.keyline,
+.card {
+  padding: 16px 18px;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.card:hover,
+.keyline:hover,
+.workflow-card:hover,
+.market-card:hover {
+  transform: none;
+  border-color: var(--line);
+  box-shadow: none;
+}
+
+.card-head,
+.keyline-head {
+  padding-bottom: 10px;
+}
+
+.card-head .eyebrow::before,
+.keyline-head .eyebrow::before,
+.hero-eyebrow::before {
+  display: none;
+}
+
+#dashboard-tab .context-preview,
+#compile-tab .context-preview,
+.context-preview {
+  background: #030303;
+  color: var(--text-2);
+  border-color: var(--line);
+  border-radius: var(--r-1);
+}
+
+.context-preview::before {
+  color: var(--text-4);
+}
+
+.section-hdr {
+  margin-bottom: 20px;
+}
+
+.mode-workbench,
+.integrations-layout {
+  gap: 24px;
+}
+
+.workflow-card,
+.mcp-row,
+.sync-card,

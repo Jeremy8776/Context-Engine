@@ -2,17 +2,26 @@
 
 const fs   = require('fs');
 const path = require('path');
-const { exec } = require('child_process');
+const { spawn } = require('child_process');
 const { DATA_DIR, SKILLS_DIR, CONTEXT_MD, HOMEDIR, WORKSPACES_FILE } = require('./lib/config');
 const { body, json } = require('./lib/http');
 const { getApiKey, setApiKey, removeApiKey } = require('./lib/crypto');
 const { validateMemory, validateRules, validateStates } = require('./lib/validation');
-const { scanSkills, invalidateSkillCache, skillHealthCheck, countSkillFiles, llmParseSkill, loadParseCache, saveParseCache } = require('./lib/skills');
+const { scanSkills, invalidateSkillCache, skillHealthCheck, countSkillFiles, parseAllNeedingParse, llmReviewSimilarSkills, pruneDuplicateSkillDirs, organiseSkills, getOllamaModels } = require('./lib/skills');
 const { readData, writeData, createBackup, listBackups, restoreBackup, getSessionLog, appendSession } = require('./lib/backup');
 const { getModes, regenerateCONTEXTmd, applyMode, estimateContextBudget } = require('./lib/modes');
 const { compile, getAvailableTargets, detectTools, compileToGlobal, TOOL_REGISTRY } = require('./compiler');
+const { getAppVersion } = require('./lib/app-version');
 
 const ingestJobs = {};
+const INGEST_JOB_TTL = 10 * 60 * 1000; // 10 minutes
+
+function cleanupIngestJobs() {
+  const now = Date.now();
+  for (const [id, job] of Object.entries(ingestJobs)) {
+    if (job.createdAt && now - job.createdAt > INGEST_JOB_TTL) delete ingestJobs[id];
+  }
+}
 
 async function handleRequest(req, res, url) {
   const p = url.pathname;
@@ -21,21 +30,38 @@ async function handleRequest(req, res, url) {
   if (p === '/api/skills' && req.method === 'GET') return json(res, Object.values(scanSkills()));
 
   if (p === '/api/skills/parse' && req.method === 'POST') {
-    if (!getApiKey('ANTHROPIC_API_KEY')) return json(res, { ok: false, error: 'No API key configured. Add one in Soul & Rules > API Keys.' }, 400);
-    const skills = Object.values(scanSkills()).filter(s => s.needsParse);
-    if (!skills.length) return json(res, { ok: true, parsed: 0, message: 'All skills already parsed' });
-    const cache = loadParseCache();
-    let parsed = 0;
-    for (const skill of skills) {
-      const result = await llmParseSkill(skill.path);
-      if (result) {
-        cache[skill.id] = { description: result.description || '', triggers: Array.isArray(result.triggers) ? result.triggers : [], parsedAt: Date.now() };
-        parsed++;
-      }
+    const data = await body(req);
+    if ((data?.provider || 'anthropic') === 'anthropic' && !data?.apiKey && !getApiKey('ANTHROPIC_API_KEY')) {
+      return json(res, { ok: false, error: 'No API key configured. Add one in Rules or paste one in cleanup settings.' }, 400);
     }
-    saveParseCache(cache);
-    invalidateSkillCache();
-    return json(res, { ok: true, parsed, total: skills.length });
+    try {
+      const result = await parseAllNeedingParse(data || {});
+      if (!result.total) return json(res, { ok: true, parsed: 0, message: 'All skills already parsed' });
+      return json(res, { ok: true, parsed: result.parsed, total: result.total });
+    } catch (e) {
+      return json(res, { ok: false, error: e.message }, 400);
+    }
+  }
+
+  if (p === '/api/skills/organise' && req.method === 'POST') {
+    const data = await body(req);
+    const result = organiseSkills({ apply: data?.apply === true });
+    return json(res, result);
+  }
+
+  if (p === '/api/skills/review-similar' && req.method === 'POST') {
+    const data = await body(req);
+    const result = await llmReviewSimilarSkills(data || {});
+    return json(res, result, result.ok ? 200 : 400);
+  }
+
+  if (p === '/api/llm/ollama-models' && req.method === 'GET') {
+    const models = await getOllamaModels();
+    return json(res, { ok: true, models });
+  }
+
+  if (p === '/api/app-version' && req.method === 'GET') {
+    return json(res, { ok: true, ...getAppVersion() });
   }
 
   // ---- SKILL INGEST (GitHub clone) ----
@@ -49,31 +75,33 @@ async function handleRequest(req, res, url) {
     const slug = `${urlParts[0]}-${urlParts[1]}`.toLowerCase();
     const jobId = 'ingest_' + Date.now();
     const destDir = path.join(SKILLS_DIR, 'ingested', slug);
-    ingestJobs[jobId] = { status: 'running', log: [], count: 0 };
+    cleanupIngestJobs();
+    ingestJobs[jobId] = { status: 'running', log: [], count: 0, createdAt: Date.now() };
     const job = ingestJobs[jobId];
     job.log.push(`Cloning ${repoUrl}...`);
 
+    const finishJob = (git) => {
+      let stderr = '';
+      git.stdout.on('data', d => job.log.push(d.toString().trim()));
+      git.stderr.on('data', d => { stderr += d.toString(); });
+      git.on('close', code => {
+        if (code !== 0) { job.log.push(`Error: ${stderr.trim() || 'git exited ' + code}`); job.status = 'error'; return; }
+        const dedupe = pruneDuplicateSkillDirs(destDir);
+        dedupe.removed.forEach(item => job.log.push(`Skipped duplicate: ${item.id} (${item.reason})`));
+        job.count = countSkillFiles(destDir);
+        if (dedupe.kept.length) job.log.push(`Imported: ${dedupe.kept.length} unique skill(s)`);
+        job.log.push(`Found: ${job.count} skill(s)`);
+        job.log.push('Done');
+        job.status = 'done';
+        invalidateSkillCache();
+      });
+    };
+
     if (fs.existsSync(destDir)) {
       job.log.push('Directory exists, pulling latest...');
-      exec(`git -C "${destDir}" pull`, (err, stdout) => {
-        if (err) { job.log.push(`Error: ${err.message}`); job.status = 'error'; return; }
-        job.log.push(stdout.trim() || 'Up to date.');
-        job.count = countSkillFiles(destDir);
-        job.log.push(`Found: ${job.count} skill(s)`);
-        job.log.push('Done');
-        job.status = 'done';
-        invalidateSkillCache();
-      });
+      finishJob(spawn('git', ['-C', destDir, 'pull']));
     } else {
-      exec(`git clone --depth 1 "${repoUrl}" "${destDir}"`, (err) => {
-        if (err) { job.log.push(`Error: ${err.message}`); job.status = 'error'; return; }
-        job.log.push('Clone complete.');
-        job.count = countSkillFiles(destDir);
-        job.log.push(`Found: ${job.count} skill(s)`);
-        job.log.push('Done');
-        job.status = 'done';
-        invalidateSkillCache();
-      });
+      finishJob(spawn('git', ['clone', '--depth', '1', repoUrl, destDir]));
     }
     return json(res, { ok: true, jobId });
   }
@@ -140,7 +168,10 @@ async function handleRequest(req, res, url) {
       appendSession({ type: 'toggle', activeSkills: regen.activeCount });
       return json(res, { ok: true, ...regen });
     } catch (e) {
-      if (backup) writeData('skill-states.json', backup);
+      if (backup) {
+        writeData('skill-states.json', backup);
+        try { regenerateCONTEXTmd(); } catch {}
+      }
       return json(res, { ok: false, error: 'State update failed: ' + e.message }, 500);
     }
   }
@@ -239,10 +270,12 @@ async function handleRequest(req, res, url) {
   }
   if (p === '/api/compile' && req.method === 'POST') {
     const { targets, outputDir } = await body(req);
-    const outDir = outputDir || path.join(DATA_DIR, '..');
+    if (!outputDir) {
+      return json(res, { ok: false, error: 'outputDir is required. Use /api/compile/preview to inspect output without writing, /api/tools/install-global to write to home, or /api/workspaces/compile to write to a registered workspace.' }, 400);
+    }
     try {
-      const result = compile({ dataDir: DATA_DIR, skillsDir: SKILLS_DIR, scanSkills, targets: targets || undefined, outputDir: outDir });
-      appendSession({ type: 'compile', targets: targets || Object.keys(result.results), outputDir: outDir });
+      const result = compile({ dataDir: DATA_DIR, skillsDir: SKILLS_DIR, scanSkills, targets: targets || undefined, outputDir });
+      appendSession({ type: 'compile', targets: targets || Object.keys(result.results), outputDir });
       return json(res, { ok: true, ...result });
     } catch (e) {
       return json(res, { ok: false, error: e.message }, 500);

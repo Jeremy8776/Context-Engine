@@ -1,4 +1,7 @@
-// crypto.js — Encrypted API key store (AES-256-GCM, machine-bound)
+// crypto.js — Obfuscated API key store.
+// AES-256-GCM with a key derived from hostname + homedir + username. This is
+// at-rest obfuscation, not real encryption: anyone with code execution on this
+// machine can decrypt. Protects against casual repo / backup leaks only.
 
 const fs     = require('fs');
 const os     = require('os');

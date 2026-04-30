@@ -1,0 +1,349 @@
+
+@media (max-width: 760px) {
+  .memory-toolbar,
+  .memory-workbench {
+    grid-template-columns: 1fr;
+  }
+
+  .memory-stats {
+    justify-content: flex-start;
+  }
+
+  .memory-sidebar,
+  .memory-detail {
+    position: relative;
+    top: 0;
+  }
+
+  .memory-results,
+  .memory-detail {
+    max-height: none;
+  }
+}
+
+/* AI Model DB role-model pass.
+   Context Engine should share the black/violet system language without inheriting DRAM's dense rail. */
+:root {
+  --bg-card: #000000;
+  --bg-input: #000000;
+  --bg-elevated: #0a0a0b;
+  --soft-line: rgba(255, 255, 255, 0.15);
+  --soft-line-2: rgba(255, 255, 255, 0.1);
+  --text-secondary: var(--text-3);
+  --text-subtle: var(--text-4);
+  --r-1: 10px;
+  --r-2: 14px;
+  --r-3: 18px;
+}
+
+.app {
+  grid-template-columns: 224px 1fr;
+}
+
+.nav {
+  padding: 0;
+  border-right-color: var(--soft-line);
+}
+
+.nav-brand {
+  justify-content: flex-start;
+  min-height: 64px;
+  padding: 0 18px;
+  font-size: 15px;
+  letter-spacing: 0;
+  border-bottom: 1px solid var(--soft-line-2);
+}
+
+.nav-brand::after {
+  display: none;
+}
+
+.nav-brand span {
+  display: inline;
+  color: var(--accent-hi);
+}
+
+.nav-version {
+  display: inline-flex;
+  margin-left: auto;
+  padding: 3px 7px;
+  border: 1px solid var(--soft-line);
+  border-radius: var(--r-full);
+  color: var(--text-3);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.nav-tabs {
+  align-items: stretch;
+  gap: 5px;
+  padding: 12px 8px;
+}
+
+.tab-btn {
+  width: auto;
+  height: 42px;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 0 12px;
+  border-radius: 12px;
+  color: var(--text-3);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.tab-btn::after {
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: var(--r-full);
+}
+
+.tab-btn:hover,
+.tab-btn.active {
+  background: var(--bg-elevated);
+  color: var(--text);
+}
+
+.tab-btn.active {
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  background: rgba(139, 92, 246, 0.1);
+  color: var(--text);
+}
+
+.tab-btn:hover::before {
+  display: none;
+}
+
+.nav-icon {
+  width: 17px;
+  height: 17px;
+}
+
+.nav-icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.nav-text {
+  display: inline;
+}
+
+.nav-end {
+  align-items: stretch;
+  padding: 10px 8px 14px;
+  border-top: 1px solid var(--soft-line-2);
+}
+
+.server-status {
+  width: auto;
+  height: 38px;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 0 11px;
+  border-radius: 12px;
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.topbar {
+  min-height: 64px;
+  padding-inline: 28px;
+  border-bottom-color: var(--soft-line-2);
+}
+
+.cmd-k-hint,
+.save-btn,
+.fb,
+.add-btn,
+.mem-btn,
+.view-btn,
+.icon-btn {
+  min-height: 38px;
+  border-radius: 12px;
+}
+
+.simple-page,
+.skills-scroll {
+  padding: 28px 32px 60px;
+}
+
+.dashboard-head {
+  align-items: flex-start;
+  padding: 0 0 24px;
+  margin-bottom: 22px;
+  border-bottom-color: var(--soft-line-2);
+}
+
+.dashboard-head h1,
+.section-hdr h2 {
+  font-size: 32px;
+  letter-spacing: 0;
+}
+
+.dashboard-head p,
+.section-hdr p {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.keyline,
+.card,
+.hero-stat,
+.stat-strip,
+.workflow-card,
+.mcp-row,
+.sync-card,
+.market-card,
+.pipe-step,
+.mode-row,
+.memory-item,
+.compile-ws-row,
+.side-panel,
+.cmd-shell {
+  border-color: var(--soft-line);
+  border-radius: var(--r-3);
+  background: var(--bg-card);
+}
+
+.hero-stat,
+.workflow-card,
+.mcp-row,
+.sync-card,
+.market-card,
+.mode-row,
+.memory-item,
+.compile-ws-row {
+  padding: 16px;
+}
+
+.toolbar {
+  grid-template-columns: minmax(320px, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  margin-bottom: 18px;
+  padding: 14px;
+  border: 1px solid var(--soft-line);
+  border-radius: var(--r-3);
+  background: var(--bg-card);
+}
+
+.search-wrap {
+  max-width: 620px;
+}
+
+.search,
+.add-input,
+.rules-textarea,
+.api-key-input,
+.ingest-mini-input {
+  min-height: 42px;
+  border-color: var(--soft-line);
+  border-radius: 12px;
+  background: var(--bg-input);
+}
+
+#skills-list {
+  border: 0;
+}
+
+.skills-container {
+  gap: 8px;
+}
+
+.skill-group-header {
+  top: auto;
+  margin: 18px 0 8px;
+  padding: 0 4px;
+  border: 0;
+  background: var(--bg);
+}
+
+.skill-row {
+  grid-template-columns: minmax(220px, 0.34fr) minmax(280px, 1fr) minmax(170px, 0.28fr) auto;
+  gap: 14px;
+  margin-bottom: 8px;
+  padding: 14px;
+  border: 1px solid var(--soft-line);
+  border-radius: var(--r-2);
+  background: var(--bg-card);
+}
+
+.skill-row:hover {
+  border-color: rgba(139, 92, 246, 0.42);
+  background: rgba(139, 92, 246, 0.06);
+}
+
+.sr-name {
+  font-size: 14px;
+}
+
+.skill-row .sr-desc {
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: normal;
+}
+
+.sr-tags {
+  gap: 6px;
+}
+
+.tag,
+.skill-chip,
+.mcp-tools span,
+.mcp-status,
+.sync-status,
+.market-title span {
+  border-radius: var(--r-full);
+}
+
+.grid-mode .skills-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+}
+
+.grid-mode .skill-row {
+  grid-template-columns: 1fr;
+  align-content: start;
+  min-height: 210px;
+}
+
+@media (max-width: 900px) {
+  .app {
+    grid-template-columns: 188px 1fr;
+  }
+
+  .toolbar {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+
+  .nav-brand {
+    min-height: 54px;
+  }
+
+  .nav-tabs {
+    display: flex;
+    overflow-x: auto;
+    padding: 8px;
+  }
+
+  .tab-btn {
+    min-width: max-content;
+  }
+
+  .simple-page,
+  .skills-scroll {
+    padding: 18px 16px 44px;
+  }
+
+  .skill-row {
+    grid-template-columns: 1fr;
+  }
+}

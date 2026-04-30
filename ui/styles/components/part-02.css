@@ -1,0 +1,215 @@
+
+/* ═══════════════════════════════════════════════════
+   TERMINAL — code-like data surfaces.
+   Used for CONTEXT.md preview, compile output, memory editor, etc.
+   ═══════════════════════════════════════════════════ */
+
+.context-preview {
+  font-family: var(--mono);
+  font-size: var(--fs-03);
+  color: var(--text-2);
+  line-height: 1.6;
+  background: var(--bg-sunken);
+  border: 1px solid var(--line);
+  border-radius: var(--r-1);
+  padding: var(--s-4) var(--s-5);
+  white-space: pre;
+  overflow: auto;
+  max-height: 240px;
+  letter-spacing: var(--tr-body);
+  position: relative;
+}
+.context-preview::before {
+  content: 'CONTEXT.md';
+  position: absolute;
+  top: var(--s-3); right: var(--s-4);
+  font-family: var(--mono);
+  font-size: var(--fs-01);
+  font-weight: 500;
+  color: var(--text-4);
+  letter-spacing: var(--tr-wide);
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════
+   HEALTH + SESSION ROWS (no cards, keyline lists)
+   ═══════════════════════════════════════════════════ */
+
+.health-ok,
+.health-issue,
+.session-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: 6px 0;
+  font-size: var(--fs-03);
+  color: var(--text-2);
+  border-bottom: 1px solid var(--line);
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+.health-ok:last-child,
+.health-issue:last-child,
+.session-item:last-child { border-bottom: none; }
+
+.health-check {
+  width: 14px; height: 14px;
+  color: var(--ok);
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.health-check svg { width: 100%; height: 100%; }
+.health-ok { color: var(--text); }
+
+.health-id {
+  font-family: var(--mono);
+  font-size: var(--fs-02);
+  color: var(--text);
+  flex-shrink: 0;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.health-msg {
+  color: var(--err);
+  font-size: var(--fs-02);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.health-path {
+  font-family: var(--mono);
+  font-size: var(--fs-01);
+  color: var(--text-4);
+  letter-spacing: var(--tr-body);
+  display: none; /* Path available in tooltip only; keep the row single-line */
+}
+.health-issue.stale .health-msg { color: var(--warn); }
+.health-issue.stale .health-id  { color: var(--warn); }
+
+/* Collapsible "show more" for long issue lists */
+.health-more {
+  margin-top: var(--s-2);
+  border-top: 1px dashed var(--line);
+}
+.health-more summary {
+  list-style: none;
+  cursor: pointer;
+  padding: var(--s-2) 0;
+  font-family: var(--mono);
+  font-size: var(--fs-01);
+  font-weight: 500;
+  color: var(--text-3);
+  letter-spacing: var(--tr-wide);
+  text-transform: uppercase;
+  transition: color var(--out);
+}
+.health-more summary::-webkit-details-marker { display: none; }
+.health-more summary::before {
+  content: '+';
+  display: inline-block;
+  width: 14px;
+  color: var(--text-4);
+  transition: transform var(--spring-fast);
+}
+.health-more[open] summary::before { content: '\2212'; color: var(--accent); }
+.health-more summary:hover { color: var(--text); }
+
+.session-icon {
+  width: 14px; height: 14px;
+  color: var(--text-3);
+  display: inline-flex;
+}
+.session-icon svg { width: 100%; height: 100%; }
+.session-label {
+  flex: 1;
+  color: var(--text);
+  font-size: var(--fs-03);
+}
+.session-ts {
+  font-family: var(--mono);
+  font-size: var(--fs-01);
+  color: var(--text-4);
+  letter-spacing: var(--tr-wide);
+}
+
+/* Empty states */
+.db-empty, .no-results {
+  padding: var(--s-6) 0;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: var(--fs-02);
+  color: var(--text-4);
+  letter-spacing: var(--tr-wide);
+  text-transform: uppercase;
+}
+
+/* Backups strip */
+.backup-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-1);
+  background: transparent;
+  transition: all var(--out);
+}
+.backup-item:hover {
+  border-color: var(--line-2);
+  background: var(--bg-hover);
+}
+.backup-ts {
+  font-family: var(--mono);
+  font-size: var(--fs-02);
+  color: var(--text-2);
+  letter-spacing: var(--tr-body);
+}
+
+/* DB row — two columns side by side without card chrome */
+.db-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-6);
+  align-items: start;
+}
+.db-row > * {
+  max-height: 280px;
+  overflow-y: auto;
+}
+@media (max-width: 900px) { .db-row { grid-template-columns: 1fr; } }
+
+.db-card-actions {
+  display: flex;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+
+/* ═══════════════════════════════════════════════════
+   SAVE BAR — bottom status strip
+   ═══════════════════════════════════════════════════ */
+
+.save-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--s-3);
+  padding-top: var(--s-5);
+  margin-top: var(--s-5);
+  border-top: 1px solid var(--line);
+}
+.saved-msg {
+  font-family: var(--mono);
+  font-size: var(--fs-01);
+  color: var(--text-3);
+  letter-spacing: var(--tr-wide);
+  text-transform: uppercase;
+  opacity: 0;
+  transition: opacity var(--out);
+  margin-right: auto;
+}
+.saved-msg.show { opacity: 1; color: var(--ok); }

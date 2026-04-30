@@ -1,0 +1,263 @@
+/* context-flow.css -- animated dashboard flow hero from the design handoff. */
+
+.flow-hero,
+.ops-hero {
+  position: relative;
+  min-height: 260px;
+  display: grid;
+  grid-template-columns: minmax(300px, 0.62fr) minmax(420px, 1.38fr);
+  gap: var(--s-6);
+  align-items: stretch;
+  padding: var(--s-5) var(--s-6);
+  border: 1px solid var(--line-accent);
+  border-radius: var(--r-2);
+  background:
+    radial-gradient(70% 90% at 50% 0%, rgba(139, 92, 246, 0.18), transparent 64%),
+    linear-gradient(180deg, rgba(255,255,255,0.045), transparent 34%),
+    var(--bg-raised);
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  box-shadow: var(--shadow-glass);
+  overflow: hidden;
+}
+
+.flow-hero::before,
+.ops-hero::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  background:
+    linear-gradient(110deg, transparent 0%, rgba(196,181,253,0.16) 34%, transparent 62%),
+    radial-gradient(420px 260px at 76% 18%, rgba(34,211,238,0.14), transparent 70%);
+  pointer-events: none;
+}
+
+.flow-copy,
+.flow-stage {
+  position: relative;
+  z-index: 1;
+}
+
+.flow-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--s-4);
+  max-width: 430px;
+}
+
+.ops-hero .flow-copy {
+  max-width: 480px;
+}
+
+.flow-label {
+  font-family: var(--mono);
+  font-size: var(--fs-01);
+  font-weight: 600;
+  color: var(--accent-hi);
+  letter-spacing: var(--tr-wide);
+  text-transform: uppercase;
+}
+
+.flow-copy h1 {
+  font-family: var(--sans);
+  font-size: clamp(30px, 3.1vw, 46px);
+  font-weight: 650;
+  line-height: 1.02;
+  color: var(--text);
+  letter-spacing: 0;
+}
+
+.flow-copy h1 em {
+  font-family: var(--display);
+  font-weight: 400;
+  color: var(--accent-hi);
+}
+
+.flow-copy p {
+  max-width: 34rem;
+  color: var(--text-3);
+  font-size: var(--fs-04);
+  line-height: 1.55;
+}
+
+.ops-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  padding-top: var(--s-2);
+}
+
+.flow-stage {
+  min-width: 0;
+  min-height: 230px;
+}
+
+.flow-metrics {
+  position: absolute;
+  z-index: 2;
+  top: var(--s-3);
+  right: var(--s-3);
+  display: flex;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  font-family: var(--mono);
+  font-size: var(--fs-01);
+  color: var(--text-3);
+}
+
+.flow-metrics span {
+  padding: 4px 7px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-full);
+  background: rgba(8, 5, 15, 0.42);
+}
+
+.flow-metrics b {
+  color: var(--accent-hi);
+  font-weight: 600;
+}
+
+.flow-svg {
+  width: 100%;
+  height: 240px;
+  display: block;
+}
+
+.flow-line {
+  fill: none;
+  stroke: url(#flow-line);
+  stroke-width: 1.3;
+}
+
+.flow-line.hot { opacity: 0.9; }
+.flow-line.cold { opacity: 0.22; }
+
+.flow-source circle:first-child {
+  fill: rgba(20, 12, 36, 0.72);
+  stroke: var(--line-hi);
+}
+.flow-source.s1 .flow-source-dot,
+.flow-particle.s1 { fill: var(--iri-1); }
+.flow-source.s2 .flow-source-dot,
+.flow-particle.s2 { fill: var(--iri-3); }
+.flow-source.s3 .flow-source-dot,
+.flow-particle.s3 { fill: var(--iri-4); }
+
+.flow-source-label,
+.flow-tool-label {
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 600;
+  fill: var(--text-2);
+}
+
+.flow-source-count {
+  font-family: var(--mono);
+  font-size: 10px;
+  fill: var(--text-4);
+}
+
+.flow-hub-glow {
+  fill: url(#flow-hub);
+  animation: flow-breathe 3.4s ease-in-out infinite;
+}
+
+.flow-hub-ring {
+  fill: none;
+  stroke: var(--accent-hi);
+  stroke-width: 1;
+  opacity: 0.44;
+  animation: flow-ring 3.4s ease-in-out infinite;
+}
+
+.flow-hub-core {
+  fill: rgba(20, 12, 36, 0.94);
+  stroke: var(--accent-hi);
+  stroke-width: 1.4;
+}
+
+.flow-hub-text,
+.flow-hub-sub,
+.flow-tool-glyph {
+  font-family: var(--mono);
+  font-weight: 700;
+  fill: var(--text);
+}
+
+.flow-hub-text { font-size: 10px; }
+.flow-hub-sub {
+  font-size: 8px;
+  fill: var(--accent-hi);
+}
+
+.flow-tool circle {
+  fill: rgba(20, 12, 36, 0.72);
+  stroke: var(--line-hi);
+  opacity: 0.62;
+}
+.flow-tool.installed circle {
+  fill: var(--accent);
+  stroke: var(--accent-hi);
+  opacity: 1;
+  filter: drop-shadow(0 0 10px var(--accent-glow));
+}
+.flow-tool-glyph {
+  font-size: 8px;
+  fill: var(--text);
+}
+.flow-tool-label {
+  fill: var(--text-4);
+}
+.flow-tool.installed .flow-tool-label {
+  fill: var(--text-2);
+}
+
+.flow-particle {
+  opacity: 0.9;
+  filter: drop-shadow(0 0 6px currentColor);
+}
+
+@keyframes flow-breathe {
+  0%, 100% { opacity: 0.78; transform: scale(1); transform-origin: 456px 140px; }
+  50% { opacity: 1; transform: scale(1.04); transform-origin: 456px 140px; }
+}
+
+@keyframes flow-ring {
+  0%, 100% { r: 34px; opacity: 0.28; }
+  50% { r: 42px; opacity: 0.62; }
+}
+
+@media (max-width: 980px) {
+  .flow-hero,
+  .ops-hero {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+  .flow-stage {
+    min-height: 220px;
+    overflow-x: auto;
+    padding-bottom: var(--s-2);
+  }
+  .flow-svg {
+    min-width: 720px;
+    height: 240px;
+  }
+  .flow-metrics {
+    position: relative;
+    top: auto;
+    right: auto;
+    justify-content: flex-start;
+    margin-bottom: var(--s-2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flow-hub-glow,
+  .flow-hub-ring,
+  .flow-particle animateMotion {
+    animation: none;
+  }
+}

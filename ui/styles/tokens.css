@@ -1,0 +1,132 @@
+/* tokens.css
+   Design system primitives. Every value in the UI derives from here.
+   Swap this file to reskin; add density mode by overriding :root on an attribute. */
+
+:root {
+  /* ── SURFACE ── deep canvas, subtle strata, no elevation chrome */
+  --bg:            #050309;
+  --bg-raised:     rgba(20, 12, 36, 0.72);
+  --bg-sunken:     rgba(8, 5, 15, 0.84);
+  --bg-hover:      rgba(196, 181, 253, 0.055);
+  --bg-pressed:    rgba(196, 181, 253, 0.09);
+  --bg-active:     rgba(139, 92, 246, 0.14);
+  --bg-glass:      rgba(139, 92, 246, 0.045);
+  --bg-glass-2:    rgba(139, 92, 246, 0.08);
+
+  /* ── ACCENT ── single hot channel */
+  --accent:        #8B5CF6;
+  --accent-hi:     #C4B5FD;
+  --accent-lo:     #4C1D95;
+  --accent-bg:     rgba(139, 92, 246, 0.14);
+  --accent-line:   rgba(196, 181, 253, 0.26);
+  --accent-glow:   rgba(139, 92, 246, 0.28);
+  --iri-1:         #C084FC;
+  --iri-2:         #818CF8;
+  --iri-3:         #22D3EE;
+  --iri-4:         #F0ABFC;
+
+  /* ── TEXT ── */
+  --text:          #F5F3FF;
+  --text-2:        #D6D3E3;
+  --text-3:        #9A91AD;
+  --text-4:        #5F5871;
+  --text-on-accent:#0B0820;
+
+  /* ── KEYLINES ── the primary structural element (replaces cards) */
+  --line:          rgba(196, 181, 253, 0.10);
+  --line-2:        rgba(196, 181, 253, 0.16);
+  --line-hi:       rgba(196, 181, 253, 0.24);
+  --line-accent:   rgba(139, 92, 246, 0.44);
+
+  /* ── STATE ── saturated-muted */
+  --ok:            #6EE7B7;
+  --ok-bg:         rgba(110, 231, 183, 0.08);
+  --warn:          #FFC36E;
+  --warn-bg:       rgba(255, 195, 110, 0.08);
+  --err:           #FF6E80;
+  --err-bg:        rgba(255, 110, 128, 0.08);
+
+  /* ── TYPE ── */
+  --sans:          'Inter', system-ui, -apple-system, sans-serif;
+  --display:       'Instrument Serif', 'Lora', Georgia, serif;
+  --mono:          'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
+
+  --fs-01:         10px;
+  --fs-02:         11px;
+  --fs-03:         12px;
+  --fs-04:         13px;
+  --fs-05:         14px;
+  --fs-06:         16px;
+  --fs-07:         20px;
+  --fs-08:         28px;
+  --fs-09:         44px;
+  --fs-10:         72px;
+  --fs-11:         120px;
+
+  --tr-tight:      0;
+  --tr-body:       0;
+  --tr-wide:       0.24em;
+  --tr-wider:      0.38em;
+
+  /* ── SPACE ── 4px base, compact rhythm */
+  --s-1:  4px;
+  --s-2:  8px;
+  --s-3:  12px;
+  --s-4:  16px;
+  --s-5:  20px;
+  --s-6:  24px;
+  --s-7:  32px;
+  --s-8:  48px;
+  --s-9:  64px;
+  --s-10: 96px;
+
+  /* ── GEOMETRY ── dev-tool precision, minimal radius */
+  --r-0: 0px;
+  --r-1: 6px;
+  --r-2: 8px;
+  --r-full: 999px;
+
+  --shadow-glass: 0 1px 0 rgba(255,255,255,0.05) inset, 0 0 0 1px rgba(255,255,255,0.03) inset, 0 18px 50px rgba(0,0,0,0.32);
+  --shadow-glow: 0 0 0 1px rgba(139,92,246,0.25), 0 18px 48px rgba(139,92,246,0.16);
+
+  /* ── MOTION ── subtle, physics-based */
+  --spring:    0.42s cubic-bezier(0.22, 1, 0.36, 1);
+  --spring-fast: 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  --out:       0.22s cubic-bezier(0.32, 0.72, 0, 1);
+  --out-slow:  0.6s  cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* ── SHELL LAYOUT ── */
+  --nav-h:       56px;
+  --shell-divider-h: 70px;
+  --rail-w:      520px;
+  --rail-inset:  8px;
+  --rail-inner-gutter: 16px;
+  --rail-max-gutter: 40px;
+  --rail-offscreen-extra: 140px;
+  --mode-modal-w: 780px;
+  --mode-skill-picker-h: 280px;
+  --rules-card-min: 320px;
+  --rules-text-min-h: 184px;
+  --rules-soul-min-h: 220px;
+  --rules-tool-min: 300px;
+  --rules-preview-h: 260px;
+  --page-pad:    clamp(32px, 4.5vw, 72px);
+  --content-max: 1480px;
+
+  /* ── Z ── */
+  --z-base: 1;
+  --z-rail: 40;
+  --z-nav:  50;
+  --z-cmd:  60;
+  --z-toast: 70;
+  --z-load: 90;
+}
+
+/* Density: compact mode (attr toggle) */
+:root[data-density="compact"] {
+  --s-4: 12px;
+  --s-5: 16px;
+  --s-6: 20px;
+  --s-7: 24px;
+  --nav-h: 48px;
+}

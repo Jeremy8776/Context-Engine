@@ -1,6 +1,6 @@
 # Context Engine
 
-**The universal context orchestrator for AI coding agents.**
+**The context control plane for local AI tools and coding agents.**
 
 Manage skills, memory, rules, and modes across 22 AI tools from a single local dashboard. Write your instructions once — deploy everywhere.
 
@@ -20,6 +20,24 @@ AI coding agents read instruction files at startup — `CLAUDE.md`, `.cursorrule
 - Track your **context budget** in real-time
 
 No cloud. No accounts. No API keys required. Runs entirely on your machine.
+
+---
+
+## Part of the DataCert AI Ecosystem
+
+Context Engine is one part of a three-repo local AI stack:
+
+| System | Role |
+|--------|------|
+| **AI Model DB** | Registry and directory for models, providers, capabilities, MCP servers, skills, and install metadata |
+| **Context Engine** | Context control plane for memory, rules, skills, modes, generated manifests, and cross-tool deployment |
+| **DRAM** | Runtime orchestration layer for API daemons, local models, hosted model calls, routing, logs, queues, and process health |
+
+Short version:
+
+> AI Model DB knows what exists. Context Engine decides what context is active. DRAM runs and routes the systems that execute it.
+
+See [docs/ECOSYSTEM.md](docs/ECOSYSTEM.md) for the system boundaries.
 
 ---
 
