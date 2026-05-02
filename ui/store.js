@@ -47,7 +47,7 @@ const AppDialog = (() => {
       if (e.target === root) settle(false);
     });
     document.addEventListener('keydown', e => {
-      if (e.key === 'Escape' && root.classList.contains('open')) settle(false);
+      if (e.key === 'Escape' && root?.classList.contains('open')) settle(false);
     });
     return root;
   }
@@ -74,7 +74,11 @@ const AppDialog = (() => {
     el.classList.add('open');
     return new Promise(resolve => {
       activeResolve = resolve;
-      setTimeout(() => el.querySelector('.app-dialog-confirm')?.focus(), 0);
+      setTimeout(() => {
+        /** @type {HTMLElement | null} */
+        const focusBtn = el.querySelector('.app-dialog-confirm');
+        focusBtn?.focus();
+      }, 0);
     });
   }
 
@@ -98,6 +102,7 @@ const Toast = (() => {
    */
   function show(message, type = 'info', duration = 3000, action = null) {
     if (!container) init();
+    if (!container) return;
     const el = document.createElement('div');
     el.className = `toast toast-${type}`;
     const icon = type === 'success' ? 'OK' : type === 'error' ? '!' : type === 'warning' ? '!' : 'i';
@@ -197,9 +202,12 @@ const SS = {
   _cache: null,
   get() {
     if (this._cache) return this._cache;
-    try { this._cache = JSON.parse(localStorage.getItem('ce_ss')) || {}; }
+    try {
+      const raw = localStorage.getItem('ce_ss');
+      this._cache = raw ? (JSON.parse(raw) || {}) : {};
+    }
     catch { this._cache = {}; }
-    return this._cache;
+    return this._cache ?? {};
   },
   /** @param {string} id @param {boolean} v */
   set(id, v) {
@@ -318,8 +326,11 @@ const RS = {
   _cache: null,
   get() {
     if (this._cache) return this._cache;
-    try { const s = JSON.parse(localStorage.getItem('ce_rules')); if (s) { this._cache = s; return s; } }
-    catch {}
+    try {
+      const raw = localStorage.getItem('ce_rules');
+      const s = raw ? JSON.parse(raw) : null;
+      if (s) { this._cache = s; return s; }
+    } catch {}
     return { ...DEFAULT_RULES };
   },
   /** @param {RulesData} rules */

@@ -76,8 +76,9 @@ type DataStoreApi = {
 
 declare const Toast: ToastApi;
 declare const DS: DataStoreApi;
-declare const SKILL_DATA: SkillRecord[];
-declare const CATEGORIES: unknown[];
+declare let SKILL_DATA: SkillRecord[];
+declare let CATEGORIES: unknown[];
+declare const DEFAULT_RULES: RulesData;
 declare const SS: {
   active(id: string): boolean;
   loadFromServer(): Promise<void>;
