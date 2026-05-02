@@ -7,7 +7,7 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(0, 0, 0, 0.66);
+  background: var(--alpha-black-66);
 }
 
 .modal-overlay.open {
@@ -19,7 +19,7 @@
   border: 1px solid var(--soft-line);
   border-radius: var(--r-3);
   background: var(--bg-card);
-  box-shadow: 0 22px 80px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 22px 80px var(--alpha-black-55);
   overflow: hidden;
 }
 
@@ -154,7 +154,7 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(0, 0, 0, 0.62);
+  background: var(--alpha-black-62);
 }
 
 .app-dialog-overlay.open {
@@ -166,8 +166,8 @@
   overflow: hidden;
   border: 1px solid var(--soft-line);
   border-radius: var(--r-3);
-  background: rgba(0, 0, 0, 0.98);
-  box-shadow: 0 24px 90px rgba(0, 0, 0, 0.6);
+  background: var(--alpha-black-98);
+  box-shadow: 0 24px 90px var(--alpha-black-60);
 }
 
 .app-dialog-head {
@@ -189,7 +189,7 @@
 
 .app-dialog p {
   margin: 8px 0 0;
-  color: rgba(255, 255, 255, 0.64);
+  color: var(--alpha-white-64);
   font-size: 13px;
   line-height: 1.5;
 }
@@ -212,9 +212,9 @@
 }
 
 .app-dialog-overlay.danger .app-dialog-confirm {
-  border-color: rgba(239, 68, 68, 0.55);
-  background: rgba(239, 68, 68, 0.14);
-  color: #fecaca;
+  border-color: var(--alpha-red-55);
+  background: var(--alpha-red-14);
+  color: var(--color-danger-text-soft);
 }
 
 .toast-container {
@@ -229,8 +229,8 @@
   padding: 12px 14px;
   border: 1px solid var(--soft-line);
   border-radius: var(--r-2);
-  background: rgba(0, 0, 0, 0.96);
-  box-shadow: 0 18px 70px rgba(0, 0, 0, 0.48);
+  background: var(--alpha-black-96);
+  box-shadow: 0 18px 70px var(--alpha-black-48);
 }
 
 .toast::before {
@@ -261,15 +261,15 @@
 
 .toast-success .toast-icon {
   color: var(--ok);
-  border-color: rgba(34, 197, 94, 0.3);
-  background: rgba(34, 197, 94, 0.08);
+  border-color: var(--alpha-green-30);
+  background: var(--alpha-green-08);
 }
 
 .toast-error .toast-icon,
 .toast-warning .toast-icon {
-  color: #fecaca;
-  border-color: rgba(239, 68, 68, 0.32);
-  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-danger-text-soft);
+  border-color: var(--alpha-red-32);
+  background: var(--alpha-red-10);
 }
 
 @media (max-width: 760px) {

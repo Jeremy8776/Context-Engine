@@ -10,7 +10,11 @@ const { validateMemory, validateRules, validateStates } = require('./lib/validat
 const { scanSkills, invalidateSkillCache, skillHealthCheck, countSkillFiles, parseAllNeedingParse, llmReviewSimilarSkills, pruneDuplicateSkillDirs, organiseSkills, getOllamaModels } = require('./lib/skills');
 const { readData, writeData, createBackup, listBackups, restoreBackup, getSessionLog, appendSession } = require('./lib/backup');
 const { getModes, regenerateCONTEXTmd, applyMode, estimateContextBudget } = require('./lib/modes');
-const { compile, getAvailableTargets, detectTools, compileToGlobal, TOOL_REGISTRY } = require('./compiler');
+const { compile, buildContext, estimateTokens, getAvailableTargets, compileToGlobal, ADAPTERS, TOOL_REGISTRY } = require('./compiler');
+const { detectTools } = require('./lib/tool-detection');
+const { chunkSkill } = require('./lib/chunker');
+const { embedTexts, DEFAULT_EMBED_MODEL } = require('./lib/embeddings');
+const { loadVectorStore, saveVectorStore, upsertVectors, replaceVectors, searchVectors } = require('./lib/vectorstore');
 const { getAppVersion } = require('./lib/app-version');
 
 const ingestJobs = {};
@@ -62,6 +66,59 @@ async function handleRequest(req, res, url) {
 
   if (p === '/api/app-version' && req.method === 'GET') {
     return json(res, { ok: true, ...getAppVersion() });
+  }
+
+  // ---- VECTOR INDEX ----
+  if (p === '/api/index/status' && req.method === 'GET') {
+    const store = loadVectorStore();
+    const skillIds = new Set(store.records.map(record => record.skillId));
+    return json(res, {
+      ok: true,
+      chunks: store.records.length,
+      skills: skillIds.size,
+      model: store.model,
+      updatedAt: store.updatedAt,
+    });
+  }
+
+  if (p === '/api/index' && req.method === 'POST') {
+    const skills = Object.values(scanSkills());
+    const chunks = skills.flatMap(skill => chunkSkill(skill));
+    const embedded = await embedTexts(chunks.map(chunk => chunk.text));
+    if (!embedded.ok) {
+      return json(res, { ok: false, error: embedded.error, chunks: chunks.length, model: embedded.model }, 503);
+    }
+    const records = chunks.map((chunk, index) => ({ ...chunk, vector: embedded.vectors[index] }));
+    const store = replaceVectors(records, embedded.model || DEFAULT_EMBED_MODEL);
+    saveVectorStore(store);
+    return json(res, { ok: true, chunks: store.records.length, skills: skills.length, model: store.model, updatedAt: store.updatedAt });
+  }
+
+  if (p.startsWith('/api/index/skill/') && req.method === 'POST') {
+    const skillId = decodeURIComponent(p.replace('/api/index/skill/', ''));
+    const skill = scanSkills()[skillId];
+    if (!skill) return json(res, { ok: false, error: 'Unknown skill: ' + skillId }, 404);
+    const chunks = chunkSkill(skill);
+    const embedded = await embedTexts(chunks.map(chunk => chunk.text));
+    if (!embedded.ok) {
+      return json(res, { ok: false, error: embedded.error, chunks: chunks.length, model: embedded.model }, 503);
+    }
+    const records = chunks.map((chunk, index) => ({ ...chunk, vector: embedded.vectors[index] }));
+    const store = upsertVectors(loadVectorStore(), records, embedded.model || DEFAULT_EMBED_MODEL);
+    saveVectorStore(store);
+    return json(res, { ok: true, skillId, chunks: records.length, model: store.model, updatedAt: store.updatedAt });
+  }
+
+  if (p === '/api/search' && req.method === 'POST') {
+    const data = await body(req);
+    const query = String(data?.query || '').trim();
+    const limit = Number(data?.limit || 10);
+    if (!query) return json(res, { ok: false, error: 'query is required' }, 400);
+    const store = loadVectorStore();
+    if (!store.records.length) return json(res, { ok: false, error: 'Index is empty. Run /api/index first.' }, 400);
+    const embedded = await embedTexts([query], { model: store.model || DEFAULT_EMBED_MODEL });
+    if (!embedded.ok) return json(res, { ok: false, error: embedded.error, model: embedded.model }, 503);
+    return json(res, { ok: true, query, results: searchVectors(store, embedded.vectors[0], { limit }), model: embedded.model });
   }
 
   // ---- SKILL INGEST (GitHub clone) ----
@@ -248,6 +305,10 @@ async function handleRequest(req, res, url) {
         { method: 'GET',  path: '/api/session-log',        description: 'Get activity log' },
         { method: 'GET',  path: '/api/modes',              description: 'List mode presets' },
         { method: 'POST', path: '/api/modes/apply',        description: 'Apply mode preset (transactional)' },
+        { method: 'POST', path: '/api/index',              description: 'Index all skill chunks into the vector store' },
+        { method: 'POST', path: '/api/index/skill/:id',    description: 'Index one skill into the vector store' },
+        { method: 'POST', path: '/api/search',             description: 'Search indexed skill chunks' },
+        { method: 'GET',  path: '/api/index/status',       description: 'Get vector index status' },
         { method: 'GET',  path: '/api/tools/detect',       description: 'Auto-detect installed AI tools' },
         { method: 'POST', path: '/api/tools/install-global', description: 'Install compiled context to global tool paths' },
         { method: 'GET',  path: '/api/workspaces',         description: 'List registered project workspaces' },
@@ -283,7 +344,9 @@ async function handleRequest(req, res, url) {
   }
 
   // ---- TOOL DETECTION & GLOBAL INSTALL ----
-  if (p === '/api/tools/detect' && req.method === 'GET') return json(res, detectTools(HOMEDIR));
+  if (p === '/api/tools/detect' && req.method === 'GET') {
+    return json(res, detectTools(HOMEDIR, { dataDir: DATA_DIR, skillsDir: SKILLS_DIR, scanSkills, adapters: ADAPTERS, buildContext, estimateTokens }));
+  }
   if (p === '/api/tools/install-global' && req.method === 'POST') {
     const { targets } = await body(req);
     if (!targets || !Array.isArray(targets) || !targets.length) {

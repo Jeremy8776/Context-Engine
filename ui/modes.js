@@ -1,12 +1,17 @@
 // modes.js — Mode presets tab v4 (editable, side panel, create/delete)
 
 const MODE_ICONS = {
-  target:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
-  palette: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c1.19 0 2-.9 2-2 0-.53-.19-1.01-.48-1.38-.29-.37-.47-.84-.47-1.37 0-1.1.9-2 2-2h2c2.76 0 5-2.24 5-5 0-5.52-4.48-9-9-9z"/><circle cx="6.5" cy="11.5" r="1.5" fill="currentColor"/><circle cx="9.5" cy="7.5" r="1.5" fill="currentColor"/><circle cx="14.5" cy="7.5" r="1.5" fill="currentColor"/><circle cx="17.5" cy="11.5" r="1.5" fill="currentColor"/></svg>',
-  bolt:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
-  focus:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M3 9V5a2 2 0 0 1 2-2h4M15 3h4a2 2 0 0 1 2 2v4M21 15v4a2 2 0 0 1-2 2h-4M9 21H5a2 2 0 0 1-2-2v-4"/></svg>',
-  image:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
-  unlock:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>',
+  target:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
+  palette:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c1.19 0 2-.9 2-2 0-.53-.19-1.01-.48-1.38-.29-.37-.47-.84-.47-1.37 0-1.1.9-2 2-2h2c2.76 0 5-2.24 5-5 0-5.52-4.48-9-9-9z"/><circle cx="6.5" cy="11.5" r="1.5" fill="currentColor"/><circle cx="9.5" cy="7.5" r="1.5" fill="currentColor"/><circle cx="14.5" cy="7.5" r="1.5" fill="currentColor"/><circle cx="17.5" cy="11.5" r="1.5" fill="currentColor"/></svg>',
+  bolt: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+  focus:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M3 9V5a2 2 0 0 1 2-2h4M15 3h4a2 2 0 0 1 2 2v4M21 15v4a2 2 0 0 1-2 2h-4M9 21H5a2 2 0 0 1-2-2v-4"/></svg>',
+  image:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
+  unlock:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>',
 };
 
 const ModesTab = (() => {
@@ -18,7 +23,10 @@ const ModesTab = (() => {
 
   async function init() {
     const data = await DS.getModes();
-    if (data && data.modes) { modes = data.modes; render(); }
+    if (data && data.modes) {
+      modes = data.modes;
+      render();
+    }
     if (!sidePanelCloseBound) {
       document.addEventListener('sidepanel:close', () => {
         if (!selectedModeId) return;
@@ -66,16 +74,22 @@ const ModesTab = (() => {
         <span class="mode-add-title">New mode</span>
         <span class="mode-add-copy">Create preset</span>
       </button>`;
-    const modeCards = modes.map(m => {
-      const svg = MODE_ICONS[m.icon] || MODE_ICONS['bolt'];
-      const skills = m.skills || [];
-      const preview = skills.slice(0, 8).map(sid => `<span>${esc(sid)}</span>`).join('');
-      const overflow = skills.length > 8 ? `<span>+${skills.length - 8}</span>` : '';
-      const stateClasses = [
-        activeMode === m.id ? 'mode-active' : '',
-        selectedModeId === m.id ? 'selected' : '',
-      ].filter(Boolean).join(' ');
-      return `
+    const modeCards = modes
+      .map((m) => {
+        const svg = MODE_ICONS[m.icon] || MODE_ICONS['bolt'];
+        const skills = m.skills || [];
+        const preview = skills
+          .slice(0, 8)
+          .map((sid) => `<span>${esc(sid)}</span>`)
+          .join('');
+        const overflow = skills.length > 8 ? `<span>+${skills.length - 8}</span>` : '';
+        const stateClasses = [
+          activeMode === m.id ? 'mode-active' : '',
+          selectedModeId === m.id ? 'selected' : '',
+        ]
+          .filter(Boolean)
+          .join(' ');
+        return `
       <button class="mode-card ${stateClasses}" onclick="ModesTab.openDetail('${m.id}')">
         <span class="mode-card-main">
           <span class="mode-row-icon">${svg}</span>
@@ -90,7 +104,8 @@ const ModesTab = (() => {
           <span class="mode-row-meta">${activeMode === m.id ? 'active' : 'preset'}</span>
         </span>
       </button>`;
-    }).join('');
+      })
+      .join('');
     container.innerHTML = modeCards + createCard;
     bindCreateShortcut();
     requestAnimationFrame(syncCreateShortcut);
@@ -98,28 +113,30 @@ const ModesTab = (() => {
 
   function renderSkillChain(mode) {
     if (!mode.skills || !mode.skills.length) return '<div class="db-empty">No skills in this preset.</div>';
-    return mode.skills.map(sid => {
-      const skill = SKILL_DATA.find(s => s.id === sid);
-      const active = SS.active(sid);
-      return `<div class="sp-skill-item">
+    return mode.skills
+      .map((sid) => {
+        const skill = SKILL_DATA.find((s) => s.id === sid);
+        const active = SS.active(sid);
+        return `<div class="sp-skill-item">
         <span class="dot ${active ? 'on' : 'off'}"></span>
         <span>${esc(sid)}</span>
-        ${skill ? `<span style="color:var(--text-subtle);font-size:11px;margin-left:auto">${esc(skill.desc.slice(0,56))}</span>` : ''}
+        ${skill ? `<span class="sp-skill-desc">${esc(skill.desc.slice(0, 56))}</span>` : ''}
       </div>`;
-    }).join('');
+      })
+      .join('');
   }
 
   function renderMcp(mode) {
     if (!(mode.mcpServers || []).length) return '';
     return `<div class="sp-section">
       <h4>MCP Servers</h4>
-      ${mode.mcpServers.map(s => `<div class="sp-mcp-item"><span>${esc(s.name)}</span><span style="color:var(--text-subtle)">${esc(s.url || '')}</span></div>`).join('')}
+      ${mode.mcpServers.map((s) => `<div class="sp-mcp-item"><span>${esc(s.name)}</span><span class="sp-mcp-url">${esc(s.url || '')}</span></div>`).join('')}
     </div>`;
   }
 
   function renderModeSummary(mode) {
     const skills = mode.skills || [];
-    const activeCount = skills.filter(sid => SS.active(sid)).length;
+    const activeCount = skills.filter((sid) => SS.active(sid)).length;
     return `
       <div class="mode-detail-summary">
         <div>
@@ -139,7 +156,7 @@ const ModesTab = (() => {
 
   // ---- SIDE PANEL: VIEW DETAIL ----
   function openDetail(modeId) {
-    const mode = modes.find(m => m.id === modeId);
+    const mode = modes.find((m) => m.id === modeId);
     if (!mode) return;
     if (selectedModeId === mode.id && SidePanel.isOpen()) {
       selectedModeId = null;
@@ -171,12 +188,12 @@ const ModesTab = (() => {
 
   // ---- SIDE PANEL: EDIT ----
   function editMode(modeId) {
-    const mode = modes.find(m => m.id === modeId);
+    const mode = modes.find((m) => m.id === modeId);
     if (!mode) return;
     selectedModeId = mode.id;
     render();
 
-    const allSkills = SKILL_DATA.map(s => {
+    const allSkills = SKILL_DATA.map((s) => {
       const inMode = mode.skills.includes(s.id);
       return `<label class="sp-skill-toggle">
         <input type="checkbox" class="styled-check" ${inMode ? 'checked' : ''} data-skill-id="${s.id}">
@@ -184,9 +201,12 @@ const ModesTab = (() => {
       </label>`;
     }).join('');
 
-    const iconOptions = Object.keys(MODE_ICONS).map(k =>
-      `<button class="mem-btn ${mode.icon === k ? 'save' : ''}" onclick="document.getElementById('sp-mode-icon').value='${k}'; this.parentElement.querySelectorAll('.mem-btn').forEach(b=>b.classList.remove('save')); this.classList.add('save');">${k}</button>`
-    ).join(' ');
+    const iconOptions = Object.keys(MODE_ICONS)
+      .map(
+        (k) =>
+          `<button class="mem-btn ${mode.icon === k ? 'save' : ''}" onclick="document.getElementById('sp-mode-icon').value='${k}'; this.parentElement.querySelectorAll('.mem-btn').forEach(b=>b.classList.remove('save')); this.classList.add('save');">${k}</button>`,
+      )
+      .join(' ');
 
     const html = `
       <div class="sp-detail">
@@ -201,16 +221,16 @@ const ModesTab = (() => {
         <div class="sp-field">
           <label>Icon</label>
           <input type="hidden" id="sp-mode-icon" value="${mode.icon || 'bolt'}">
-          <div style="display:flex;gap:6px;flex-wrap:wrap">${iconOptions}</div>
+          <div class="sp-icon-options">${iconOptions}</div>
         </div>
         <div class="sp-section">
           <h4>Skills</h4>
           <div class="sp-skill-list">${allSkills}</div>
         </div>
-        <div class="sp-actions" style="margin-top:24px">
+        <div class="sp-actions sp-actions-edit">
           <button class="save-btn" onclick="ModesTab.saveEdit('${mode.id}')">Save</button>
           <button class="save-btn ghost" onclick="SidePanel.close()">Cancel</button>
-          <button class="mem-btn danger" onclick="ModesTab.deleteMode('${mode.id}')" style="margin-left:auto">Delete</button>
+          <button class="mem-btn danger push-end" onclick="ModesTab.deleteMode('${mode.id}')">Delete</button>
         </div>
       </div>`;
     SidePanel.open(`Edit: ${mode.label}`, html);
@@ -218,12 +238,14 @@ const ModesTab = (() => {
 
   // ---- SAVE / DELETE / CREATE ----
   async function saveEdit(modeId) {
-    const mode = modes.find(m => m.id === modeId);
+    const mode = modes.find((m) => m.id === modeId);
     if (!mode) return;
     mode.label = (document.getElementById('sp-mode-name')?.value || '').trim() || mode.label;
-    mode.desc  = (document.getElementById('sp-mode-desc')?.value || '').trim();
-    mode.icon  = (document.getElementById('sp-mode-icon')?.value || 'bolt');
-    mode.skills = [...document.querySelectorAll('.sp-skill-list input:checked')].map(el => el.dataset.skillId);
+    mode.desc = (document.getElementById('sp-mode-desc')?.value || '').trim();
+    mode.icon = document.getElementById('sp-mode-icon')?.value || 'bolt';
+    mode.skills = [...document.querySelectorAll('.sp-skill-list input:checked')].map(
+      (el) => el.dataset.skillId,
+    );
     await saveModes();
     render();
     SidePanel.close();
@@ -238,7 +260,7 @@ const ModesTab = (() => {
       danger: true,
     });
     if (!ok) return;
-    modes = modes.filter(m => m.id !== modeId);
+    modes = modes.filter((m) => m.id !== modeId);
     await saveModes();
     render();
     SidePanel.close();
@@ -269,8 +291,8 @@ const ModesTab = (() => {
   }
 
   function seededSkills(seed) {
-    if (seed === 'all') return SKILL_DATA.map(s => s.id);
-    if (seed === 'active') return SKILL_DATA.filter(s => SS.active(s.id)).map(s => s.id);
+    if (seed === 'all') return SKILL_DATA.map((s) => s.id);
+    if (seed === 'active') return SKILL_DATA.filter((s) => SS.active(s.id)).map((s) => s.id);
     return [];
   }
 
@@ -282,7 +304,7 @@ const ModesTab = (() => {
     if (seedSelect) seedSelect.value = seed;
     if (search) search.value = '';
     const selected = new Set(seededSkills(seed));
-    host.innerHTML = SKILL_DATA.map(skill => {
+    host.innerHTML = SKILL_DATA.map((skill) => {
       const checked = selected.has(skill.id);
       const skillId = esc(skill.id);
       return `<label class="mode-skill-choice">
@@ -299,7 +321,7 @@ const ModesTab = (() => {
   function selectedCreateSkills() {
     const host = document.getElementById('mode-modal-skills');
     if (host?.children.length) {
-      return [...host.querySelectorAll('input:checked')].map(el => el.dataset.skillId);
+      return [...host.querySelectorAll('input:checked')].map((el) => el.dataset.skillId);
     }
     return seededSkills(document.getElementById('mode-modal-seed')?.value || 'active');
   }
@@ -308,7 +330,7 @@ const ModesTab = (() => {
     const host = document.getElementById('mode-modal-skills');
     if (!host) return;
     const q = query.trim().toLowerCase();
-    host.querySelectorAll('.mode-skill-choice').forEach(choice => {
+    host.querySelectorAll('.mode-skill-choice').forEach((choice) => {
       const matches = !q || choice.textContent.toLowerCase().includes(q);
       choice.hidden = !matches;
     });
@@ -330,16 +352,27 @@ const ModesTab = (() => {
     const name = (document.getElementById('mode-modal-name')?.value || '').trim();
     const desc = (document.getElementById('mode-modal-desc')?.value || '').trim();
     const icon = document.getElementById('mode-modal-icon')?.value || 'bolt';
-    if (!name) { Toast.error('Mode name required'); return; }
+    if (!name) {
+      Toast.error('Mode name required');
+      return;
+    }
 
-    const id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    if (!id) { Toast.error('Mode name needs letters or numbers'); return; }
-    if (modes.find(m => m.id === id)) { Toast.error('Mode with this ID already exists'); return; }
+    const id = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+    if (!id) {
+      Toast.error('Mode name needs letters or numbers');
+      return;
+    }
+    if (modes.find((m) => m.id === id)) {
+      Toast.error('Mode with this ID already exists');
+      return;
+    }
     const newMode = {
       id,
       label: name,
       icon,
-      color: '#8b5cf6',
       desc,
       skills: selectedCreateSkills(),
     };
@@ -361,7 +394,7 @@ const ModesTab = (() => {
 
   // ---- APPLY ----
   async function apply(modeId) {
-    const mode = modes.find(m => m.id === modeId);
+    const mode = modes.find((m) => m.id === modeId);
     if (!mode) return;
     const skills = mode.skills || [];
     const ok = await AppDialog.confirm({
@@ -378,7 +411,10 @@ const ModesTab = (() => {
       if (r.states) SS.applyServerStates(r.states.states || r.states);
       render();
       if (typeof SkillsTab !== 'undefined') SkillsTab.init();
-      if (typeof DashboardTab !== 'undefined') { DashboardTab.refreshBudget(); DashboardTab.loadSessionLog(); }
+      if (typeof DashboardTab !== 'undefined') {
+        DashboardTab.refreshBudget();
+        DashboardTab.loadSessionLog();
+      }
       Toast.success(`Mode "${mode.label}" applied`);
     } else {
       Toast.error('Failed to apply mode');

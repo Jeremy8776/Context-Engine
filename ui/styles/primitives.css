@@ -268,7 +268,7 @@
   color: var(--text-2);
 }
 .badge-custom   { color: var(--accent);  border-color: var(--line-accent); }
-.badge-builtin  { color: var(--ok);      border-color: rgba(110, 231, 183, 0.25); }
+.badge-builtin  { color: var(--ok);      border-color: var(--alpha-mint-25); }
 .badge-external { color: var(--text-2);  border-color: var(--line-2); }
 .badge-tag      { color: var(--text-3);  border-color: var(--line); }
 
@@ -291,9 +291,9 @@
   background: transparent;
 }
 .chip + .chip { margin-left: 4px; }
-.chip-ok   { color: var(--ok);   border-color: rgba(110, 231, 183, 0.25); }
-.chip-warn { color: var(--warn); border-color: rgba(255, 195, 110, 0.25); }
-.chip-err  { color: var(--err);  border-color: rgba(248, 113, 113, 0.25); }
+.chip-ok   { color: var(--ok);   border-color: var(--alpha-mint-25); }
+.chip-warn { color: var(--warn); border-color: var(--alpha-gold-25); }
+.chip-err  { color: var(--err);  border-color: var(--alpha-rose-25); }
 
 /* Status dot (on/off) — used in side panel skill list */
 .dot {
@@ -319,7 +319,7 @@
   color: var(--text-2);
 }
 .mem-cat-project   { color: var(--accent); border-color: var(--line-accent); }
-.mem-cat-user      { color: var(--ok);     border-color: rgba(110, 231, 183, 0.25); }
-.mem-cat-feedback  { color: var(--warn);   border-color: rgba(255, 195, 110, 0.25); }
-.mem-cat-reference { color: #8FB8FF;       border-color: rgba(143, 184, 255, 0.25); }
+.mem-cat-user      { color: var(--ok);     border-color: var(--alpha-mint-25); }
+.mem-cat-feedback  { color: var(--warn);   border-color: var(--alpha-gold-25); }
+.mem-cat-reference { color: var(--color-reference-blue);       border-color: var(--alpha-reference-25); }
 .mem-cat-general   { color: var(--text-2); border-color: var(--line-2); }

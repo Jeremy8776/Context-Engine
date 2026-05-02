@@ -18,13 +18,90 @@
 }
 .app[data-nav="mini"] { grid-template-columns: var(--side-w-mini) minmax(0, 1fr); }
 
+.desktop-titlebar {
+  display: none;
+}
+
+/* Electron mode: title bar becomes a row inside .app, occupying only the
+   right column. Sidebar spans all three rows so its border-right is the
+   single, unbroken vertical divider from y=0 to the bottom of the window. */
+html[data-runtime="electron"] .app {
+  grid-template-rows: var(--desktop-titlebar-h) var(--top-h) 1fr;
+  grid-template-areas:
+    "side  titlebar"
+    "side  top"
+    "side  main";
+}
+
+html[data-runtime="electron"] .desktop-titlebar {
+  grid-area: titlebar;
+  -webkit-app-region: drag;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--s-2) 0 var(--s-4);
+  background: var(--bg-solid);
+  color: var(--text);
+  user-select: none;
+}
+
+/* Empty drag-region anchor on the left of the title bar. No brand text or
+   icon — Windows owns the taskbar identity via app.setAppUserModelId and the
+   .ico set on BrowserWindow. The chrome stays minimal. */
+html[data-runtime="electron"] .desktop-titlebar-brand {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+html[data-runtime="electron"] .desktop-titlebar-actions svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+html[data-runtime="electron"] .desktop-titlebar-actions {
+  -webkit-app-region: no-drag;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+}
+
+html[data-runtime="electron"] .desktop-titlebar-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 24px;
+  color: var(--text-3);
+  border: 1px solid transparent;
+  border-radius: var(--r-1);
+  background: transparent;
+  transition: color var(--out), background var(--out), border-color var(--out);
+}
+
+html[data-runtime="electron"] .desktop-titlebar-actions button:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+  border-color: var(--line-2);
+}
+
+html[data-runtime="electron"] .desktop-titlebar-actions .desktop-titlebar-close:hover {
+  color: var(--err);
+  background: var(--err-bg);
+  border-color: var(--err);
+}
+
 /* ═════════════ SIDEBAR ═════════════ */
 
 .nav {
   grid-area: side;
   display: flex;
   flex-direction: column;
-  background: rgba(10, 6, 18, 0.72);
+  background: var(--alpha-shell-72);
   backdrop-filter: blur(22px) saturate(140%);
   -webkit-backdrop-filter: blur(22px) saturate(140%);
   border-right: 1px solid var(--line);
@@ -182,9 +259,9 @@
 .server-status.offline::before { background: var(--err); }
 
 @keyframes pulse-dot {
-  0%   { box-shadow: 0 0 0 0 rgba(110, 231, 183, 0.6); }
-  70%  { box-shadow: 0 0 0 8px rgba(110, 231, 183, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(110, 231, 183, 0); }
+  0%   { box-shadow: 0 0 0 0 var(--alpha-mint-60); }
+  70%  { box-shadow: 0 0 0 8px var(--alpha-mint-0); }
+  100% { box-shadow: 0 0 0 0 var(--alpha-mint-0); }
 }
 
 /* ═════════════ TOP BAR ═════════════ */
@@ -196,7 +273,7 @@
   justify-content: space-between;
   gap: var(--s-4);
   padding: 0 var(--s-5);
-  background: rgba(10, 6, 18, 0.66);
+  background: var(--alpha-shell-66);
   backdrop-filter: blur(20px) saturate(140%);
   border-bottom: 1px solid var(--line);
   position: relative;

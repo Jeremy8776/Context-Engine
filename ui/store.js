@@ -1,10 +1,22 @@
 // store.js — data layer + toast notifications for Context Engine v3
 
+// @ts-check
+
 const API = '/api';
+
+/**
+ * @typedef {{ label: string, onClick: () => void | Promise<void> }} ToastAction
+ * @typedef {{ title?: string, message?: string, confirmText?: string, cancelText?: string, danger?: boolean }} ConfirmOptions
+ * @typedef {{ returnErrors?: boolean }} ApiFetchOptions
+ * @typedef {{ version?: string, last_updated?: string, entries: Array<string | { content?: string, [key: string]: unknown }> }} MemoryData
+ * @typedef {{ coding?: string, general?: string, soul?: string, [key: string]: unknown }} RulesData
+ */
 
 // ---- APP DIALOGS ----
 const AppDialog = (() => {
-  let root;
+  /** @type {HTMLDivElement | null} */
+  let root = null;
+  /** @type {((value: boolean) => void) | null} */
   let activeResolve = null;
 
   function ensure() {
@@ -28,9 +40,9 @@ const AppDialog = (() => {
         </div>
       </section>`;
     document.body.appendChild(root);
-    root.querySelector('.app-dialog-close').addEventListener('click', () => settle(false));
-    root.querySelector('.app-dialog-cancel').addEventListener('click', () => settle(false));
-    root.querySelector('.app-dialog-confirm').addEventListener('click', () => settle(true));
+    root.querySelector('.app-dialog-close')?.addEventListener('click', () => settle(false));
+    root.querySelector('.app-dialog-cancel')?.addEventListener('click', () => settle(false));
+    root.querySelector('.app-dialog-confirm')?.addEventListener('click', () => settle(true));
     root.addEventListener('click', e => {
       if (e.target === root) settle(false);
     });
@@ -40,18 +52,24 @@ const AppDialog = (() => {
     return root;
   }
 
+  /** @param {boolean} value */
   function settle(value) {
     ensure().classList.remove('open', 'danger');
     if (activeResolve) activeResolve(value);
     activeResolve = null;
   }
 
+  /** @param {ConfirmOptions} [options] */
   function confirm(options = {}) {
     const el = ensure();
-    el.querySelector('#app-dialog-title').textContent = options.title || 'Confirm action';
-    el.querySelector('#app-dialog-message').textContent = options.message || 'Are you sure?';
-    el.querySelector('.app-dialog-confirm').textContent = options.confirmText || 'Confirm';
-    el.querySelector('.app-dialog-cancel').textContent = options.cancelText || 'Cancel';
+    const title = el.querySelector('#app-dialog-title');
+    const message = el.querySelector('#app-dialog-message');
+    const confirmButton = el.querySelector('.app-dialog-confirm');
+    const cancelButton = el.querySelector('.app-dialog-cancel');
+    if (title) title.textContent = options.title || 'Confirm action';
+    if (message) message.textContent = options.message || 'Are you sure?';
+    if (confirmButton) confirmButton.textContent = options.confirmText || 'Confirm';
+    if (cancelButton) cancelButton.textContent = options.cancelText || 'Cancel';
     el.classList.toggle('danger', !!options.danger);
     el.classList.add('open');
     return new Promise(resolve => {
@@ -65,19 +83,27 @@ const AppDialog = (() => {
 
 // ---- TOAST SYSTEM ----
 const Toast = (() => {
-  let container;
+  /** @type {HTMLDivElement | null} */
+  let container = null;
   function init() {
     container = document.createElement('div');
     container.className = 'toast-container';
     document.body.appendChild(container);
   }
+  /**
+   * @param {string} message
+   * @param {'info' | 'success' | 'error' | 'warning'} [type]
+   * @param {number} [duration]
+   * @param {ToastAction | null} [action]
+   */
   function show(message, type = 'info', duration = 3000, action = null) {
     if (!container) init();
     const el = document.createElement('div');
     el.className = `toast toast-${type}`;
     const icon = type === 'success' ? 'OK' : type === 'error' ? '!' : type === 'warning' ? '!' : 'i';
     el.innerHTML = `<span class="toast-icon">${icon}</span><span class="toast-message"></span>`;
-    el.querySelector('.toast-message').textContent = message;
+    const messageEl = el.querySelector('.toast-message');
+    if (messageEl) messageEl.textContent = message;
     if (action?.label && action?.onClick) {
       const btn = document.createElement('button');
       btn.className = 'toast-action';
@@ -96,16 +122,29 @@ const Toast = (() => {
     }
   }
   return {
+    /** @param {string} msg @param {number} [dur] */
     info:    (msg, dur) => show(msg, 'info', dur),
+    /** @param {string} msg @param {number} [dur] */
     success: (msg, dur) => show(msg, 'success', dur),
+    /** @param {string} msg @param {number} [dur] */
     error:   (msg, dur) => show(msg, 'error', dur || 5000),
+    /** @param {string} msg @param {number} [dur] */
     warn:    (msg, dur) => show(msg, 'warning', dur),
+    /** @param {string} msg @param {string} label @param {() => void | Promise<void>} onClick */
     action:  (msg, label, onClick) => show(msg, 'info', 0, { label, onClick }),
   };
 })();
 // ---- API FETCH ----
+/**
+ * @param {string} path
+ * @param {string} [method]
+ * @param {unknown} [payload]
+ * @param {ApiFetchOptions} [options]
+ * @returns {Promise<any>}
+ */
 async function apiFetch(path, method = 'GET', payload = null, options = {}) {
   try {
+    /** @type {RequestInit} */
     const opts = { method, headers: { 'Content-Type': 'application/json' } };
     if (payload) opts.body = JSON.stringify(payload);
     const res = await fetch(`${API}${path}`, opts);
@@ -121,7 +160,7 @@ async function apiFetch(path, method = 'GET', payload = null, options = {}) {
       }
     return data;
   } catch (e) {
-    Toast.error(`Connection failed: ${e.message}`);
+    Toast.error(`Connection failed: ${e instanceof Error ? e.message : String(e)}`);
     return null;
   }
 }
@@ -154,6 +193,7 @@ async function loadSkillData() {
 
 // ---- SKILL STATES ----
 const SS = {
+  /** @type {Record<string, boolean> | null} */
   _cache: null,
   get() {
     if (this._cache) return this._cache;
@@ -161,6 +201,7 @@ const SS = {
     catch { this._cache = {}; }
     return this._cache;
   },
+  /** @param {string} id @param {boolean} v */
   set(id, v) {
     const s = this.get();
     s[id] = v;
@@ -177,6 +218,7 @@ const SS = {
       });
     }
   },
+  /** @param {string} id */
   active(id) {
     const s = this.get();
     if (id in s) return s[id];
@@ -191,20 +233,24 @@ const SS = {
       localStorage.setItem('ce_ss', JSON.stringify(states));
     }
   },
+  /** @param {Record<string, boolean>} states */
   applyServerStates(states) {
     this._cache = states;
     localStorage.setItem('ce_ss', JSON.stringify(states));
   },
+  /** @param {string[]} ids @param {string} keepId */
   async applyReview(ids, keepId) {
     const s = { ...this.get() };
     ids.forEach(id => { s[id] = id === keepId; });
     return await this.saveStates(s);
   },
+  /** @param {Array<{ ids: string[], keepId: string }>} choices */
   async applyReviewChoices(choices) {
     const s = { ...this.get() };
     choices.forEach(({ ids, keepId }) => ids.forEach(id => { s[id] = id === keepId; }));
     return await this.saveStates(s);
   },
+  /** @param {Record<string, boolean>} s */
   async saveStates(s) {
     this._cache = s;
     localStorage.setItem('ce_ss', JSON.stringify(s));
@@ -213,6 +259,7 @@ const SS = {
       version: '1.0', last_updated: new Date().toISOString().split('T')[0], states: s,
     }, { returnErrors: true });
   },
+  /** @param {string[]} ids @param {boolean} value */
   setBulk(ids, value) {
     const s = this.get();
     ids.forEach(id => { s[id] = value; });
@@ -232,6 +279,7 @@ const SS = {
 };
 // ---- MEMORY ----
 const MS = {
+  /** @type {MemoryData | null} */
   _data: null,
   getData() {
     if (this._data) return this._data;
@@ -241,6 +289,7 @@ const MS = {
     } catch {}
     return { version: '1.1', entries: [] };
   },
+  /** @param {MemoryData} memoryData */
   save(memoryData) {
     this._data = memoryData;
     memoryData.last_updated = new Date().toISOString().split('T')[0];
@@ -265,6 +314,7 @@ const MS = {
 
 // ---- RULES ----
 const RS = {
+  /** @type {RulesData | null} */
   _cache: null,
   get() {
     if (this._cache) return this._cache;
@@ -272,6 +322,7 @@ const RS = {
     catch {}
     return { ...DEFAULT_RULES };
   },
+  /** @param {RulesData} rules */
   save(rules) {
     this._cache = rules;
     localStorage.setItem('ce_rules', JSON.stringify(rules));
@@ -301,26 +352,44 @@ const DS = {
   async getBudget()      { return await apiFetch('/health'); },
   async getBackups()     { return await apiFetch('/backups'); },
   async createBackup()   { return await apiFetch('/backups', 'POST'); },
+  /** @param {string} ts */
   async restoreBackup(ts) { return await apiFetch('/restore', 'POST', { timestamp: ts }); },
   async getSessionLog()  { return await apiFetch('/session-log'); },
+  /** @param {unknown} e */
   async logSession(e)    { return await apiFetch('/session-log', 'POST', e); },
   async getModes()       { return await apiFetch('/modes'); },
+  /** @param {string} id */
   async applyMode(id)    { return await apiFetch('/modes/apply', 'POST', { modeId: id }); },
+  /** @param {string} url */
   async ingestRepo(url)  { return await apiFetch('/skills/ingest', 'POST', { url }); },
+  /** @param {string} jobId */
   async pollIngestJob(jobId) { return await apiFetch(`/skills/ingest/${jobId}`); },
+  /** @param {Record<string, unknown>} [options] */
   async parseSkills(options = {}) { return await apiFetch('/skills/parse', 'POST', options, { returnErrors: true }); },
+  /** @param {boolean} [apply] */
   async organiseSkills(apply = true) { return await apiFetch('/skills/organise', 'POST', { apply }); },
-    async reviewSimilarSkills(options = {}) { return await apiFetch('/skills/review-similar', 'POST', options, { returnErrors: true }); },
-    async getOllamaModels() { return await apiFetch('/llm/ollama-models', 'GET', null, { returnErrors: true }); },
-    async getAppVersion() { return await apiFetch('/app-version'); },
+  /** @param {Record<string, unknown>} [options] */
+  async reviewSimilarSkills(options = {}) { return await apiFetch('/skills/review-similar', 'POST', options, { returnErrors: true }); },
+  async getOllamaModels() { return await apiFetch('/llm/ollama-models', 'GET', null, { returnErrors: true }); },
+  async getAppVersion() { return await apiFetch('/app-version'); },
+  async getIndexStatus() { return await apiFetch('/index/status'); },
+  async indexSkills() { return await apiFetch('/index', 'POST', {}, { returnErrors: true }); },
+  /** @param {string} query @param {number} [limit] */
+  async searchIndex(query, limit = 10) { return await apiFetch('/search', 'POST', { query, limit }, { returnErrors: true }); },
   async getCompileTargets() { return await apiFetch('/compile/targets'); },
+  /** @param {string[]} targets */
   async compilePreview(targets) { return await apiFetch('/compile/preview', 'POST', { targets }); },
+  /** @param {string[]} targets @param {string | undefined} outputDir */
   async compile(targets, outputDir) { return await apiFetch('/compile', 'POST', { targets, outputDir }); },
   async detectTools() { return await apiFetch('/tools/detect'); },
+  /** @param {string[]} targets */
   async installGlobal(targets) { return await apiFetch('/tools/install-global', 'POST', { targets }); },
   async getWorkspaces() { return await apiFetch('/workspaces'); },
+  /** @param {string} wsPath @param {string} label */
   async addWorkspace(wsPath, label) { return await apiFetch('/workspaces', 'POST', { action: 'add', path: wsPath, label }); },
+  /** @param {string} wsPath */
   async removeWorkspace(wsPath) { return await apiFetch('/workspaces', 'POST', { action: 'remove', path: wsPath }); },
+  /** @param {string[]} targets @param {string | null} workspacePath */
   async compileWorkspaces(targets, workspacePath) { return await apiFetch('/workspaces/compile', 'POST', { targets, workspacePath }); },
 };
 

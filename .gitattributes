@@ -1,0 +1,29 @@
+# Normalise text line endings to LF in the repo. Working trees on Windows
+# convert to CRLF on checkout. Stops every Windows commit from churning the
+# entire diff with line-ending changes.
+* text=auto eol=lf
+
+# Force LF for files where eol matters
+*.sh        text eol=lf
+*.bat       text eol=crlf
+*.ps1       text eol=crlf
+
+# Treat as binary so git doesn't try to diff or normalise
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.ico       binary
+*.icns      binary
+*.pdf       binary
+*.zip       binary
+*.7z        binary
+*.exe       binary
+*.dll       binary
+*.dmg       binary
+*.AppImage  binary
+*.deb       binary
+*.woff      binary
+*.woff2     binary
+*.ttf       binary
+*.otf       binary

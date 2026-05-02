@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+  <!-- Context Engine icon - C monogram with interior compiled-context core -->
+  <!-- Family-aligned with DRAM (#060607 / #7c3aed / 256x256 / rx 56 / stroke 16) -->
+  <!-- Composition mirrors DRAM: bold letterform + interior accent dot -->
+  <rect x="0" y="0" width="256" height="256" rx="56" fill="#060607"/>
+  <!-- The C - 70 deg aperture for unambiguous letterform read at small sizes -->
+  <path d="M 185 88 A 70 70 0 1 0 185 168"
+        stroke="#7c3aed" stroke-width="16" stroke-linecap="round" fill="none"/>
+  <!-- Compiled context core - sits inside the C body, biased toward the aperture -->
+  <circle cx="155" cy="128" r="22" fill="#7c3aed"/>
+</svg>

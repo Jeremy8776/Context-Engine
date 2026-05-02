@@ -29,21 +29,9 @@
 /* Accent variant — for the hero / primary card */
 .card.accent {
   background:
-    linear-gradient(135deg, rgba(124, 92, 255, 0.035) 0%, transparent 60%),
+    linear-gradient(135deg, var(--alpha-accent-04) 0%, transparent 60%),
     var(--bg-raised);
   border-color: var(--line-accent);
-}
-.card.accent::before {
-  content: '';
-  position: absolute;
-  top: 0; left: var(--s-5); right: var(--s-5);
-  height: 1px;
-  background: linear-gradient(90deg,
-    transparent,
-    var(--accent-glow) 30%,
-    var(--accent-glow) 70%,
-    transparent);
-  opacity: 0.7;
 }
 
 .card-head,
@@ -181,7 +169,7 @@
   gap: var(--s-5);
   padding: var(--s-4) var(--s-5);
   background:
-    linear-gradient(135deg, rgba(124, 92, 255, 0.06) 0%, transparent 60%),
+    linear-gradient(135deg, var(--alpha-accent-06) 0%, transparent 60%),
     var(--bg-raised);
   backdrop-filter: blur(20px) saturate(140%);
   -webkit-backdrop-filter: blur(20px) saturate(140%);
@@ -190,18 +178,6 @@
   position: relative;
   transition: border-color var(--out), box-shadow var(--out);
   overflow: hidden;
-}
-.hero-stat::before {
-  content: '';
-  position: absolute;
-  top: 0; left: var(--s-5); right: var(--s-5);
-  height: 1px;
-  background: linear-gradient(90deg,
-    transparent,
-    var(--accent-hi) 30%,
-    var(--accent-hi) 70%,
-    transparent);
-  opacity: 0.8;
 }
 .hero-stat:hover {
   border-color: var(--accent);
@@ -401,9 +377,9 @@
   background: var(--accent-hi);
   box-shadow: 0 0 10px var(--accent-glow);
 }
-.budget-fill.warn { background: linear-gradient(90deg, #a07025, var(--warn)); }
+.budget-fill.warn { background: linear-gradient(90deg, var(--color-budget-warn-start), var(--warn)); }
 .budget-fill.warn::after { background: var(--warn); }
-.budget-fill.danger { background: linear-gradient(90deg, #7a2633, var(--err)); }
+.budget-fill.danger { background: linear-gradient(90deg, var(--color-budget-danger-start), var(--err)); }
 .budget-fill.danger::after { background: var(--err); }
 
 .budget-label {

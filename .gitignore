@@ -1,4 +1,6 @@
 node_modules/
+dist/
+out/
 data/backups/
 data/session-log.json
 data/.keys.enc

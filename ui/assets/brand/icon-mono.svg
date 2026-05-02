@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+  <!-- Context Engine icon - monochrome (tray, inline, currentColor surfaces) -->
+  <rect x="0" y="0" width="256" height="256" rx="56" fill="currentColor" fill-opacity="0.05"/>
+  <path d="M 185 88 A 70 70 0 1 0 185 168"
+        stroke="currentColor" stroke-width="16" stroke-linecap="round" fill="none"/>
+  <circle cx="155" cy="128" r="22" fill="currentColor"/>
+</svg>

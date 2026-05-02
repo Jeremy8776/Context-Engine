@@ -265,7 +265,7 @@
 
 .dashboard-token-row {
   display: grid;
-  grid-template-columns: minmax(92px, 0.8fr) minmax(80px, 1fr) max-content;
+  grid-template-columns: minmax(96px, 132px) minmax(0, 1fr) minmax(58px, 72px);
   align-items: center;
   gap: var(--s-3);
   min-width: 0;
@@ -284,6 +284,7 @@
   color: var(--text);
   font-family: var(--mono);
   font-weight: 600;
+  text-align: right;
 }
 
 .dashboard-token-track {

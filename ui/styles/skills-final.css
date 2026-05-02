@@ -88,14 +88,14 @@
 }
 
 #skills-tab .skills-side-btn:hover {
-  border-color: rgba(139, 92, 246, 0.45);
-  background: rgba(139, 92, 246, 0.06);
+  border-color: var(--line-accent);
+  background: var(--bg-glass-2);
   color: var(--text);
 }
 
 #skills-tab .skills-side-btn.active {
-  border-color: rgba(139, 92, 246, 0.45);
-  background: rgba(139, 92, 246, 0.06);
+  border-color: var(--line-accent);
+  background: var(--bg-glass-2);
   color: var(--text);
 }
 
@@ -123,8 +123,8 @@
   border-width: 0 0 1px;
   border-radius: 0;
   border-color: var(--soft-line);
-  background: #000;
-  box-shadow: 0 14px 24px rgba(0, 0, 0, 0.7);
+  background: var(--bg-solid);
+  box-shadow: var(--shadow-toolbar);
 }
 
 #skills-tab .toolbar::before {
@@ -294,16 +294,25 @@
   background: var(--bg-sunken);
 }
 
-.maintenance-review-choice input { margin-top: var(--s-1); }
-.maintenance-review-choice span { display: grid; gap: var(--s-1); }
+.maintenance-review-choice input {
+  margin-top: var(--s-1);
+}
+.maintenance-review-choice span {
+  display: grid;
+  gap: var(--s-1);
+}
 
 .maintenance-review-choice small {
   color: var(--text-3);
   line-height: 1.35;
 }
 
-.maintenance-apply-btn { justify-self: end; }
-.maintenance-review-group.applied { border-color: var(--ok); }
+.maintenance-apply-btn {
+  justify-self: end;
+}
+.maintenance-review-group.applied {
+  border-color: var(--ok);
+}
 
 #skills-tab #skills-list {
   height: auto;
@@ -345,7 +354,10 @@ body.side-panel-active #skills-tab #skills-list {
   background: var(--bg-card);
   color: var(--text);
   cursor: pointer;
-  transition: background var(--out), border-color var(--out), opacity var(--out);
+  transition:
+    background var(--out),
+    border-color var(--out),
+    opacity var(--out);
 }
 
 #skills-tab .skill-row::before {
@@ -354,8 +366,8 @@ body.side-panel-active #skills-tab #skills-list {
 
 #skills-tab .skill-row:hover,
 #skills-tab .skill-row.selected {
-  border-color: rgba(139, 92, 246, 0.45);
-  background: rgba(139, 92, 246, 0.06);
+  border-color: var(--line-accent);
+  background: var(--bg-glass-2);
 }
 
 .skill-detail .detail-section code {
@@ -410,7 +422,7 @@ body.side-panel-active #skills-tab #skills-list {
 #skills-tab .sr-desc {
   display: -webkit-box;
   overflow: hidden;
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--text-3);
   font-size: 13px;
   line-height: 1.45;
   -webkit-box-orient: vertical;
@@ -474,117 +486,4 @@ body.side-panel-active #skills-tab .grid-mode .skills-container {
 
 #skills-tab .grid-mode .skill-row .sr-info {
   justify-content: flex-start;
-}
-
-.skills-connect-modal {
-  width: min(680px, 100%);
-}
-
-.repo-preset-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.repo-preset-grid button {
-  min-height: 82px;
-  padding: 12px;
-  border: 1px solid var(--soft-line);
-  border-radius: 14px;
-  background: var(--bg-elevated);
-  color: var(--text);
-  text-align: left;
-}
-
-.repo-preset-grid button:hover {
-  border-color: rgba(139, 92, 246, 0.48);
-  background: rgba(139, 92, 246, 0.08);
-}
-
-.repo-preset-grid strong,
-.repo-preset-grid span {
-  display: block;
-}
-
-.repo-preset-grid strong {
-  margin-bottom: 6px;
-  font-size: 13px;
-}
-
-.repo-preset-grid span {
-  color: var(--text-3);
-  font-size: 12px;
-  line-height: 1.35;
-}
-
-.skills-connect-modal .ingest-progress {
-  display: none;
-  margin: 2px 0 0;
-  border-color: var(--soft-line);
-  border-radius: 14px;
-  background: var(--bg-input);
-}
-
-.skills-connect-modal .ingest-log {
-  max-height: 180px;
-  padding: 12px;
-}
-
-@media (max-width: 760px) {
-  #skills-tab {
-    overflow-y: auto;
-  }
-
-  #skills-tab .skills-layout {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
-    height: auto;
-  }
-
-  #skills-tab .toolbar,
-  #skills-tab .skills-sidebar,
-  #skills-tab .skills-main-area {
-    grid-column: 1;
-  }
-
-  #skills-tab .toolbar {
-    grid-row: 1;
-  }
-
-  #skills-tab .skills-sidebar {
-    grid-row: 2;
-    margin: 14px 16px 0;
-    border: 1px solid var(--soft-line);
-  }
-
-  #skills-tab .skills-main-area {
-    grid-row: 3;
-  }
-
-  #skills-tab .skills-side-list {
-    flex-direction: row;
-    overflow-x: auto;
-  }
-
-  #skills-tab .skills-side-btn {
-    min-width: max-content;
-  }
-
-  #skills-tab .toolbar,
-  #skills-tab .skill-row {
-    grid-template-columns: 1fr;
-  }
-
-  #skills-tab .skills-actions {
-    justify-content: flex-start;
-    flex-wrap: wrap;
-  }
-
-  #skills-tab .skill-row .sr-tags {
-    justify-content: flex-start;
-  }
-
-  .repo-preset-grid {
-    grid-template-columns: 1fr;
-  }
 }

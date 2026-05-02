@@ -1,5 +1,9 @@
 // compile.js — Cross-tool compiler tab v4 (stepped wizard flow)
 
+// @ts-check
+
+/** @typedef {{ label: string, logo?: string }} TargetMeta */
+
 const CompileTab = (() => {
   let detectedTools = {};
   let workspaces = [];
@@ -31,6 +35,31 @@ const CompileTab = (() => {
     ollama:      { label: 'Ollama', logo: 'https://cdn.jsdelivr.net/npm/simple-icons/icons/ollama.svg' },
     kimi:        { label: 'Kimi K2', logo: 'https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/kimi-ai.svg' },
   };
+
+  const FILE_STANDARD_TARGETS = new Set(['agents', 'aider', 'copilot']);
+
+  function isFileStandard(id, tool) {
+    return !!(tool?.fileStandard || FILE_STANDARD_TARGETS.has(id));
+  }
+
+  function isToolAvailable(id, tool) {
+    if (!tool) return false;
+    if (typeof tool.available === 'boolean') return tool.available;
+    if (tool.compileError || tool.status === 'missing-adapter') return false;
+    return !!(tool.installed || tool.globalInstalled || tool.category === 'manual' || isFileStandard(id, tool));
+  }
+
+  function availableGlobalTargets() {
+    return Object.entries(detectedTools)
+      .filter(([id, tool]) => isToolAvailable(id, tool) && tool.globalReady)
+      .map(([id]) => id);
+  }
+
+  function availableProjectTargets() {
+    return Object.entries(detectedTools)
+      .filter(([id, tool]) => isToolAvailable(id, tool) && tool.projectReady)
+      .map(([id]) => id);
+  }
 
   function targetClass(id) {
     return String(id || 'target').replace(/[^a-z0-9-]/gi, '-').toLowerCase();
@@ -73,8 +102,8 @@ const CompileTab = (() => {
     if (!container) return;
 
     const ids = Object.keys(detectedTools).sort((a, b) => {
-      const ai = detectedTools[a].installed ? 0 : 1;
-      const bi = detectedTools[b].installed ? 0 : 1;
+      const ai = isToolAvailable(a, detectedTools[a]) ? 0 : 1;
+      const bi = isToolAvailable(b, detectedTools[b]) ? 0 : 1;
       if (ai !== bi) return ai - bi;
       return (TARGET_META[a]?.label || a).localeCompare(TARGET_META[b]?.label || b);
     });
@@ -86,26 +115,35 @@ const CompileTab = (() => {
       const installed = t.installed;
       const globalActive = t.globalInstalled;
       const isManual = t.category === 'manual';
-      const projectReady = t.supportsProject && (installed || isManual);
+      const available = isToolAvailable(id, t);
+      const projectReady = !!(available && t.projectReady);
+      const globalReady = !!(available && t.globalReady);
+      const fileStandard = isFileStandard(id, t);
 
       let badges = '';
-      if (installed) badges += '<span class="ct-badge ct-installed">Installed</span>';
-      else if (!isManual) badges += '<span class="ct-badge ct-notfound">Not Found</span>';
+      if (!available) badges += '<span class="ct-badge ct-broken">Unavailable</span>';
+      if (installed) badges += '<span class="ct-badge ct-installed">Tool Detected</span>';
+      else if (fileStandard) badges += '<span class="ct-badge ct-project-only">File Standard</span>';
+      else if (!isManual) badges += '<span class="ct-badge ct-notfound">App Not Detected</span>';
       if (globalActive) badges += '<span class="ct-badge ct-global-active">Global Active</span>';
-      if (projectReady) badges += '<span class="ct-badge ct-project-only">Project Ready</span>';
+      if (globalReady) badges += '<span class="ct-badge ct-project-only">Global Writable</span>';
+      if (projectReady) badges += '<span class="ct-badge ct-project-only">Project Output</span>';
       if (isManual) badges += '<span class="ct-badge ct-manual">Manual / Copy</span>';
+      if (t.compileError) badges += '<span class="ct-badge ct-broken">Format Error</span>';
 
       let action = '';
-      if (t.supportsGlobal && installed && !globalActive) {
-        action = `<button class="mem-btn save" onclick="CompileTab.installGlobal('${id}')">Install</button>`;
-      } else if (t.supportsGlobal && globalActive) {
+      if (globalReady) {
         action = `<button class="mem-btn" onclick="CompileTab.installGlobal('${id}')">Update</button>`;
-      } else if (isManual) {
+      } else if (available && isManual) {
         action = `<button class="mem-btn" onclick="CompileTab.copyOutput('${id}')">Copy</button>`;
+      } else if (projectReady) {
+        action = `<button class="mem-btn" onclick="CompileTab.deployTarget('${id}')">Update</button>`;
       }
 
-      const pathInfo = t.globalPath ? `<div class="ct-path">${esc(t.globalPath)}</div>` : '';
-      const cardState = installed || isManual ? ' ct-detected' : ' ct-muted';
+      const statusText = t.compileError || (t.globalPath && !t.globalWritable ? 'Global path is not writable' : '');
+      const pathInfo = t.globalPath || statusText
+        ? `<div class="ct-path">${esc([t.globalPath, statusText].filter(Boolean).join(' - '))}</div>` : '';
+      const cardState = available ? ' ct-detected' : ' ct-muted';
 
       return `<div class="compile-tool-card target-${targetClass(id)}${cardState}">
         <div class="ct-header">
@@ -147,10 +185,10 @@ const CompileTab = (() => {
   // ---- ACTIONS ----
   async function installGlobal(targetId) {
     const targets = [targetId];
-    Toast.info(`Installing ${TARGET_META[targetId]?.label || targetId} globally...`);
+    Toast.info(`Updating ${TARGET_META[targetId]?.label || targetId}...`);
     const result = await DS.installGlobal(targets);
     if (result?.ok) {
-      Toast.success(`Installed to ${Object.values(result.installed).map(i => i.path).join(', ')}`);
+      Toast.success(`Updated ${Object.values(result.installed).map(i => i.path).join(', ')}`);
       const toolData = await DS.detectTools();
       if (toolData) detectedTools = toolData;
       renderTools();
@@ -161,18 +199,97 @@ const CompileTab = (() => {
   }
 
   async function installAllDetected() {
-    const targets = Object.entries(detectedTools)
-      .filter(([, t]) => t.installed && t.supportsGlobal)
-      .map(([id]) => id);
+    const targets = availableGlobalTargets();
     if (!targets.length) { Toast.warn('No detected tools with global support'); return; }
-    Toast.info(`Installing ${targets.length} tools globally...`);
+    Toast.info(`Updating ${targets.length} global output(s)...`);
     const result = await DS.installGlobal(targets);
     if (result?.ok) {
-      Toast.success(`Installed ${Object.keys(result.installed).length} tool(s) globally`);
+      Toast.success(`Updated ${Object.keys(result.installed).length} global output(s)`);
       const toolData = await DS.detectTools();
       if (toolData) detectedTools = toolData;
       renderTools();
       highlightStep(3);
+    }
+  }
+
+  async function deployTarget(targetId) {
+    const tool = detectedTools[targetId];
+    if (!isToolAvailable(targetId, tool)) {
+      Toast.warn('Target is not available');
+      return;
+    }
+    if (tool.globalReady) {
+      await installGlobal(targetId);
+      return;
+    }
+    if (tool.projectReady) {
+      const wsData = await DS.getWorkspaces();
+      if (wsData?.workspaces) workspaces = wsData.workspaces;
+      if (!workspaces.length) {
+        Toast.warn('Add a workspace before updating project outputs');
+        return;
+      }
+      Toast.info(`Updating ${TARGET_META[targetId]?.label || targetId} in ${workspaces.length} workspace(s)...`);
+      const result = await DS.compileWorkspaces([targetId], null);
+      if (result?.ok) {
+        workspaces = result.workspaces || workspaces;
+        renderWorkspaces();
+        highlightStep(3);
+        Toast.success(`Updated ${Object.keys(result.results || {}).length} workspace(s)`);
+      } else {
+        Toast.error(result?.error || 'Workspace update failed');
+      }
+      return;
+    }
+    await copyOutput(targetId);
+  }
+
+  async function deployAllAvailable() {
+    const [toolData, wsData] = await Promise.all([DS.detectTools(), DS.getWorkspaces()]);
+    if (toolData) detectedTools = toolData;
+    if (wsData?.workspaces) workspaces = wsData.workspaces;
+
+    const globalTargets = availableGlobalTargets();
+    const projectTargets = availableProjectTargets();
+    const tasks = [];
+    let globalCount = 0;
+    let workspaceCount = 0;
+    const errors = [];
+
+    if (globalTargets.length) {
+      tasks.push(DS.installGlobal(globalTargets).then(result => {
+        if (!result?.ok) throw new Error(result?.error || 'Global update failed');
+        globalCount = Object.keys(result.installed || {}).length;
+      }));
+    }
+
+    if (workspaces.length && projectTargets.length) {
+      tasks.push(DS.compileWorkspaces(projectTargets, null).then(result => {
+        if (!result?.ok) throw new Error(result?.error || 'Workspace compile failed');
+        workspaceCount = Object.keys(result.results || {}).length;
+        workspaces = result.workspaces || workspaces;
+        if (Array.isArray(result.errors) && result.errors.length) errors.push(...result.errors);
+      }));
+    }
+
+    if (!tasks.length) {
+      Toast.warn('No automatic deployment targets are available');
+      return;
+    }
+
+    Toast.info(`Updating ${globalTargets.length} global target(s) and ${workspaces.length ? projectTargets.length : 0} workspace target(s)...`);
+    try {
+      await Promise.all(tasks);
+      const refreshed = await DS.detectTools();
+      if (refreshed) detectedTools = refreshed;
+      renderTools();
+      renderWorkspaces();
+      highlightStep(3);
+      const message = `Updated ${globalCount} global output(s)${workspaceCount ? ` and ${workspaceCount} workspace(s)` : ''}`;
+      if (errors.length) Toast.warn(`${message}; ${errors.length} workspace issue(s)`);
+      else Toast.success(message);
+    } catch (e) {
+      Toast.error(e.message || 'Deployment failed');
     }
   }
 
@@ -204,8 +321,10 @@ const CompileTab = (() => {
   }
 
   async function compileToWorkspace(wsPath) {
+    const targets = availableProjectTargets();
+    if (!targets.length) { Toast.warn('No available project outputs'); return; }
     Toast.info('Compiling...');
-    const result = await DS.compileWorkspaces(null, wsPath);
+    const result = await DS.compileWorkspaces(targets, wsPath);
     if (result?.ok) {
       workspaces = result.workspaces;
       renderWorkspaces();
@@ -217,8 +336,10 @@ const CompileTab = (() => {
 
   async function compileAllWorkspaces() {
     if (!workspaces.length) { Toast.warn('No workspaces registered'); return; }
+    const targets = availableProjectTargets();
+    if (!targets.length) { Toast.warn('No available project outputs'); return; }
     Toast.info(`Compiling to ${workspaces.length} workspace(s)...`);
-    const result = await DS.compileWorkspaces(null, null);
+    const result = await DS.compileWorkspaces(targets, null);
     if (result?.ok) {
       workspaces = result.workspaces;
       renderWorkspaces();
@@ -241,7 +362,7 @@ const CompileTab = (() => {
 
   // ---- PREVIEW ----
   async function preview() {
-    const allTargets = Object.keys(detectedTools).filter(id => detectedTools[id].supportsProject);
+    const allTargets = availableProjectTargets();
     if (!allTargets.length) { Toast.warn('No targets available'); return; }
 
     Toast.info('Generating preview...');
@@ -302,7 +423,7 @@ const CompileTab = (() => {
 
   return {
     init, preview, showPreview, selectStrategy, highlightStep,
-    installGlobal, installAllDetected, copyOutput,
+    installGlobal, installAllDetected, deployTarget, deployAllAvailable, copyOutput,
     addWorkspace, removeWorkspace, compileToWorkspace, compileAllWorkspaces,
   };
 })();

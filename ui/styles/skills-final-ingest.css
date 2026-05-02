@@ -1,0 +1,114 @@
+/* Skills ingest modal and responsive layout. */
+
+.skills-connect-modal {
+  width: min(680px, 100%);
+}
+
+.repo-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.repo-preset-grid button {
+  min-height: 82px;
+  padding: 12px;
+  border: 1px solid var(--soft-line);
+  border-radius: 14px;
+  background: var(--bg-elevated);
+  color: var(--text);
+  text-align: left;
+}
+
+.repo-preset-grid button:hover {
+  border-color: var(--line-accent);
+  background: var(--bg-glass-2);
+}
+
+.repo-preset-grid strong,
+.repo-preset-grid span {
+  display: block;
+}
+
+.repo-preset-grid strong {
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.repo-preset-grid span {
+  color: var(--text-3);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.skills-connect-modal .ingest-progress {
+  display: none;
+  margin: 2px 0 0;
+  border-color: var(--soft-line);
+  border-radius: 14px;
+  background: var(--bg-input);
+}
+
+.skills-connect-modal .ingest-log {
+  max-height: 180px;
+  padding: 12px;
+}
+
+@media (max-width: 760px) {
+  #skills-tab {
+    overflow-y: auto;
+  }
+
+  #skills-tab .skills-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    height: auto;
+  }
+
+  #skills-tab .toolbar,
+  #skills-tab .skills-sidebar,
+  #skills-tab .skills-main-area {
+    grid-column: 1;
+  }
+
+  #skills-tab .toolbar {
+    grid-row: 1;
+  }
+
+  #skills-tab .skills-sidebar {
+    grid-row: 2;
+    margin: 14px 16px 0;
+    border: 1px solid var(--soft-line);
+  }
+
+  #skills-tab .skills-main-area {
+    grid-row: 3;
+  }
+
+  #skills-tab .skills-side-list {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+
+  #skills-tab .skills-side-btn {
+    min-width: max-content;
+  }
+
+  #skills-tab .toolbar,
+  #skills-tab .skill-row {
+    grid-template-columns: 1fr;
+  }
+
+  #skills-tab .skills-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  #skills-tab .skill-row .sr-tags {
+    justify-content: flex-start;
+  }
+
+  .repo-preset-grid {
+    grid-template-columns: 1fr;
+  }
+}

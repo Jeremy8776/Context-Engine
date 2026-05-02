@@ -32,7 +32,7 @@
   flex-direction: column;
   transform: translateX(100%);
   transition: transform var(--spring);
-  box-shadow: -24px 0 64px -16px rgba(0, 0, 0, 0.6);
+  box-shadow: -24px 0 64px -16px var(--alpha-black-60);
 }
 .side-panel.open { transform: translateX(0); }
 

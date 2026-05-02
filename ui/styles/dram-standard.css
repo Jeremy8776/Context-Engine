@@ -1,0 +1,393 @@
+/* dram-standard.css -- final canonical visual layer.
+   DRAM is the source of truth: black hardware surfaces, thin keylines,
+   restrained royal-purple accents, dense utility layout. */
+
+:root {
+  --bg: var(--dram-bg-base);
+  --bg-solid: var(--dram-bg-base);
+  --bg-sunken: var(--dram-bg-base);
+  --bg-raised: var(--dram-bg-surface);
+  --bg-card: var(--dram-bg-surface);
+  --bg-input: var(--dram-bg-surface);
+  --bg-recessed: var(--dram-bg-recessed);
+  --bg-elevated: var(--dram-bg-elevated);
+  --bg-glass: var(--dram-bg-elevated);
+  --bg-glass-2: var(--dram-bg-elevated);
+  --bg-hover: var(--dram-bg-hover);
+  --bg-pressed: var(--dram-bg-hover);
+  --bg-active: var(--dram-accent-subtle);
+  --accent: var(--dram-accent);
+  --accent-hi: var(--dram-accent-hi);
+  --accent-bg: var(--dram-accent-subtle);
+  --accent-line: var(--dram-accent-line);
+  --accent-glow: var(--dram-accent-glow);
+  --line: var(--dram-line-subtle);
+  --line-2: var(--dram-line);
+  --line-hi: var(--dram-line);
+  --line-accent: var(--dram-accent-line);
+  --soft-line: var(--dram-line);
+  --soft-line-2: var(--dram-line-subtle);
+  --text: var(--dram-text);
+  --text-2: var(--dram-text-2);
+  --text-3: var(--dram-text-3);
+  --text-4: var(--dram-text-4);
+  --text-on-accent: var(--dram-text-on-accent);
+  --ok: var(--dram-ok);
+  --ok-bg: var(--dram-ok-bg);
+  --warn: var(--dram-warn);
+  --warn-bg: var(--dram-warn-bg);
+  --err: var(--dram-err);
+  --err-bg: var(--dram-err-bg);
+  --r-1: 4px;
+  --r-2: 6px;
+  --r-3: 8px;
+  --desktop-titlebar-h: 40px;
+  --shell-divider-h: 64px;
+  --shadow-glass: none;
+  --shadow-glow: none;
+  --shadow-toolbar: none;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+body::before,
+body::after {
+  display: none;
+}
+
+html[data-runtime='electron'] .desktop-titlebar {
+  background: var(--bg);
+  /* height managed by .app grid row; border-bottom owned by shell.css */
+}
+
+html[data-runtime='electron'] .desktop-titlebar-actions button {
+  border-radius: var(--r-1);
+}
+
+.app {
+  background: var(--bg);
+}
+
+:root[data-nav='full'] .app,
+.app[data-nav='full'] {
+  grid-template-columns: 224px minmax(0, 1fr);
+}
+
+:root[data-nav='mini'] .app,
+.app[data-nav='mini'] {
+  grid-template-columns: 56px minmax(0, 1fr);
+}
+
+.nav {
+  background: var(--bg);
+  border-right-color: var(--line);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.nav-brand {
+  min-height: var(--shell-divider-h);
+  height: var(--shell-divider-h);
+  border-bottom-color: var(--line);
+  background: var(--bg);
+  font-family: var(--mono);
+  font-size: var(--fs-01);
+  letter-spacing: var(--tr-wide);
+  text-transform: uppercase;
+}
+
+.nav-brand span,
+.crumbs .here {
+  color: var(--text);
+}
+
+.nav-toggle,
+.tab-btn,
+.server-status {
+  border-radius: var(--r-1);
+}
+
+.tab-btn {
+  position: relative;
+  overflow: hidden;
+  border-color: transparent;
+  border-radius: 0;
+  font-family: var(--sans);
+  font-size: var(--fs-03);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  min-height: 36px;
+  padding-inline: calc(var(--s-4) + 10px) var(--s-3);
+}
+
+.tab-btn::after {
+  left: var(--s-2);
+  top: 50%;
+  bottom: auto;
+  width: 3px;
+  height: 12px;
+  border-radius: var(--r-full);
+  transform: translateY(-50%) scaleY(0);
+}
+
+.nav-toggle:hover,
+.tab-btn:hover {
+  background: var(--dram-hover-fade);
+  border-color: transparent;
+}
+
+.tab-btn.active {
+  color: var(--text);
+  background: var(--dram-active-fade);
+  border-color: transparent;
+}
+
+.tab-btn.active::after {
+  background: var(--accent);
+  transform: translateY(-50%) scaleY(1);
+}
+
+.tab-btn.active .nav-icon,
+.tab-btn.active::before {
+  color: var(--accent);
+}
+
+:root[data-nav='mini'] .tab-btn::after,
+.app[data-nav='mini'] .tab-btn::after {
+  display: none;
+}
+
+:root[data-nav='mini'] .tab-btn.active,
+.app[data-nav='mini'] .tab-btn.active {
+  background: transparent;
+}
+
+.nav-end {
+  border-top-color: var(--line);
+}
+
+.content,
+.tab-panel {
+  background: var(--bg);
+}
+
+.simple-page,
+.skills-scroll {
+  padding: var(--s-6) var(--s-7) var(--s-8);
+}
+
+.simple-inner,
+.simple-inner.wide {
+  max-width: none;
+}
+
+.dashboard-hero,
+.dashboard-head,
+.section-hdr {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+}
+
+.dashboard-hero h1,
+.dashboard-panel h2,
+.section-hdr h2,
+.compile-card h3,
+.memory-detail-head h3 {
+  font-family: var(--sans);
+  letter-spacing: 0;
+}
+
+.dashboard-hero h1,
+.section-hdr h2 {
+  font-size: var(--fs-08);
+  line-height: var(--line-height-tight, 1.2);
+}
+
+.dashboard-panel-head > div,
+.compile-card-head > div,
+.section-header,
+.memory-detail-head {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.section-hdr h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.section-hdr h2::after {
+  content: '';
+  flex: 1 1 auto;
+  height: 1px;
+  min-width: var(--s-7);
+  background: var(--dram-divider-fade);
+}
+
+.dashboard-hero p,
+.section-hdr p,
+.dashboard-note,
+.strategy-option p,
+.repo-preset-grid span,
+.maintenance-option small {
+  color: var(--text-3);
+}
+
+.dashboard-panel,
+.dashboard-metric,
+.compile-card,
+.compile-tool-card,
+.strategy-option,
+.compile-ws-row,
+.compile-summary,
+.memory-results,
+.memory-detail,
+.memory-card,
+.mode-card,
+.mode-row,
+.repo-preset-grid button,
+.maintenance-option,
+.maintenance-result,
+.maintenance-review-group,
+.maintenance-review-choice,
+.package-breakdown div,
+.side-panel,
+.memory-modal,
+.app-dialog,
+.toast {
+  background: var(--dram-card-bg);
+  border: 1px solid var(--dram-card-border);
+  border-radius: var(--r-3);
+  box-shadow: none;
+}
+
+.skills-sidebar,
+.memory-sidebar {
+  background: transparent;
+  border-color: var(--line);
+}
+
+.memory-card,
+.mode-card,
+.strategy-option,
+.compile-tool-card,
+.dashboard-metric {
+  position: relative;
+  overflow: hidden;
+}
+
+.memory-card::before,
+.mode-card::before,
+.strategy-option::before,
+.compile-tool-card::before,
+.dashboard-metric::before {
+  display: none;
+}
+
+.dashboard-panel-head,
+.compile-card-head,
+.memory-detail-head,
+.memory-detail-actions,
+.memory-modal-head,
+.memory-modal-actions,
+#memory-tab .memory-pagination {
+  border-color: var(--line);
+}
+
+.skills-side-btn,
+.memory-filter,
+.compile-preview-tabs button {
+  border-radius: var(--r-1);
+}
+
+.skills-side-btn,
+.memory-filter {
+  position: relative;
+  background: transparent;
+  border-color: transparent;
+  overflow: hidden;
+}
+
+.skills-side-btn::before,
+.memory-filter::before {
+  content: '';
+  position: absolute;
+  left: var(--s-3);
+  top: 50%;
+  width: 3px;
+  height: 12px;
+  border-radius: var(--r-full);
+  background: transparent;
+  transform: translateY(-50%);
+}
+
+.skills-side-btn,
+.memory-filter {
+  padding-left: calc(var(--s-5) + 10px);
+}
+
+.skills-side-btn:hover,
+.memory-filter:hover,
+.skills-side-btn.active,
+.memory-filter.active {
+  color: var(--text);
+  background: var(--dram-active-fade);
+  border-color: transparent;
+}
+
+.skills-side-btn:hover,
+.memory-filter:hover {
+  background: var(--dram-hover-fade);
+}
+
+.skills-side-btn.active::before,
+.memory-filter.active::before {
+  background: var(--accent);
+}
+
+.memory-card:hover,
+.memory-card.active,
+.mode-card:hover,
+.mode-card.selected,
+.strategy-option:hover,
+.strategy-option.selected {
+  background: var(--dram-card-hover);
+  border-color: var(--dram-card-border-hover);
+}
+
+.memory-card.active,
+.mode-card.selected,
+.strategy-option.selected {
+  background: var(--dram-card-active);
+  border-color: var(--dram-card-border-active);
+}
+
+.memory-card.active::before,
+.mode-card.selected::before,
+.strategy-option.selected::before,
+.compile-tool-card:focus-within::before,
+.dashboard-metric:hover::before {
+  background: transparent;
+}
+
+.compile-tool-card:focus-within {
+  border-color: var(--dram-card-border-active);
+}
+
+.compile-preview-tabs button:hover {
+  background: var(--dram-hover-fade);
+  border-color: var(--line-hi);
+}
+
+.compile-preview-tabs button.active {
+  color: var(--text);
+  background: var(--dram-active-fade);
+  border-color: var(--accent-line);
+}

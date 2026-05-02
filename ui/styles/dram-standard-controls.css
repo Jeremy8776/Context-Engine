@@ -1,0 +1,458 @@
+/* dram-standard-controls.css -- DRAM controls, badges, overlays, and charts. */
+
+.toggle {
+  width: 44px;
+  height: 22px;
+}
+
+.toggle-track {
+  background: var(--dram-toggle-bg);
+  border-color: var(--dram-toggle-border);
+  border-radius: var(--r-1);
+  box-shadow: var(--dram-toggle-shadow);
+}
+
+.toggle-track::after {
+  left: 2px;
+  width: var(--dram-card-toggle-thumb-w);
+  height: var(--dram-card-toggle-thumb-h);
+  background: var(--dram-toggle-thumb-bg);
+  border: 1px solid var(--dram-toggle-thumb-border);
+  border-radius: 2px;
+  box-shadow: var(--dram-toggle-thumb-shadow);
+}
+
+.toggle input:checked ~ .toggle-track {
+  background: var(--dram-toggle-active-bg);
+  border-color: var(--accent);
+}
+
+.toggle input:checked ~ .toggle-track::after {
+  background: var(--dram-toggle-active-thumb-bg);
+  border-color: var(--dram-toggle-active-thumb-border);
+  box-shadow: 0 0 12px var(--accent-glow);
+  transform: translateY(-50%) translateX(var(--dram-card-toggle-shift));
+}
+
+.toggle-track:hover::after {
+  background: var(--dram-toggle-hover-thumb-bg);
+  border-color: var(--dram-toggle-hover-thumb-border);
+}
+
+.toggle input:checked ~ .toggle-track:hover::after {
+  background: var(--dram-toggle-active-thumb-bg);
+  border-color: var(--dram-toggle-active-thumb-border);
+  filter: brightness(1.2);
+}
+
+.badge,
+.chip,
+.ct-badge,
+.memory-cat-badge,
+#skills-tab .badge,
+#skills-tab .sr-trigger {
+  color: var(--text-3);
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  border-radius: var(--r-full);
+}
+
+.ct-installed,
+.ct-ready,
+.ct-global-active,
+.chip-ok,
+.badge-builtin,
+.maintenance-result.ok {
+  color: var(--ok);
+  background: var(--ok-bg);
+  border-color: var(--ok);
+}
+
+.ct-project-only,
+.ct-manual,
+.badge-custom,
+.compile-result-tokens {
+  color: var(--accent-hi);
+  background: var(--accent-bg);
+  border-color: var(--accent-line);
+}
+
+.ct-broken,
+.chip-err,
+.maintenance-result.err {
+  color: var(--err);
+  background: var(--err-bg);
+  border-color: var(--err);
+}
+
+.toolbar,
+#skills-tab .toolbar,
+.memory-toolbar {
+  background: var(--bg);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+#skills-tab .toolbar {
+  border-bottom: 1px solid var(--line);
+}
+
+.compile-primary-actions {
+  margin-bottom: var(--s-5);
+}
+
+.compile-tools-grid,
+#skills-tab .grid-mode .skills-container {
+  gap: var(--s-3);
+}
+
+.compile-tool-card {
+  min-height: 148px;
+}
+
+#skills-tab .skills-layout {
+  grid-template-columns: 200px minmax(0, 1fr);
+}
+
+#skills-tab .skills-sidebar {
+  margin: 0;
+  padding: var(--s-7) 0;
+  background: transparent;
+  border-width: 0 1px 0 0;
+  border-color: var(--line);
+  border-radius: 0;
+}
+
+#skills-tab .skills-scroll {
+  padding: var(--s-7) var(--s-7) var(--s-8);
+}
+
+#skills-tab .skills-side-section + .skills-side-section {
+  margin-top: var(--s-7);
+}
+
+#skills-tab .skills-side-label {
+  margin: 0 0 var(--s-2);
+  padding: 0 var(--s-5);
+  color: var(--text-4);
+  font-size: var(--fs-01);
+  letter-spacing: var(--tr-wide);
+}
+
+#skills-tab .skills-side-list {
+  gap: 0;
+}
+
+#skills-tab .skills-side-btn {
+  position: relative;
+  min-height: 32px;
+  padding: var(--s-2) var(--s-5) var(--s-2) calc(var(--s-5) + 10px);
+  border: 0;
+  border-radius: 0;
+  font-size: var(--fs-03);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: transparent;
+  overflow: hidden;
+}
+
+#skills-tab .skills-side-btn::before {
+  left: var(--s-4);
+}
+
+#skills-tab .skills-side-btn:hover {
+  color: var(--text);
+  background: var(--dram-hover-fade);
+  border-color: transparent;
+}
+
+#skills-tab .skills-side-btn.active {
+  color: var(--text);
+  background: var(--dram-active-fade);
+  border-color: transparent;
+}
+
+#skills-tab .skills-side-btn.active::before {
+  background: var(--accent);
+}
+
+#skills-tab .skills-side-btn small {
+  color: var(--text-4);
+  font-size: var(--fs-01);
+}
+
+#skills-tab .skills-side-btn:hover small,
+#skills-tab .skills-side-btn.active small {
+  color: var(--text-3);
+}
+
+#skills-tab .skill-group-header {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin: var(--s-5) 0 var(--s-3);
+  padding: 0;
+  color: var(--text-4);
+  font-family: var(--mono);
+  font-size: var(--fs-01);
+  font-weight: 700;
+  letter-spacing: var(--tr-wide);
+  text-transform: uppercase;
+}
+
+#skills-tab .skill-group-header::after {
+  content: '';
+  flex: 1 1 auto;
+  height: 1px;
+  min-width: var(--s-7);
+  background: var(--dram-divider-fade);
+}
+
+#skills-tab .grid-mode .skills-container {
+  grid-template-columns: repeat(auto-fill, minmax(var(--dram-card-grid-min), 1fr));
+}
+
+body.side-panel-active #skills-tab .grid-mode .skills-container {
+  grid-template-columns: repeat(auto-fill, minmax(var(--dram-card-grid-min), 1fr));
+}
+
+#skills-tab .skill-row {
+  background: var(--bg);
+  border-color: var(--dram-card-border);
+  border-radius: var(--r-1);
+  transition:
+    background var(--out),
+    border-color var(--out);
+}
+
+#skills-tab .grid-mode .skill-row {
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  min-height: var(--dram-card-compact-h);
+  padding: var(--s-3);
+  gap: var(--s-2);
+  background: var(--skill-preset-card-bg);
+}
+
+#skills-tab .grid-mode .skill-row:not(.inactive) {
+  border-color: var(--dram-card-border-active);
+}
+
+#skills-tab .grid-mode .skill-row:hover {
+  background: var(--skill-preset-card-hover);
+  border-color: var(--dram-card-border-hover);
+}
+
+#skills-tab .grid-mode .skill-row.selected {
+  background: var(--skill-preset-card-active);
+  border-color: var(--dram-card-border-active);
+}
+
+#skills-tab #skills-list:not(.grid-mode) .skill-row {
+  grid-template-columns: minmax(var(--dram-list-name-col), 0.34fr) minmax(var(--dram-list-copy-col), 1fr) auto;
+  min-height: var(--dram-list-row-h);
+  padding: var(--s-3) var(--s-4);
+  gap: var(--s-4);
+  background: var(--bg);
+}
+
+#skills-tab #skills-list:not(.grid-mode) .skill-row:hover {
+  background: var(--bg-hover);
+  border-color: var(--dram-card-border-hover);
+}
+
+#skills-tab #skills-list:not(.grid-mode) .skill-row.selected {
+  background: var(--bg-active);
+  border-color: var(--dram-card-border-active);
+}
+
+#skills-tab .skill-row.selected::before {
+  background: transparent;
+}
+
+#skills-tab .skill-row.inactive {
+  opacity: 1;
+}
+
+#skills-tab .skill-row.inactive:hover,
+#skills-tab .skill-row.inactive.selected {
+  opacity: 1;
+}
+
+#skills-tab .grid-mode .skill-row.inactive {
+  background: var(--skill-card-disabled-bg);
+  border-color: var(--dram-card-border);
+}
+
+#skills-tab .grid-mode .skill-row.inactive:hover {
+  background: var(--skill-card-disabled-bg);
+  border-color: var(--dram-card-border-hover);
+}
+
+#skills-tab .skill-row .sr-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  gap: var(--s-2);
+  align-items: start;
+}
+
+#skills-tab .skill-row .sr-info,
+#skills-tab .skill-row .sr-tags {
+  grid-column: 1 / -1;
+}
+
+#skills-tab .skill-row .sr-info {
+  justify-content: start;
+}
+
+#skills-tab .skill-row .sr-tags {
+  justify-content: flex-start;
+  align-content: end;
+  margin-top: auto;
+}
+
+#skills-tab #skills-list:not(.grid-mode) .skill-row .sr-header {
+  grid-column: auto;
+}
+
+#skills-tab #skills-list:not(.grid-mode) .skill-row .sr-info {
+  grid-column: auto;
+  justify-content: center;
+}
+
+#skills-tab #skills-list:not(.grid-mode) .skill-row .sr-tags {
+  grid-column: auto;
+  justify-content: flex-end;
+  margin-top: 0;
+}
+
+#skills-tab .skill-row .sr-tags .badge:not(:first-child),
+#skills-tab .grid-mode .sr-triggers {
+  display: none;
+}
+
+#skills-tab .sr-name {
+  font-family: var(--sans);
+  font-size: var(--fs-03);
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+#skills-tab .sr-desc {
+  color: var(--text-2);
+  font-size: var(--fs-02);
+  line-height: 1.45;
+  -webkit-line-clamp: var(--dram-card-desc-lines);
+}
+
+#skills-tab .skill-row.inactive .sr-name {
+  color: var(--text);
+}
+
+#skills-tab .skill-row.inactive .sr-desc {
+  color: var(--text-2);
+}
+
+#skills-tab .skill-row.inactive .sr-active-lbl,
+#skills-tab .skill-row.inactive .badge {
+  color: var(--text-4);
+}
+
+#skills-tab .skill-row.inactive .toggle {
+  opacity: var(--dram-card-muted-opacity);
+}
+
+#skills-tab .sr-active-lbl {
+  font-size: var(--fs-01);
+  letter-spacing: 0.08em;
+}
+
+#skills-tab .badge,
+#skills-tab .sr-trigger {
+  min-height: var(--dram-card-badge-h);
+  padding: var(--dram-card-toggle-inset) var(--s-2);
+  border-radius: var(--r-1);
+  font-size: var(--fs-01);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--bg);
+  border-color: var(--line);
+  color: var(--text-4);
+}
+
+#skills-tab .skill-row .toggle {
+  width: var(--dram-card-toggle-w);
+  height: var(--dram-card-toggle-h);
+}
+
+#skills-tab .skill-row .toggle-track {
+  background: var(--dram-toggle-bg);
+  border-color: var(--dram-toggle-border);
+  border-radius: var(--r-1);
+}
+
+#skills-tab .skill-row .toggle-track::after {
+  left: var(--dram-card-toggle-inset);
+  width: var(--dram-card-toggle-thumb-w);
+  height: var(--dram-card-toggle-thumb-h);
+  border-radius: 2px;
+}
+
+.compile-target-logo {
+  background: var(--bg-elevated);
+  border-color: var(--line);
+  border-radius: var(--r-1);
+}
+
+.dashboard-token-row {
+  grid-template-columns: minmax(112px, 150px) minmax(180px, 1fr) 72px;
+}
+
+.dashboard-token-track,
+.budget-bar {
+  height: 3px;
+  background: var(--line);
+  border-radius: var(--r-full);
+}
+
+.dashboard-token-track i,
+.budget-fill {
+  background: var(--accent);
+}
+
+.modal-overlay {
+  background: var(--dram-backdrop);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+.memory-modal {
+  max-height: calc(100dvh - var(--s-8));
+}
+
+.memory-modal-body {
+  min-height: 0;
+  overflow: auto;
+}
+
+.side-panel {
+  background: var(--bg);
+  border-color: var(--line);
+}
+
+.sp-header,
+.sp-actions,
+.sp-card,
+.detail-section {
+  border-color: var(--line);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--line-hi);
+}

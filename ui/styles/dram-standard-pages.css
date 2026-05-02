@@ -1,0 +1,242 @@
+/* DRAM page-specific role mapping. */
+
+.dashboard-mode-btn {
+  min-height: var(--dram-card-compact-h);
+  align-items: flex-start;
+  padding: var(--s-3);
+  color: var(--text);
+  background: var(--skill-preset-card-bg);
+  border: 1px solid var(--dram-card-border);
+  border-radius: var(--r-3);
+  transform: none;
+}
+
+.dashboard-mode-btn::before {
+  display: none;
+}
+
+.dashboard-mode-btn:hover {
+  background: var(--skill-preset-card-hover);
+  border-color: var(--dram-card-border-hover);
+  transform: none;
+}
+
+.dashboard-mode-btn.active {
+  background: var(--skill-preset-card-active);
+  border-color: var(--dram-card-border-active);
+}
+
+.dashboard-mode-btn strong,
+.mode-card .mode-row-name,
+.ct-label {
+  font-size: var(--fs-03);
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.dashboard-mode-btn small,
+.mode-card .mode-row-desc,
+.ct-path {
+  color: var(--text-3);
+  font-size: var(--fs-02);
+  line-height: 1.45;
+}
+
+.dashboard-mode-btn em {
+  font-size: var(--fs-01);
+  letter-spacing: var(--tr-wide);
+}
+
+.compile-tools-grid {
+  grid-template-columns: repeat(auto-fill, minmax(var(--dram-card-grid-min), 1fr));
+}
+
+.compile-tool-card,
+.strategy-option,
+.compile-ws-row,
+.rules-block,
+.rules-tool,
+.rules-save-bar,
+.rules-issue,
+.rules-empty,
+.rules-history-item,
+.rules-file-pill {
+  background: var(--dram-card-bg);
+  border-color: var(--dram-card-border);
+  border-radius: var(--r-3);
+  box-shadow: none;
+}
+
+.compile-tool-card,
+.strategy-option,
+.mode-card,
+#skills-tab .grid-mode .skill-row {
+  min-height: var(--dram-card-compact-h);
+  padding: var(--s-3);
+  gap: var(--s-2);
+}
+
+.mode-card {
+  background: var(--skill-preset-card-bg);
+}
+
+.mode-card:hover {
+  background: var(--skill-preset-card-hover);
+}
+
+.ct-label,
+.mode-card .mode-row-name,
+#skills-tab .skill-row .sr-name {
+  font-size: var(--fs-02);
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.compile-tool-card:hover,
+.compile-ws-row:hover,
+.rules-issue:hover,
+.rules-history-item:hover {
+  background: var(--dram-card-hover);
+  border-color: var(--dram-card-border-hover);
+}
+
+.rules-block-hdr span::before {
+  display: none;
+}
+
+.rules-block-hdr,
+.rules-tool-head span,
+.api-key-label,
+.modal-field > span {
+  color: var(--text-3);
+  font-size: var(--fs-01);
+  font-weight: 700;
+  letter-spacing: var(--tr-wide);
+}
+
+.rules-tab {
+  background: var(--bg);
+  border-color: var(--line);
+  border-radius: var(--r-1);
+}
+
+.rules-tab:hover,
+.rules-tab.active {
+  color: var(--text);
+  background: var(--dram-hover-fade);
+  border-color: var(--line-hi);
+}
+
+.compile-preview-tabs button {
+  position: relative;
+  background: var(--bg);
+  border-color: var(--line);
+  border-radius: var(--r-2);
+  box-shadow: none;
+}
+
+.compile-preview-tabs button:hover {
+  background: var(--bg-elevated);
+  border-color: var(--line-hi);
+}
+
+.compile-preview-tabs button.active {
+  color: var(--accent-hi);
+  background: var(--bg-elevated);
+  border-color: var(--accent-line);
+}
+
+.compile-preview-tabs button.active::after {
+  content: '';
+  position: absolute;
+  left: var(--s-3);
+  right: var(--s-3);
+  bottom: -1px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: var(--r-full);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+.modal-overlay,
+.app-dialog-overlay {
+  background: var(--dram-backdrop);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+.memory-modal,
+.app-dialog,
+.toast {
+  background: var(--dram-card-bg);
+  border-color: var(--dram-card-border);
+  box-shadow: none;
+}
+
+.app-dialog p,
+.detail-panel-intro p,
+.mode-card .mode-row-desc {
+  color: var(--text-3);
+}
+
+.sp-skill-desc {
+  margin-left: auto;
+  color: var(--text-3);
+  font-size: var(--fs-02);
+}
+
+.sr-state-control {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-left: auto;
+}
+
+.search-suggest-desc,
+.sp-mcp-url {
+  color: var(--text-3);
+}
+
+.search-suggest-desc {
+  margin-left: var(--s-2);
+  font-size: var(--fs-02);
+}
+
+.sp-icon-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.sp-actions-edit {
+  margin-top: var(--s-6);
+}
+
+.sp-actions-edit.compact {
+  margin-top: var(--s-4);
+}
+
+.push-end {
+  margin-left: auto;
+}
+
+.mode-card.mode-active,
+.mode-card.selected {
+  background: var(--skill-preset-card-active);
+  border-color: var(--dram-card-border-active);
+}
+
+.toast-success .toast-icon {
+  color: var(--ok);
+  background: var(--ok-bg);
+  border-color: var(--ok);
+}
+
+.toast-error .toast-icon,
+.toast-warning .toast-icon {
+  color: var(--err);
+  background: var(--err-bg);
+  border-color: var(--err);
+}

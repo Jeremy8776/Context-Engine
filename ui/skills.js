@@ -8,8 +8,8 @@ const SkillsTab = (() => {
   let selectedSkillId = null;
   let sidePanelCloseBound = false;
 
-  const bc = t => t === 'custom' ? 'badge-custom' : t === 'builtin' ? 'badge-builtin' : 'badge-external';
-  const bl = t => t === 'custom' ? 'custom' : t === 'builtin' ? 'built-in' : 'external';
+  const bc = (t) => (t === 'custom' ? 'badge-custom' : t === 'builtin' ? 'badge-builtin' : 'badge-external');
+  const bl = (t) => (t === 'custom' ? 'custom' : t === 'builtin' ? 'built-in' : 'external');
   const SOURCE_LABELS = {
     'anthropics-skills': 'Anthropic',
     'openai-skills': 'OpenAI',
@@ -27,13 +27,15 @@ const SkillsTab = (() => {
     const slug = ingestMatch[1];
     return {
       id: slug,
-      label: SOURCE_LABELS[slug] || slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+      label: SOURCE_LABELS[slug] || slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
     };
   }
 
   function categoryLabel(id) {
-    const cat = CATEGORIES.find(c => c.id === id);
-    return cat ? cat.label : (id || 'Uncategorized').replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    const cat = CATEGORIES.find((c) => c.id === id);
+    return cat
+      ? cat.label
+      : (id || 'Uncategorized').replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
   }
 
   function setSideSectionVisible(host, visible) {
@@ -46,14 +48,16 @@ const SkillsTab = (() => {
     const sidebar = document.querySelector('#skills-tab .skills-sidebar');
     const tab = document.getElementById('skills-tab');
     if (!sidebar || !tab) return;
-    const hasVisibleSections = [...sidebar.querySelectorAll('.skills-side-section')].some(section => !section.hidden);
+    const hasVisibleSections = [...sidebar.querySelectorAll('.skills-side-section')].some(
+      (section) => !section.hidden,
+    );
     sidebar.hidden = !hasVisibleSections;
     tab.classList.toggle('skills-no-sidebar', !hasVisibleSections);
   }
 
   function renderStats() {
     const total = SKILL_DATA.length;
-    const active = SKILL_DATA.filter(s => SS.active(s.id)).length;
+    const active = SKILL_DATA.filter((s) => SS.active(s.id)).length;
     const tEl = document.getElementById('db-stat-total');
     const aEl = document.getElementById('db-stat-active');
     if (tEl) tEl.textContent = total;
@@ -62,13 +66,14 @@ const SkillsTab = (() => {
 
   function toggleSelect(id, e) {
     if (e) e.stopPropagation();
-    if (selected.has(id)) selected.delete(id); else selected.add(id);
+    if (selected.has(id)) selected.delete(id);
+    else selected.add(id);
     renderBulkBar();
     render();
   }
 
   function selectAll() {
-    getVisible().forEach(s => selected.add(s.id));
+    getVisible().forEach((s) => selected.add(s.id));
     renderBulkBar();
     render();
   }
@@ -83,27 +88,34 @@ const SkillsTab = (() => {
     if (!selected.size) return;
     SS.setBulk([...selected], true);
     selected.clear();
-    renderBulkBar(); renderStats(); render();
+    renderBulkBar();
+    renderStats();
+    render();
   }
 
   function bulkDisable() {
     if (!selected.size) return;
     SS.setBulk([...selected], false);
     selected.clear();
-    renderBulkBar(); renderStats(); render();
+    renderBulkBar();
+    renderStats();
+    render();
   }
 
   function renderBulkBar() {
     const bar = document.getElementById('bulk-bar');
     if (!bar) return;
-    if (!selected.size) { bar.hidden = true; return; }
+    if (!selected.size) {
+      bar.hidden = true;
+      return;
+    }
     bar.hidden = false;
     bar.querySelector('.bulk-count').textContent = `${selected.size} selected`;
   }
 
   function setFilter(f, btn) {
     filter = f;
-    document.querySelectorAll('#skills-tab .filters .fb').forEach(b => b.classList.remove('on'));
+    document.querySelectorAll('#skills-tab .filters .fb').forEach((b) => b.classList.remove('on'));
     btn.classList.add('on');
     render();
   }
@@ -119,7 +131,7 @@ const SkillsTab = (() => {
     const host = document.getElementById('skills-source-list');
     if (!host) return;
     const counts = new Map();
-    SKILL_DATA.forEach(skill => {
+    SKILL_DATA.forEach((skill) => {
       const source = sourceFor(skill);
       const current = counts.get(source.id) || { ...source, count: 0 };
       current.count += 1;
@@ -140,8 +152,9 @@ const SkillsTab = (() => {
       return;
     }
     setSideSectionVisible(host, true);
-    host.innerHTML = sideFilterButton('source', null, 'All sources', SKILL_DATA.length, !activeSource) +
-      sources.map(s => sideFilterButton('source', s.id, s.label, s.count, activeSource === s.id)).join('');
+    host.innerHTML =
+      sideFilterButton('source', null, 'All sources', SKILL_DATA.length, !activeSource) +
+      sources.map((s) => sideFilterButton('source', s.id, s.label, s.count, activeSource === s.id)).join('');
     updateSidebarVisibility();
   }
 
@@ -149,7 +162,7 @@ const SkillsTab = (() => {
     const host = document.getElementById('skills-category-list');
     if (!host) return;
     const counts = new Map();
-    SKILL_DATA.forEach(skill => {
+    SKILL_DATA.forEach((skill) => {
       if (activeSource && sourceFor(skill).id !== activeSource) return;
       const id = skill.cat || 'uncategorized';
       counts.set(id, (counts.get(id) || 0) + 1);
@@ -164,8 +177,13 @@ const SkillsTab = (() => {
       return;
     }
     setSideSectionVisible(host, true);
-    host.innerHTML = sideFilterButton('category', null, 'All categories', total, !activeCategory) +
-      cats.map(([id, count]) => sideFilterButton('category', id, categoryLabel(id), count, activeCategory === id)).join('');
+    host.innerHTML =
+      sideFilterButton('category', null, 'All categories', total, !activeCategory) +
+      cats
+        .map(([id, count]) =>
+          sideFilterButton('category', id, categoryLabel(id), count, activeCategory === id),
+        )
+        .join('');
     updateSidebarVisibility();
   }
 
@@ -217,15 +235,18 @@ const SkillsTab = (() => {
     row.className = `skill-row${!isActive ? ' inactive' : ''}${isSel || isDetailSelected ? ' selected' : ''}`;
     row.setAttribute('data-skill-id', skill.id);
 
-    const tags = (skill.tags || []).map(t => `<span class="badge badge-tag">${esc(t)}</span>`).join('');
-    const triggers = (skill.triggers || []).slice(0, 3).map(t => `<span class="sr-trigger">${esc(t)}</span>`).join('');
+    const tags = (skill.tags || []).map((t) => `<span class="badge badge-tag">${esc(t)}</span>`).join('');
+    const triggers = (skill.triggers || [])
+      .slice(0, 3)
+      .map((t) => `<span class="sr-trigger">${esc(t)}</span>`)
+      .join('');
     const activeLbl = isActive ? 'Active' : 'Inactive';
     const shortDesc = truncate(skill.desc, 100);
 
     row.innerHTML = `
       <div class="sr-header">
         <div class="sr-name">${esc(skill.name || skill.id)}</div>
-        <div onclick="event.stopPropagation()" style="display:flex;align-items:center;gap:8px;margin-left:auto">
+        <div class="sr-state-control" onclick="event.stopPropagation()">
           <span class="sr-active-lbl">${activeLbl}</span>
           ${makeToggle(skill, isActive)}
         </div>
@@ -239,7 +260,7 @@ const SkillsTab = (() => {
         ${tags}
       </div>`;
 
-    row.addEventListener('click', e => {
+    row.addEventListener('click', (e) => {
       if (e.target.closest('.toggle')) return;
       if (e.shiftKey) {
         toggleSelect(skill.id, e);
@@ -259,9 +280,9 @@ const SkillsTab = (() => {
   // ---- VISIBLE FILTER ----
   function getVisible() {
     const q = (document.getElementById('skills-search')?.value || '').toLowerCase();
-    return SKILL_DATA.filter(s => {
-      if (filter === 'active'   && !SS.active(s.id)) return false;
-      if (filter === 'inactive' &&  SS.active(s.id)) return false;
+    return SKILL_DATA.filter((s) => {
+      if (filter === 'active' && !SS.active(s.id)) return false;
+      if (filter === 'inactive' && SS.active(s.id)) return false;
       if (activeSource && sourceFor(s).id !== activeSource) return false;
       if (activeCategory && s.cat !== activeCategory) return false;
       if (q && !s.id.toLowerCase().includes(q) && !s.desc.toLowerCase().includes(q)) return false;
@@ -283,7 +304,7 @@ const SkillsTab = (() => {
     }
 
     const groups = {};
-    visible.forEach(s => {
+    visible.forEach((s) => {
       const group = categoryLabel(s.cat || 'uncategorized');
       if (!groups[group]) groups[group] = [];
       groups[group].push(s);
@@ -294,13 +315,13 @@ const SkillsTab = (() => {
     const container = document.createElement('div');
     container.className = 'skills-container';
 
-    sortedKeys.forEach(group => {
+    sortedKeys.forEach((group) => {
       const skills = groups[group];
       const hdr = document.createElement('div');
       hdr.className = 'skill-group-header';
       hdr.textContent = `${group} (${skills.length})`;
       container.appendChild(hdr);
-      skills.forEach(s => container.appendChild(makeRow(s)));
+      skills.forEach((s) => container.appendChild(makeRow(s)));
     });
 
     list.appendChild(container);
@@ -308,13 +329,15 @@ const SkillsTab = (() => {
 
   // ---- SIDE PANEL DETAIL ----
   function openDetail(skillId) {
-    const skill = SKILL_DATA.find(s => s.id === skillId);
+    const skill = SKILL_DATA.find((s) => s.id === skillId);
     if (!skill) return;
     selectedSkillId = skillId;
     const isActive = SS.active(skill.id);
     const source = sourceFor(skill);
-    const tags = (skill.tags || []).map(t => `<span class="badge badge-tag">${esc(t)}</span>`).join(' ');
-    const triggers = (skill.triggers || []).map(t => `<span class="mode-skill-tag">${esc(t)}</span>`).join(' ');
+    const tags = (skill.tags || []).map((t) => `<span class="badge badge-tag">${esc(t)}</span>`).join(' ');
+    const triggers = (skill.triggers || [])
+      .map((t) => `<span class="mode-skill-tag">${esc(t)}</span>`)
+      .join(' ');
     render();
 
     const html = `
@@ -354,19 +377,32 @@ const SkillsTab = (() => {
       clearTimeout(debounce);
       debounce = setTimeout(() => {
         const q = input.value.trim().toLowerCase();
-        if (q.length < 2) { suggest.classList.remove('open'); render(); return; }
+        if (q.length < 2) {
+          suggest.classList.remove('open');
+          render();
+          return;
+        }
 
-        const matches = SKILL_DATA.filter(s =>
-          s.id.toLowerCase().includes(q) || s.desc.toLowerCase().includes(q)
+        const matches = SKILL_DATA.filter(
+          (s) => s.id.toLowerCase().includes(q) || s.desc.toLowerCase().includes(q),
         ).slice(0, 8);
 
-        if (!matches.length) { suggest.classList.remove('open'); render(); return; }
+        if (!matches.length) {
+          suggest.classList.remove('open');
+          render();
+          return;
+        }
 
-        suggest.innerHTML = matches.map(s => {
-          const safeId = esc(s.id);
-          const highlighted = safeId.replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'), '<span class="ss-match">$1</span>');
-          return `<div class="search-suggest-item" onmousedown="SkillsTab.applySuggestion('${s.id}')">${highlighted} <span style="color:var(--text-3);font-size:11px;margin-left:8px">${esc(s.desc.slice(0,40))}</span></div>`;
-        }).join('');
+        suggest.innerHTML = matches
+          .map((s) => {
+            const safeId = esc(s.id);
+            const highlighted = safeId.replace(
+              new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'),
+              '<span class="ss-match">$1</span>',
+            );
+            return `<div class="search-suggest-item" onmousedown="SkillsTab.applySuggestion('${s.id}')">${highlighted} <span class="search-suggest-desc">${esc(s.desc.slice(0, 40))}</span></div>`;
+          })
+          .join('');
         suggest.classList.add('open');
         render();
       }, 150);
@@ -402,12 +438,18 @@ const SkillsTab = (() => {
 
   // ---- INGEST ----
   async function ingest() {
-    const input   = document.getElementById('ingest-url');
-    const btn     = document.getElementById('btn-ingest');
-    const url     = input.value.trim();
+    const input = document.getElementById('ingest-url');
+    const btn = document.getElementById('btn-ingest');
+    const url = input.value.trim();
 
-    if (!url) { input.focus(); return; }
-    if (!url.startsWith('http')) { Toast.error('Must be a full https://... URL'); return; }
+    if (!url) {
+      input.focus();
+      return;
+    }
+    if (!url.startsWith('http')) {
+      Toast.error('Must be a full https://... URL');
+      return;
+    }
 
     let progressEl = document.getElementById('ingest-progress');
     if (!progressEl) {
@@ -447,11 +489,20 @@ const SkillsTab = (() => {
     let lastLogLen = 0;
     const poll = setInterval(async () => {
       const status = await DS.pollIngestJob(jobId);
-      if (!status?.ok) { clearInterval(poll); return; }
+      if (!status?.ok) {
+        clearInterval(poll);
+        return;
+      }
       const newLines = (status.log || []).slice(lastLogLen);
       lastLogLen = status.log.length;
-      newLines.forEach(line => {
-        const cls = line.startsWith('Error') ? 'log-error' : line.startsWith('Found:') ? 'log-found' : line.startsWith('Done') ? 'log-done' : '';
+      newLines.forEach((line) => {
+        const cls = line.startsWith('Error')
+          ? 'log-error'
+          : line.startsWith('Found:')
+            ? 'log-found'
+            : line.startsWith('Done')
+              ? 'log-done'
+              : '';
         pushLog(line, cls);
       });
       if (status.status === 'done' || status.status === 'error') {
@@ -486,8 +537,14 @@ const SkillsTab = (() => {
     const btn = document.getElementById('btn-ingest');
     if (!overlay || !input) return;
     input.disabled = false;
-    if (btn) { btn.disabled = false; btn.textContent = 'Import skills'; }
-    if (progress) { progress.innerHTML = ''; progress.style.display = 'none'; }
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Import skills';
+    }
+    if (progress) {
+      progress.innerHTML = '';
+      progress.style.display = 'none';
+    }
     overlay.classList.add('open');
     setTimeout(() => input.focus(), 0);
   }
@@ -498,8 +555,11 @@ const SkillsTab = (() => {
   }
 
   async function parseDescriptions() {
-    const unparsed = SKILL_DATA.filter(s => s.needsParse).length;
-    if (!unparsed) { Toast.success('All skills already have descriptions'); return; }
+    const unparsed = SKILL_DATA.filter((s) => s.needsParse).length;
+    if (!unparsed) {
+      Toast.success('All skills already have descriptions');
+      return;
+    }
     Toast.info(`Parsing ${unparsed} skills via LLM...`);
     const res = await DS.parseSkills();
     if (res?.ok) {
@@ -518,7 +578,8 @@ const SkillsTab = (() => {
       return;
     }
     const summary = preview.summary || {};
-    const actionable = (summary.moved || 0) + (summary.duplicatesRemoved || 0) + (summary.emptyDirsRemoved || 0);
+    const actionable =
+      (summary.moved || 0) + (summary.duplicatesRemoved || 0) + (summary.emptyDirsRemoved || 0);
     if (!actionable) {
       if (summary.reviewNeeded) {
         Toast.warn(`${summary.reviewNeeded} non-skill item(s) need manual review`, 5000);
@@ -546,13 +607,31 @@ const SkillsTab = (() => {
     renderStats();
     render();
     const done = result.summary || {};
-    Toast.success(`Tidied skills: ${done.moved || 0} moved, ${done.duplicatesRemoved || 0} duplicates removed`);
+    Toast.success(
+      `Tidied skills: ${done.moved || 0} moved, ${done.duplicatesRemoved || 0} duplicates removed`,
+    );
   }
 
   return {
-    init, render, handleToggle, setFilter, setView, setSource, setCategory,
-    ingest, quickAdd, toggleSelect, selectAll, selectNone,
-    bulkEnable, bulkDisable, openDetail, applySuggestion, parseDescriptions, organiseLibrary,
-    openConnectModal, closeConnectModal,
+    init,
+    render,
+    handleToggle,
+    setFilter,
+    setView,
+    setSource,
+    setCategory,
+    ingest,
+    quickAdd,
+    toggleSelect,
+    selectAll,
+    selectNone,
+    bulkEnable,
+    bulkDisable,
+    openDetail,
+    applySuggestion,
+    parseDescriptions,
+    organiseLibrary,
+    openConnectModal,
+    closeConnectModal,
   };
 })();

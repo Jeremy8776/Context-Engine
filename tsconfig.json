@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": false,
+    "noEmit": true,
+    "strict": true,
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"],
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitReturns": true
+  },
+  "include": [
+    "server/server.js",
+    "server/lib/config.js",
+    "server/lib/chunker.js",
+    "server/lib/embeddings.js",
+    "server/lib/http.js",
+    "server/lib/tool-registry.js",
+    "server/lib/tool-detection.js",
+    "server/lib/vectorstore.js",
+    "ui/types.d.ts",
+    "ui/store.js",
+    "ui/compile.js",
+    "ui/dashboard.js",
+    "electron/**/*.cjs",
+    "scripts/**/*.js"
+  ],
+  "exclude": [
+    "node_modules",
+    "data",
+    "skills"
+  ]
+}

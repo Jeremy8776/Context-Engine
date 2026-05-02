@@ -153,6 +153,7 @@
 }
 
 .ct-installed,
+.ct-ready,
 .ct-global-active {
   color: var(--ok);
   border-color: var(--ok);
@@ -161,6 +162,12 @@
 
 .ct-notfound {
   color: var(--text-4);
+}
+
+.ct-broken {
+  color: var(--err);
+  border-color: var(--err);
+  background: var(--err-bg);
 }
 
 .ct-project-only,

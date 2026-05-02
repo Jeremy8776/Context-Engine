@@ -20,17 +20,27 @@ catch { document.documentElement.dataset.nav = 'full'; }
   <div class="loading-text">Loading Context Engine</div>
 </div>
 <div class="app">
+  <div class="desktop-titlebar" role="banner" aria-label="Context Engine window controls">
+    <div class="desktop-titlebar-brand" aria-hidden="true"></div>
+    <div class="desktop-titlebar-actions">
+      <button type="button" title="Minimize" aria-label="Minimize" onclick="window.contextEngineDesktop?.minimize()">
+        <svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg>
+      </button>
+      <button type="button" title="Maximize" aria-label="Maximize" onclick="window.contextEngineDesktop?.maximize()">
+        <svg viewBox="0 0 24 24"><path d="M7 7h10v10H7z"/></svg>
+      </button>
+      <button class="desktop-titlebar-close" type="button" title="Close" aria-label="Close" onclick="window.contextEngineDesktop?.close()">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+  </div>
   <nav class="nav">
     <div class="nav-inner">
       <div class="nav-brand">
         <button class="nav-toggle" id="nav-toggle" type="button" title="Collapse navigation" aria-label="Collapse navigation" aria-expanded="true" onclick="toggleNavCollapse()">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
-        <div class="crumbs nav-crumbs">
-          <span>Context Engine</span>
-          <span class="crumb-sep">&#8250;</span>
-          <span class="here" id="crumb-here">Context</span>
-        </div>
+        <span class="nav-crumbs">Context Engine</span>
       </div>
       <div class="nav-tabs">
         <button class="tab-btn active" data-label="Context" title="Context" onclick="switchTab('dashboard',this)"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5"/><path d="M6.5 9.5V20h11V9.5"/><path d="M9.5 20v-6h5v6"/></svg></span><span class="nav-text">Context</span></button>
@@ -101,8 +111,7 @@ catch { document.documentElement.dataset.nav = 'full'; }
               </div>
             </div>
             <div class="dashboard-run-actions">
-              <button class="save-btn" onclick="DashboardTab.installGlobals()">Install Globals</button>
-              <button class="fb" onclick="DashboardTab.compileWorkspaces()">Compile Workspaces</button>
+              <button class="save-btn" onclick="DashboardTab.deployAvailable()">Update Available</button>
               <button class="fb" onclick="DashboardTab.previewOutput()">Preview Output</button>
             </div>
             <p class="dashboard-note" id="db-output-status">Detected output targets will appear after the first scan.</p>
@@ -138,10 +147,12 @@ catch { document.documentElement.dataset.nav = 'full'; }
             </div>
             <div class="db-card-actions">
               <button class="save-btn" onclick="DashboardTab.discover()">Scan Skills</button>
+              <button class="fb" onclick="DashboardTab.indexSkills()">Index Skills</button>
               <button class="fb" onclick="DashboardTab.regenCONTEXTmd()">Rebuild Manifest</button>
               <button class="fb" onclick="DashboardTab.backup()">Backup Source</button>
             </div>
             <p class="dashboard-note" id="db-compile-status">Manifest status will appear after the first check.</p>
+            <p class="dashboard-note" id="db-index-status">Vector index has not been checked yet.</p>
             <div class="dashboard-edit-links">
               <button class="mem-btn" onclick="DashboardTab.openTab('skills')">Manage Skills</button>
               <button class="mem-btn" onclick="DashboardTab.openTab('modes')">Manage Modes</button>
@@ -271,11 +282,10 @@ catch { document.documentElement.dataset.nav = 'full'; }
       <div class="simple-page"><div class="simple-inner wide" id="rules-root"></div></div>
     </div>
     <div id="compile-tab" class="tab-panel">
-      <div class="simple-page"><div class="simple-inner wide">
-        <div class="compile-primary-actions">
+        <div class="simple-page"><div class="simple-inner wide">
+          <div class="compile-primary-actions">
+          <button class="save-btn" onclick="CompileTab.deployAllAvailable()">Update Available</button>
           <button class="fb" onclick="CompileTab.preview()">Preview Output</button>
-          <button class="save-btn" onclick="CompileTab.installAllDetected()">Install Globals</button>
-          <button class="fb" onclick="CompileTab.compileAllWorkspaces()">Compile Workspaces</button>
         </div>
         <div id="compile-tools-grid" class="compile-tools-grid"></div>
         <div class="compile-grid">
@@ -287,7 +297,7 @@ catch { document.documentElement.dataset.nav = 'full'; }
               <div class="strategy-option" id="strategy-global" onclick="CompileTab.selectStrategy('global')">
                 <h4>Global Install</h4>
                 <p>Write rules to your home directory. Every project inherits them.</p>
-              <button class="save-btn" onclick="event.stopPropagation(); CompileTab.installAllDetected()">Install All Globally</button>
+              <button class="save-btn" onclick="event.stopPropagation(); CompileTab.deployAllAvailable()">Update Available</button>
             </div>
             <div class="strategy-option" id="strategy-workspace" onclick="CompileTab.selectStrategy('workspace')">
               <h4>Per-Project</h4>
@@ -299,7 +309,7 @@ catch { document.documentElement.dataset.nav = 'full'; }
           <section class="compile-card">
             <div class="compile-card-head">
               <div><span class="compile-kicker">Projects</span><h3>Workspace targets</h3></div>
-              <button class="save-btn small" onclick="CompileTab.compileAllWorkspaces()">Compile All</button>
+              <button class="save-btn small" onclick="CompileTab.deployAllAvailable()">Update All</button>
             </div>
             <div id="compile-workspaces-list"></div>
             <div class="compile-ws-add">

@@ -1,0 +1,103 @@
+# Build and publish Context Engine releases.
+#
+# Triggers:
+#   - Push of a tag matching v*  (e.g. v0.2.1) — full release flow.
+#   - workflow_dispatch          — manual trigger from the Actions tab,
+#                                  builds artifacts but does not publish unless
+#                                  the `publish` input is true.
+#
+# Outputs:
+#   - GitHub release containing:
+#       Context Engine-<version>-setup-x64.exe          (NSIS installer)
+#       Context Engine-<version>-setup-x64.exe.blockmap (electron-updater diff)
+#       Context Engine-<version>-portable-x64.exe       (single-file portable)
+#       latest.yml                                      (electron-updater feed)
+#
+# Auto-update:
+#   The shipped app reads from this same GitHub release channel via
+#   electron-updater. The `publish` field in package.json points at
+#   github.com/Jeremy8776/context-engine — no extra config needed.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish to GitHub Releases (true/false)'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            build_script: build:win
+            artifact_glob: |
+              dist/*.exe
+              dist/*.exe.blockmap
+              dist/latest.yml
+          # Add macOS / Linux runners here when those targets become priorities.
+          # - os: macos-latest
+          #   build_script: build:mac
+          #   artifact_glob: |
+          #     dist/*.dmg
+          #     dist/*.zip
+          #     dist/latest-mac.yml
+          # - os: ubuntu-latest
+          #   build_script: build:linux
+          #   artifact_glob: |
+          #     dist/*.AppImage
+          #     dist/*.deb
+          #     dist/latest-linux.yml
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        env:
+          # GH_TOKEN drives both release creation and asset upload via
+          # electron-builder's publish step. The token is the standard
+          # GITHUB_TOKEN from the workflow context.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Code signing — set CSC_LINK and CSC_KEY_PASSWORD as repo secrets
+          # when a signing certificate is available. Empty means unsigned.
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: |
+          if ('${{ github.event_name }}' -eq 'push' -or '${{ github.event.inputs.publish }}' -eq 'true') {
+            npm run ${{ matrix.build_script }} -- --publish always
+          } else {
+            npm run ${{ matrix.build_script }} -- --publish never
+          }
+        shell: pwsh
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: context-engine-${{ matrix.os }}
+          path: ${{ matrix.artifact_glob }}
+          if-no-files-found: error
+          retention-days: 14

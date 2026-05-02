@@ -109,6 +109,15 @@
 .app[data-nav="mini"] .nav-tabs {
   align-items: center;
   padding: 12px 8px;
+  /* Icon rail: keep scroll functional, hide scrollbar chrome.
+     The icons themselves provide the scroll affordance. */
+  scrollbar-width: none;
+}
+:root[data-nav="mini"] .nav-tabs::-webkit-scrollbar,
+.app[data-nav="mini"] .nav-tabs::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 :root[data-nav="mini"] .tab-btn,

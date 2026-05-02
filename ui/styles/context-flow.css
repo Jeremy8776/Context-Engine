@@ -12,8 +12,8 @@
   border: 1px solid var(--line-accent);
   border-radius: var(--r-2);
   background:
-    radial-gradient(70% 90% at 50% 0%, rgba(139, 92, 246, 0.18), transparent 64%),
-    linear-gradient(180deg, rgba(255,255,255,0.045), transparent 34%),
+    radial-gradient(70% 90% at 50% 0%, var(--alpha-purple-18), transparent 64%),
+    linear-gradient(180deg, var(--alpha-white-05-tight), transparent 34%),
     var(--bg-raised);
   backdrop-filter: blur(22px) saturate(150%);
   -webkit-backdrop-filter: blur(22px) saturate(150%);
@@ -27,8 +27,8 @@
   position: absolute;
   inset: -1px;
   background:
-    linear-gradient(110deg, transparent 0%, rgba(196,181,253,0.16) 34%, transparent 62%),
-    radial-gradient(420px 260px at 76% 18%, rgba(34,211,238,0.14), transparent 70%);
+    linear-gradient(110deg, transparent 0%, var(--alpha-lavender-16-tight) 34%, transparent 62%),
+    radial-gradient(420px 260px at 76% 18%, var(--alpha-cyan-14-tight), transparent 70%);
   pointer-events: none;
 }
 
@@ -112,7 +112,7 @@
   padding: 4px 7px;
   border: 1px solid var(--line);
   border-radius: var(--r-full);
-  background: rgba(8, 5, 15, 0.42);
+  background: var(--alpha-shell-42);
 }
 
 .flow-metrics b {
@@ -136,7 +136,7 @@
 .flow-line.cold { opacity: 0.22; }
 
 .flow-source circle:first-child {
-  fill: rgba(20, 12, 36, 0.72);
+  fill: var(--alpha-deep-violet-72);
   stroke: var(--line-hi);
 }
 .flow-source.s1 .flow-source-dot,
@@ -174,7 +174,7 @@
 }
 
 .flow-hub-core {
-  fill: rgba(20, 12, 36, 0.94);
+  fill: var(--alpha-deep-violet-94);
   stroke: var(--accent-hi);
   stroke-width: 1.4;
 }
@@ -194,7 +194,7 @@
 }
 
 .flow-tool circle {
-  fill: rgba(20, 12, 36, 0.72);
+  fill: var(--alpha-deep-violet-72);
   stroke: var(--line-hi);
   opacity: 0.62;
 }

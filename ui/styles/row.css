@@ -336,7 +336,7 @@
   overflow-y: auto;
   z-index: 10;
   display: none;
-  box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 16px 40px -12px var(--alpha-black-80);
 }
 .search-suggest.open { display: block; }
 .search-suggest-item {

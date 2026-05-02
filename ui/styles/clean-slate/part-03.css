@@ -89,7 +89,7 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(0, 0, 0, 0.66);
+  background: var(--alpha-black-66);
 }
 
 .modal-overlay.open {
@@ -101,7 +101,7 @@
   border: 1px solid var(--soft-line);
   border-radius: var(--r-3);
   background: var(--bg-card);
-  box-shadow: 0 22px 80px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 22px 80px var(--alpha-black-55);
   overflow: hidden;
 }
 
@@ -267,8 +267,8 @@
 
 .memory-filter:hover,
 .memory-filter.active {
-  border-color: rgba(139, 92, 246, 0.35);
-  background: rgba(139, 92, 246, 0.1);
+  border-color: var(--alpha-purple-35);
+  background: var(--alpha-purple-10);
   color: var(--text);
 }
 
@@ -298,8 +298,8 @@
 
 .memory-card:hover,
 .memory-card.active {
-  border-color: rgba(139, 92, 246, 0.45);
-  background: rgba(139, 92, 246, 0.06);
+  border-color: var(--alpha-purple-45);
+  background: var(--alpha-purple-06);
 }
 
 .memory-card-top {
@@ -320,7 +320,7 @@
 .memory-preview {
   display: -webkit-box;
   overflow: hidden;
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--alpha-white-62);
   font-size: 13px;
   line-height: 1.45;
   -webkit-box-orient: vertical;
@@ -364,7 +364,7 @@
   flex: 1;
   overflow: auto;
   padding: 18px;
-  color: rgba(255, 255, 255, 0.76);
+  color: var(--alpha-white-76);
   font-size: 14px;
   line-height: 1.65;
   white-space: pre-wrap;
@@ -384,10 +384,10 @@
   width: max-content;
   min-height: 22px;
   padding: 0 8px;
-  border: 1px solid rgba(139, 92, 246, 0.28);
+  border: 1px solid var(--alpha-purple-28);
   border-radius: var(--r-full);
-  background: rgba(139, 92, 246, 0.1);
-  color: rgba(255, 255, 255, 0.76);
+  background: var(--alpha-purple-10);
+  color: var(--alpha-white-76);
   font-family: var(--mono);
   font-size: 10px;
   font-weight: 650;
@@ -396,15 +396,15 @@
   white-space: nowrap;
 }
 
-.mem-cat-health { border-color: rgba(34, 197, 94, 0.28); background: rgba(34, 197, 94, 0.08); }
-.mem-cat-career { border-color: rgba(139, 92, 246, 0.34); background: rgba(139, 92, 246, 0.11); }
+.mem-cat-health { border-color: var(--alpha-green-28); background: var(--alpha-green-08); }
+.mem-cat-career { border-color: var(--alpha-purple-34); background: var(--alpha-purple-11); }
 .mem-cat-technical,
-.mem-cat-workspace { border-color: rgba(59, 130, 246, 0.28); background: rgba(59, 130, 246, 0.08); }
+.mem-cat-workspace { border-color: var(--alpha-cyan-28); background: var(--alpha-blue-08); }
 .mem-cat-people,
-.mem-cat-personal { border-color: rgba(244, 114, 182, 0.28); background: rgba(244, 114, 182, 0.08); }
-.mem-cat-finance { border-color: rgba(245, 158, 11, 0.28); background: rgba(245, 158, 11, 0.08); }
+.mem-cat-personal { border-color: var(--alpha-pink-28); background: var(--alpha-pink-08); }
+.mem-cat-finance { border-color: var(--alpha-warn-28); background: var(--alpha-warn-08); }
 .mem-cat-photography,
-.mem-cat-travel { border-color: rgba(20, 184, 166, 0.28); background: rgba(20, 184, 166, 0.08); }
+.mem-cat-travel { border-color: var(--alpha-teal-28); background: var(--alpha-teal-08); }
 
 .add-memory {
   margin-top: 18px;

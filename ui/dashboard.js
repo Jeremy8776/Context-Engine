@@ -1,4 +1,8 @@
+// @ts-check
 // dashboard.js - Dashboard tab
+
+/** @typedef {{ issue?: string, stale?: boolean, daysSinceModified?: number, id: string, path?: string }} HealthSkillRecord */
+/** @typedef {{ tokens?: number, filename?: string, content?: string }} DashboardCompileResult */
 
 const SESS_ICONS = {
   mode_applied: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="9 2 2 9 8 9 7 14 14 7 8 7 9 2"/></svg>`,
@@ -31,6 +35,14 @@ const OUTPUT_LABELS = {
   ollama: 'Ollama',
   kimi: 'Kimi K2',
 };
+const DASH_FILE_STANDARD_TARGETS = new Set(['agents', 'aider', 'copilot']);
+
+function isDashboardOutputAvailable(id, tool) {
+  if (!tool) return false;
+  if (typeof tool.available === 'boolean') return tool.available;
+  if (tool.compileError || tool.status === 'missing-adapter') return false;
+  return !!(tool.installed || tool.globalInstalled || tool.category === 'manual' || DASH_FILE_STANDARD_TARGETS.has(id));
+}
 
 const DashboardTab = (() => {
   async function init() {
@@ -39,7 +51,7 @@ const DashboardTab = (() => {
     if (bar) bar.style.width = '0%';
     if (lbl) lbl.textContent = 'Loading...';
 
-    await Promise.all([loadBudget(), loadHealth(), loadBackups(), loadSessionLog(), loadModes()]);
+    await Promise.all([loadBudget(), loadHealth(), loadBackups(), loadSessionLog(), loadModes(), loadIndexStatus()]);
     updateStats();
     await updateExtendedStats();
     loadOutputTokens();
@@ -63,14 +75,15 @@ const DashboardTab = (() => {
     // Connections: count detected tools
     try {
       const toolData = await DS.detectTools();
-      const connCount = toolData ? Object.values(toolData).filter(t => t.installed).length : 0;
+      const tools = Object.entries(toolData || {});
+      const connCount = tools.filter(([id, tool]) => isDashboardOutputAvailable(id, tool)).length;
       const connEl = document.getElementById('db-stat-connections');
       const outputStatus = document.getElementById('db-output-status');
-      const globalCount = toolData ? Object.values(toolData).filter(t => t.installed && t.supportsGlobal).length : 0;
-      const projectCount = toolData ? Object.values(toolData).filter(t => t.installed && t.supportsProject).length : 0;
+      const globalCount = tools.filter(([id, tool]) => isDashboardOutputAvailable(id, tool) && tool.globalReady).length;
+      const projectCount = tools.filter(([id, tool]) => isDashboardOutputAvailable(id, tool) && tool.projectReady).length;
       if (connEl && typeof animateCount !== 'undefined') animateCount(connEl, connCount);
       if (outputStatus) {
-        outputStatus.textContent = `${connCount} tools detected. ${globalCount} can inherit global context and ${projectCount} can receive workspace context.`;
+        outputStatus.textContent = `${connCount} outputs are working. ${globalCount} can inherit global context and ${projectCount} can receive workspace context.`;
       }
     } catch {}
 
@@ -136,7 +149,7 @@ const DashboardTab = (() => {
     try {
       const toolData = await DS.detectTools();
       const targets = Object.entries(toolData || {})
-        .filter(([, tool]) => tool.installed && tool.supportsProject)
+        .filter(([id, tool]) => isDashboardOutputAvailable(id, tool) && tool.projectReady)
         .map(([id]) => id);
       if (!targets.length) {
         container.innerHTML = '<div class="db-empty">No project output targets detected</div>';
@@ -182,6 +195,33 @@ const DashboardTab = (() => {
     await loadHealth();
     if (typeof SkillsTab !== 'undefined') SkillsTab.init();
     Toast.success(`Discovery complete: ${SKILL_DATA.length} skills found`);
+  }
+
+  async function loadIndexStatus() {
+    const status = document.getElementById('db-index-status');
+    if (!status) return;
+    try {
+      const data = await DS.getIndexStatus();
+      if (!data?.chunks) {
+        status.textContent = 'Vector index is empty. Index skills before semantic search.';
+        return;
+      }
+      const time = data.updatedAt ? new Date(data.updatedAt).toLocaleString() : 'unknown time';
+      status.textContent = `${data.chunks.toLocaleString()} indexed chunks across ${data.skills || 0} skills using ${data.model || 'unknown model'}; updated ${time}.`;
+    } catch {
+      status.textContent = 'Vector index status unavailable.';
+    }
+  }
+
+  async function indexSkills() {
+    Toast.info('Indexing skill chunks...');
+    const result = await DS.indexSkills();
+    if (result?.ok) {
+      Toast.success(`Indexed ${result.chunks.toLocaleString()} chunks`);
+    } else {
+      Toast.warn(result?.error || 'Indexing unavailable');
+    }
+    await loadIndexStatus();
   }
 
   async function loadBudget() {
@@ -347,6 +387,12 @@ const DashboardTab = (() => {
     await Promise.all([loadSessionLog(), updateExtendedStats()]);
   }
 
+  async function deployAvailable() {
+    if (typeof CompileTab === 'undefined') return;
+    await CompileTab.deployAllAvailable();
+    await Promise.all([loadSessionLog(), updateExtendedStats(), loadOutputTokens()]);
+  }
+
   async function compileWorkspaces() {
     if (typeof CompileTab === 'undefined') return;
     await CompileTab.compileAllWorkspaces();
@@ -372,9 +418,11 @@ const DashboardTab = (() => {
     restore,
     regenCONTEXTmd,
     discover,
+    indexSkills,
     refreshBudget,
     loadSessionLog,
     applyMode,
+    deployAvailable,
     installGlobals,
     compileWorkspaces,
     previewOutput,

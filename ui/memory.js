@@ -34,7 +34,7 @@ const MemoryTab = (() => {
   }
 
   function normalizeEntry(entry, index) {
-    const text = typeof entry === 'string' ? entry : (entry.content || '');
+    const text = typeof entry === 'string' ? entry : entry.content || '';
     const explicit = typeof entry === 'object' ? entry.category : '';
     const category = inferCategory(text, explicit);
     return {
@@ -48,19 +48,32 @@ const MemoryTab = (() => {
   }
 
   function inferCategory(text, explicit) {
-    const value = String(explicit || '').toLowerCase().trim();
+    const value = String(explicit || '')
+      .toLowerCase()
+      .trim();
     if (value && value !== 'general') return value.replace(/[^a-z0-9-]/g, '-');
 
     const s = text.toLowerCase();
     if (/fujifilm|x100vi|film sim|photography|gyazo|captioning images/.test(s)) return 'photography';
-    if (/acid reflux|gerd|bmi|heart rate|osgood|muay thai|health|fitness|watch 6|steps|calories/.test(s)) return 'health';
+    if (/acid reflux|gerd|bmi|heart rate|osgood|muay thai|health|fitness|watch 6|steps|calories/.test(s))
+      return 'health';
     if (/partner|partner|buddy|family|zhengzhou/.test(s)) return 'people';
     if (/invoice|tax|contractor|income|rent|council tax|savings|foreign income/.test(s)) return 'finance';
-    if (/comfyui|python|node|powershell|mtcnn|insightface|yolo|diffusion|api|mcp|arma|enscript|blender/.test(s)) return 'technical';
+    if (
+      /comfyui|python|node|powershell|mtcnn|insightface|yolo|diffusion|api|mcp|arma|enscript|blender/.test(s)
+    )
+      return 'technical';
     if (/windows pc|workstation|e:\\|c:\\|workspace|drive|data\\memory|claude/.test(s)) return 'workspace';
-    if (/job search|director|strategist|studio|acme|client|portfolio|linkedin|cv|mpts|redundancy/.test(s)) return 'career';
-    if (/travel|chengdu|jiuzhaigou|flight|china|mont blanc|ben nevis|snowdonia|cairngorms/.test(s)) return 'travel';
-    if (/born|foster|adoption|birth mother|birth father|memory suppression|stress response/.test(s)) return 'personal';
+    if (
+      /job search|director|strategist|studio|acme|client|portfolio|linkedin|cv|mpts|redundancy/.test(
+        s,
+      )
+    )
+      return 'career';
+    if (/travel|chengdu|jiuzhaigou|flight|china|mont blanc|ben nevis|snowdonia|cairngorms/.test(s))
+      return 'travel';
+    if (/born|foster|adoption|birth mother|birth father|memory suppression|stress response/.test(s))
+      return 'personal';
     if (/jeremy walder|ravensbourne|east london|first home/.test(s)) return 'profile';
     return 'general';
   }
@@ -99,8 +112,8 @@ const MemoryTab = (() => {
     const q = query.trim().toLowerCase();
     return entries
       .map(normalizeEntry)
-      .filter(item => filter === 'all' || item.category === filter)
-      .filter(item => !q || `${item.title} ${item.text}`.toLowerCase().includes(q));
+      .filter((item) => filter === 'all' || item.category === filter)
+      .filter((item) => !q || `${item.title} ${item.text}`.toLowerCase().includes(q));
   }
 
   function pageTotal(items) {
@@ -124,23 +137,25 @@ const MemoryTab = (() => {
   function categories() {
     const q = query.trim().toLowerCase();
     const allItems = entries.map(normalizeEntry);
-    const queryItems = allItems.filter(item => matchesQuery(item, q));
+    const queryItems = allItems.filter((item) => matchesQuery(item, q));
     const counts = new Map();
     const queryCounts = new Map();
-    allItems.forEach(item => counts.set(item.category, (counts.get(item.category) || 0) + 1));
-    queryItems.forEach(item => queryCounts.set(item.category, (queryCounts.get(item.category) || 0) + 1));
+    allItems.forEach((item) => counts.set(item.category, (counts.get(item.category) || 0) + 1));
+    queryItems.forEach((item) => queryCounts.set(item.category, (queryCounts.get(item.category) || 0) + 1));
     const cats = [...counts.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-    return [['all', entries.length], ...cats].map(([id, count]) => {
-      const active = filter === id ? ' active' : '';
-      const label = id === 'all' ? 'All' : (categoryLabels[id] || sentenceCase(id));
-      const visible = id === 'all' ? queryItems.length : queryCounts.get(id) || 0;
-      const metric = q ? `${visible}/${count}` : count;
-      return `
+    return [['all', entries.length], ...cats]
+      .map(([id, count]) => {
+        const active = filter === id ? ' active' : '';
+        const label = id === 'all' ? 'All' : categoryLabels[id] || sentenceCase(id);
+        const visible = id === 'all' ? queryItems.length : queryCounts.get(id) || 0;
+        const metric = q ? `${visible}/${count}` : count;
+        return `
         <button class="memory-filter${active}" onclick="MemoryTab.setFilter('${esc(id)}')">
           <span>${esc(label)}</span>
           <small>${metric}</small>
         </button>`;
-    }).join('');
+      })
+      .join('');
   }
 
   function renderStats(items) {
@@ -169,8 +184,8 @@ const MemoryTab = (() => {
     }
 
     const pageItems = currentPageItems(items);
-    if (!pageItems.some(item => item.index === selected)) selected = pageItems[0].index;
-    const selectedItem = pageItems.find(item => item.index === selected) || pageItems[0];
+    if (!pageItems.some((item) => item.index === selected)) selected = pageItems[0].index;
+    const selectedItem = pageItems.find((item) => item.index === selected) || pageItems[0];
     selected = selectedItem.index;
 
     container.innerHTML = `
@@ -243,16 +258,19 @@ const MemoryTab = (() => {
           <label>Content</label>
           <textarea class="rules-textarea" id="mem-edit-${i}" rows="12">${esc(item.text)}</textarea>
         </div>
-        <div class="sp-actions" style="margin-top:16px">
+        <div class="sp-actions sp-actions-edit compact">
           <button class="save-btn" onclick="MemoryTab.saveEdit(${i})">Save</button>
           <button class="save-btn ghost" onclick="SidePanel.close()">Cancel</button>
-          <button class="mem-btn danger" onclick="MemoryTab.remove(${i})" style="margin-left:auto">Delete</button>
+          <button class="mem-btn danger push-end" onclick="MemoryTab.remove(${i})">Delete</button>
         </div>
       </div>`;
     SidePanel.open('Memory Entry', html);
     setTimeout(() => {
       const ta = document.getElementById(`mem-edit-${i}`);
-      if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+      if (ta) {
+        ta.focus();
+        ta.setSelectionRange(ta.value.length, ta.value.length);
+      }
     }, 0);
   }
 
@@ -273,7 +291,9 @@ const MemoryTab = (() => {
     render();
   }
 
-  function startEdit(i) { openDetail(i); }
+  function startEdit(i) {
+    openDetail(i);
+  }
 
   function saveEdit(i) {
     const ta = document.getElementById(`mem-edit-${i}`);
@@ -307,7 +327,12 @@ const MemoryTab = (() => {
   function addEntry(text, category = 'general') {
     text = String(text || '').trim();
     if (!text) return;
-    entries.push({ id: 'entry_' + Date.now(), category: inferCategory(text, category), label: '', content: text });
+    entries.push({
+      id: 'entry_' + Date.now(),
+      category: inferCategory(text, category),
+      label: '',
+      content: text,
+    });
     selected = entries.length - 1;
     currentPage = pageTotal(visibleEntries());
     saveState();
@@ -343,26 +368,26 @@ const MemoryTab = (() => {
   function sentenceCase(value) {
     return String(value || 'general')
       .replace(/[-_]+/g, ' ')
-      .replace(/\b\w/g, ch => ch.toUpperCase());
+      .replace(/\b\w/g, (ch) => ch.toUpperCase());
   }
 
   function init() {
     load();
     render();
     const searchInput = document.getElementById('memory-search-input');
-    searchInput?.addEventListener('input', e => {
+    searchInput?.addEventListener('input', (e) => {
       query = e.target.value || '';
       currentPage = 1;
       selected = 0;
       render();
     });
-    document.getElementById('memory-modal-input')?.addEventListener('keydown', e => {
+    document.getElementById('memory-modal-input')?.addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
         createFromModal();
       }
     });
-    document.addEventListener('keydown', e => {
+    document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') closeAddModal();
     });
   }

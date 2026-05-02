@@ -1,0 +1,105 @@
+/* DRAM action and form controls. */
+
+.save-btn,
+.add-btn {
+  min-height: 36px;
+  padding: 0 var(--s-4);
+  color: var(--text-on-accent);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--r-1);
+  box-shadow: none;
+  font-family: var(--sans);
+  font-size: var(--fs-03);
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.fb,
+.mem-btn,
+.view-btn,
+.icon-btn,
+.cmd-k-hint {
+  min-height: 36px;
+  padding: 0 var(--s-3);
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-1);
+  box-shadow: none;
+  font-family: var(--sans);
+  font-size: var(--fs-03);
+  font-weight: 650;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.mem-btn {
+  min-height: 30px;
+  font-size: var(--fs-02);
+}
+
+.save-btn:hover,
+.add-btn:hover,
+.fb:hover,
+.mem-btn:hover,
+.view-btn:hover,
+.icon-btn:hover,
+.cmd-k-hint:hover {
+  transform: none;
+  background: var(--bg-elevated);
+  border-color: var(--line-hi);
+  color: var(--text);
+  box-shadow: none;
+}
+
+.save-btn:hover,
+.add-btn:hover {
+  background: var(--accent-hi);
+  border-color: var(--accent-hi);
+  color: var(--text-on-accent);
+}
+
+.fb.on,
+.fb.active,
+.view-btn.on,
+.mem-btn.save {
+  color: var(--accent-hi);
+  background: var(--accent-bg);
+  border-color: var(--accent-line);
+}
+
+.fb.danger,
+.mem-btn.danger {
+  color: var(--err);
+}
+
+.search,
+.add-input,
+.rules-textarea,
+.api-key-input,
+.ingest-mini-input {
+  min-height: 40px;
+  background: var(--bg-recessed);
+  border: 1px solid var(--line);
+  border-radius: var(--r-1);
+  color: var(--text);
+  box-shadow: none;
+}
+
+.search:focus,
+.add-input:focus,
+.rules-textarea:focus,
+.api-key-input:focus,
+.ingest-mini-input:focus {
+  background: var(--bg);
+  border-color: var(--accent-line);
+}
+
+@media (max-width: 760px) {
+  .simple-page,
+  .skills-scroll {
+    padding: var(--s-5) var(--s-4) var(--s-7);
+  }
+}

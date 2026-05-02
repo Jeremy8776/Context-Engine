@@ -4,7 +4,7 @@
   position: fixed;
   inset: 0;
   z-index: var(--z-cmd);
-  background: rgba(5, 5, 6, 0.55);
+  background: var(--alpha-shell-55);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   display: flex;
@@ -26,7 +26,7 @@
   border: 1px solid var(--line-2);
   border-radius: var(--r-2);
   box-shadow:
-    0 40px 100px -20px rgba(0, 0, 0, 0.85),
+    0 40px 100px -20px var(--alpha-black-85),
     0 0 0 1px var(--line-accent) inset,
     0 0 80px -16px var(--accent-glow);
   overflow: hidden;

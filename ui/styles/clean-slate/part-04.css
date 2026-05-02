@@ -24,11 +24,11 @@
 /* AI Model DB role-model pass.
    Context Engine should share the black/violet system language without inheriting DRAM's dense rail. */
 :root {
-  --bg-card: #000000;
-  --bg-input: #000000;
-  --bg-elevated: #0a0a0b;
-  --soft-line: rgba(255, 255, 255, 0.15);
-  --soft-line-2: rgba(255, 255, 255, 0.1);
+  --bg-card: var(--color-black);
+  --bg-input: var(--color-black);
+  --bg-elevated: var(--dram-card-hover);
+  --soft-line: var(--alpha-white-15);
+  --soft-line-2: var(--alpha-white-10);
   --text-secondary: var(--text-3);
   --text-subtle: var(--text-4);
   --r-1: 10px;
@@ -108,8 +108,8 @@
 }
 
 .tab-btn.active {
-  border: 1px solid rgba(139, 92, 246, 0.35);
-  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid var(--alpha-purple-35);
+  background: var(--alpha-purple-10);
   color: var(--text);
 }
 
@@ -185,7 +185,7 @@
 
 .dashboard-head p,
 .section-hdr p {
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--alpha-white-62);
 }
 
 .keyline,
@@ -271,8 +271,8 @@
 }
 
 .skill-row:hover {
-  border-color: rgba(139, 92, 246, 0.42);
-  background: rgba(139, 92, 246, 0.06);
+  border-color: var(--alpha-purple-42);
+  background: var(--alpha-purple-06);
 }
 
 .sr-name {

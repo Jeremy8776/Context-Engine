@@ -1,5 +1,7 @@
 // config.js — Shared paths and constants
 
+// @ts-check
+
 const path = require('path');
 const os   = require('os');
 
@@ -16,6 +18,7 @@ const SESSION_LOG = path.join(DATA_DIR, 'session-log.json');
 const MODES_FILE  = path.join(DATA_DIR, 'modes.json');
 const KEYS_FILE   = path.join(DATA_DIR, '.keys.enc');
 const SKILL_CACHE_FILE = path.join(DATA_DIR, 'skill-parse-cache.json');
+const DEDUP_FILE = path.join(DATA_DIR, 'dedup.json');
 
 const MIME = {
   '.html': 'text/html', '.js': 'application/javascript',
@@ -26,5 +29,5 @@ const MIME = {
 module.exports = {
   PORT, ROOT, DATA_DIR, UI_DIR, CONTEXT_MD, SKILLS_DIR,
   HOMEDIR, BACKUPS_DIR, WORKSPACES_FILE, SESSION_LOG,
-  MODES_FILE, KEYS_FILE, SKILL_CACHE_FILE, MIME,
+  MODES_FILE, KEYS_FILE, SKILL_CACHE_FILE, DEDUP_FILE, MIME,
 };

@@ -68,8 +68,8 @@
   max-width: calc(100vw - var(--rail-max-gutter));
   border: 1px solid var(--soft-line);
   border-radius: var(--r-3);
-  background: rgba(0, 0, 0, 0.96);
-  box-shadow: -22px 0 80px rgba(0, 0, 0, 0.52);
+  background: var(--alpha-black-96);
+  box-shadow: -22px 0 80px var(--alpha-black-52);
   overflow: hidden;
   pointer-events: auto;
 }
@@ -139,7 +139,7 @@
 }
 
 .detail-panel-intro p {
-  color: rgba(255, 255, 255, 0.66);
+  color: var(--alpha-white-66);
   font-size: 14px;
   line-height: 1.55;
 }
@@ -175,7 +175,7 @@
   margin: 4px -18px -18px;
   padding: 14px 18px;
   border-top: 1px solid var(--soft-line-2);
-  background: rgba(0, 0, 0, 0.96);
+  background: var(--alpha-black-96);
 }
 
 .section-hdr,
@@ -237,8 +237,8 @@
 
 .mode-card:hover,
 .mode-card.mode-active {
-  border-color: rgba(139, 92, 246, 0.45);
-  background: rgba(139, 92, 246, 0.06);
+  border-color: var(--alpha-purple-45);
+  background: var(--alpha-purple-06);
 }
 
 .mode-card-ghost {
@@ -317,7 +317,7 @@
 .mode-card .mode-row-desc {
   display: -webkit-box;
   overflow: hidden;
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--alpha-white-62);
   font-size: 13px;
   line-height: 1.45;
   -webkit-box-orient: vertical;
