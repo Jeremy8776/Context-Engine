@@ -55,7 +55,7 @@ function createWindow() {
     catch (err) { console.warn('[ce-electron] setIcon failed:', err.message); }
   }
 
-  mainWindow.loadURL(`http://127.0.0.1:${PORT}/`);
+  void mainWindow.loadURL(`http://127.0.0.1:${PORT}/`);
   mainWindow.once('ready-to-show', () => {
     if (!mainWindow) return;
     mainWindow.show();
@@ -73,7 +73,7 @@ function createWindow() {
     });
   }
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    void shell.openExternal(url);
     return { action: 'deny' };
   });
 
@@ -127,7 +127,7 @@ function setupHotReload() {
   });
 }
 
-app.whenReady().then(() => {
+void app.whenReady().then(() => {
   server = startServer({ port: PORT, refresh: true });
   createWindow();
   setupHotReload();
