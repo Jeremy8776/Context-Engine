@@ -25,6 +25,7 @@ const { TOOL_REGISTRY } = require('./tool-registry');
  */
 function detectTools(homedir, opts = {}) {
   homedir = homedir || os.homedir();
+  /** @type {Record<string, ReturnType<typeof baseTool>>} */
   const results = {};
   let ctx = null;
   if (opts.dataDir && opts.scanSkills && opts.buildContext) {
@@ -65,6 +66,7 @@ function baseTool(id, reg, homedir, adapter) {
     id,
     label: reg.label,
     installed: false,
+    /** @type {string[]} */
     signals: [],
     supportsGlobal: reg.supportsGlobal,
     supportsProject: reg.supportsProject,
@@ -73,11 +75,14 @@ function baseTool(id, reg, homedir, adapter) {
     detected: false,
     fileStandard: false,
     available: false,
+    /** @type {string | null} */
     globalPath: reg.globalPath ? path.join(homedir, reg.globalPath) : null,
     globalInstalled: false,
     adapterReady: !!adapter,
     compileReady: false,
+    /** @type {string | null} */
     compileError: null,
+    /** @type {number | null} */
     previewTokens: null,
     globalReady: false,
     globalWritable: false,
@@ -104,7 +109,7 @@ function validateAdapter(tool, adapter, ctx, estimateTokens) {
     tool.compileReady = typeof content === 'string' && content.trim().length > 0;
     tool.previewTokens = tool.compileReady && estimateTokens ? estimateTokens(content) : 0;
   } catch (e) {
-    tool.compileError = e.message;
+    tool.compileError = e instanceof Error ? e.message : String(e);
   }
 }
 

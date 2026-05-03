@@ -5,7 +5,7 @@
 const path = require('path');
 const os   = require('os');
 
-const PORT     = parseInt(process.env.CE_PORT || process.env.PORT, 10) || 3847;
+const PORT     = parseInt(process.env.CE_PORT || process.env.PORT || '3847', 10) || 3847;
 const ROOT     = process.env.CE_ROOT || path.join(__dirname, '..', '..', '..');
 const DATA_DIR = path.join(ROOT, 'data');
 const UI_DIR   = path.join(__dirname, '..', '..', 'ui');

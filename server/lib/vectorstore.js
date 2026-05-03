@@ -87,9 +87,11 @@ function cosineSimilarity(a, b) {
   let aMag = 0;
   let bMag = 0;
   for (let i = 0; i < a.length; i += 1) {
-    dot += a[i] * b[i];
-    aMag += a[i] * a[i];
-    bMag += b[i] * b[i];
+    const av = a[i] ?? 0;
+    const bv = b[i] ?? 0;
+    dot += av * bv;
+    aMag += av * av;
+    bMag += bv * bv;
   }
   if (!aMag || !bMag) return 0;
   return dot / (Math.sqrt(aMag) * Math.sqrt(bMag));

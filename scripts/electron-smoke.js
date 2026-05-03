@@ -10,10 +10,12 @@ const ELECTRON_MAIN = path.join(ROOT, 'electron', 'main.cjs');
 const ELECTRON_PRELOAD = path.join(ROOT, 'electron', 'preload.cjs');
 const PACKAGE_JSON = path.join(ROOT, 'package.json');
 
+/** @param {unknown} condition @param {string} message */
 function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
+/** @param {string} filePath */
 function read(filePath) {
   return fs.readFileSync(filePath, 'utf8');
 }

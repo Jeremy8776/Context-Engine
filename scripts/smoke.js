@@ -37,7 +37,9 @@ async function run() {
     await new Promise(resolve => server.once('listening', resolve));
     for (const route of ROUTES) {
       const status = await get(route);
-      if (status < 200 || status >= 300) throw new Error(`${route} returned ${status}`);
+      if (status === undefined || status < 200 || status >= 300) {
+        throw new Error(`${route} returned ${status}`);
+      }
       console.log(`${route} ${status}`);
     }
   } finally {

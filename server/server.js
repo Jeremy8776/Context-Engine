@@ -16,14 +16,15 @@ function createContextServer() {
   return http.createServer(async (req, res) => {
     cors(req, res);
     if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
-    const url = new URL(req.url, `http://localhost:${PORT}`);
+    const url = new URL(req.url || '/', `http://localhost:${PORT}`);
 
     try {
       const handled = await handleRequest(req, res, url);
       if (handled !== null) return;
     } catch (e) {
-      console.error('API error:', e.message);
-      return json(res, { ok: false, error: e.message }, 500);
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error('API error:', msg);
+      return json(res, { ok: false, error: msg }, 500);
     }
 
     const safePath = path.resolve(UI_DIR, '.' + (url.pathname === '/' ? '/index.html' : url.pathname));
@@ -32,7 +33,8 @@ function createContextServer() {
       return res.end('Forbidden');
     }
     if (fs.existsSync(safePath)) {
-      res.writeHead(200, { 'Content-Type': MIME[path.extname(safePath)] || 'text/plain' });
+      const mimeMap = /** @type {Record<string, string>} */ (MIME);
+      res.writeHead(200, { 'Content-Type': mimeMap[path.extname(safePath)] || 'text/plain' });
       return res.end(fs.readFileSync(safePath));
     }
     res.writeHead(404);
@@ -45,7 +47,8 @@ function refreshManifest() {
     const r = regenerateCONTEXTmd();
     console.log(`CONTEXT.md regenerated - ${r.activeCount}/${r.total} skills active`);
   } catch (e) {
-    console.error('CONTEXT.md regen failed:', e.message);
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error('CONTEXT.md regen failed:', msg);
   }
 }
 

@@ -27,10 +27,10 @@ async function checkOllamaEmbeddings(options = {}) {
   try {
     const data = await requestJson(`${baseUrl}/api/tags`, null, options.timeoutMs);
     const models = Array.isArray(data.models) ? data.models : [];
-    const available = models.some(item => item?.name === model || item?.model === model);
+    const available = models.some(/** @param {{ name?: string, model?: string }} item */ (item) => item?.name === model || item?.model === model);
     return { ok: available, model, baseUrl, error: available ? null : `${model} is not installed in Ollama` };
   } catch (e) {
-    return { ok: false, model, baseUrl, error: e.message };
+    return { ok: false, model, baseUrl, error: e instanceof Error ? e.message : String(e) };
   }
 }
 
@@ -53,7 +53,7 @@ async function embedTexts(texts, options = {}) {
     }
     return { ok: true, vectors, model, error: null };
   } catch (e) {
-    return { ok: false, vectors: [], model, error: e.message };
+    return { ok: false, vectors: [], model, error: e instanceof Error ? e.message : String(e) };
   }
 }
 

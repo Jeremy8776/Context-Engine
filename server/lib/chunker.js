@@ -63,14 +63,16 @@ function stripFrontmatter(content) {
  * @param {string} content
  */
 function splitSections(content) {
+  /** @type {Array<{ title: string, lines: string[] }>} */
   const sections = [];
+  /** @type {{ title: string, lines: string[] }} */
   let current = { title: 'Overview', lines: [] };
 
   for (const line of content.split('\n')) {
     const heading = line.match(/^(#{1,6})\s+(.+?)\s*$/);
     if (heading) {
       if (current.lines.some(item => item.trim())) sections.push(current);
-      current = { title: heading[2].trim(), lines: [] };
+      current = { title: heading[2]?.trim() || 'Untitled', lines: [] };
       continue;
     }
     current.lines.push(line);
