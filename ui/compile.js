@@ -3,11 +3,17 @@
 // @ts-check
 
 /** @typedef {{ label: string, logo?: string }} TargetMeta */
+/** @typedef {Record<string, ToolRecord>} ToolMap */
+/** @typedef {{ ok?: boolean, error?: string, installed?: Record<string, { path: string }>, workspaces?: WorkspaceRecord[], results?: Record<string, unknown>, content?: string, filename?: string, tokens?: number }} CompileResult */
 
 const CompileTab = (() => {
+  /** @type {ToolMap} */
   let detectedTools = {};
+  /** @type {WorkspaceRecord[]} */
   let workspaces = [];
+  /** @type {Record<string, CompilePreviewResult> | null} */
   let lastResults = null;
+  /** @type {string | null} */
   let activePreview = null;
   let currentStep = 1;
 
@@ -38,10 +44,12 @@ const CompileTab = (() => {
 
   const FILE_STANDARD_TARGETS = new Set(['agents', 'aider', 'copilot']);
 
+  /** @param {string} id @param {ToolRecord | undefined | null} tool */
   function isFileStandard(id, tool) {
     return !!(tool?.fileStandard || FILE_STANDARD_TARGETS.has(id));
   }
 
+  /** @param {string} id @param {ToolRecord | undefined | null} tool */
   function isToolAvailable(id, tool) {
     if (!tool) return false;
     if (typeof tool.available === 'boolean') return tool.available;
@@ -61,20 +69,25 @@ const CompileTab = (() => {
       .map(([id]) => id);
   }
 
+  /** @param {string} id */
   function targetClass(id) {
     return String(id || 'target').replace(/[^a-z0-9-]/gi, '-').toLowerCase();
   }
 
+  /** @param {string} id */
   function targetLogo(id) {
-    const meta = TARGET_META[id] || {};
+    const targetMeta = /** @type {Record<string, TargetMeta>} */ (TARGET_META);
+    const meta = targetMeta[id] || { label: id };
     if (!meta.logo) return '';
     return `<span class="compile-target-logo target-${targetClass(id)}"><img src="${esc(meta.logo)}" alt="" loading="lazy"></span>`;
   }
 
+  /** @param {number} n */
   function highlightStep(n) {
     currentStep = n;
     document.querySelectorAll('.cs-step').forEach(el => {
-      el.classList.toggle('active', parseInt(el.dataset.step) <= n);
+      const stepEl = /** @type {HTMLElement} */ (el);
+      stepEl.classList.toggle('active', parseInt(stepEl.dataset.step || '0') <= n);
     });
   }
 
@@ -90,6 +103,7 @@ const CompileTab = (() => {
     renderWorkspaces();
   }
 
+  /** @param {string} strategy */
   function selectStrategy(strategy) {
     document.getElementById('strategy-global')?.classList.toggle('selected', strategy === 'global');
     document.getElementById('strategy-workspace')?.classList.toggle('selected', strategy === 'workspace');
@@ -101,17 +115,18 @@ const CompileTab = (() => {
     const container = document.getElementById('compile-tools-grid');
     if (!container) return;
 
+    const targetMeta = /** @type {Record<string, TargetMeta>} */ (TARGET_META);
     const ids = Object.keys(detectedTools).sort((a, b) => {
       const ai = isToolAvailable(a, detectedTools[a]) ? 0 : 1;
       const bi = isToolAvailable(b, detectedTools[b]) ? 0 : 1;
       if (ai !== bi) return ai - bi;
-      return (TARGET_META[a]?.label || a).localeCompare(TARGET_META[b]?.label || b);
+      return (targetMeta[a]?.label || a).localeCompare(targetMeta[b]?.label || b);
     });
     if (!ids.length) { container.innerHTML = '<div class="db-empty">No output targets are registered.</div>'; return; }
 
     container.innerHTML = ids.map(id => {
-      const t = detectedTools[id];
-      const meta = TARGET_META[id] || { label: id };
+      const t = detectedTools[id] || {};
+      const meta = targetMeta[id] || { label: id, logo: undefined };
       const installed = t.installed;
       const globalActive = t.globalInstalled;
       const isManual = t.category === 'manual';
@@ -168,7 +183,7 @@ const CompileTab = (() => {
       return;
     }
 
-    container.innerHTML = workspaces.map(ws => `
+    container.innerHTML = workspaces.map(/** @param {WorkspaceRecord} ws */ (ws) => `
       <div class="compile-ws-row">
         <div class="ws-info">
           <span class="ws-label">${esc(ws.label)}</span>
@@ -183,12 +198,16 @@ const CompileTab = (() => {
   }
 
   // ---- ACTIONS ----
+  /** @param {string} targetId */
   async function installGlobal(targetId) {
     const targets = [targetId];
-    Toast.info(`Updating ${TARGET_META[targetId]?.label || targetId}...`);
+    const targetMeta = /** @type {Record<string, TargetMeta>} */ (TARGET_META);
+    Toast.info(`Updating ${targetMeta[targetId]?.label || targetId}...`);
+    /** @type {CompileResult | null} */
     const result = await DS.installGlobal(targets);
     if (result?.ok) {
-      Toast.success(`Updated ${Object.values(result.installed).map(i => i.path).join(', ')}`);
+      const installed = result.installed || {};
+      Toast.success(`Updated ${Object.values(installed).map(/** @param {{ path: string }} i */ (i) => i.path).join(', ')}`);
       const toolData = await DS.detectTools();
       if (toolData) detectedTools = toolData;
       renderTools();
@@ -202,9 +221,10 @@ const CompileTab = (() => {
     const targets = availableGlobalTargets();
     if (!targets.length) { Toast.warn('No detected tools with global support'); return; }
     Toast.info(`Updating ${targets.length} global output(s)...`);
+    /** @type {CompileResult | null} */
     const result = await DS.installGlobal(targets);
     if (result?.ok) {
-      Toast.success(`Updated ${Object.keys(result.installed).length} global output(s)`);
+      Toast.success(`Updated ${Object.keys(result.installed || {}).length} global output(s)`);
       const toolData = await DS.detectTools();
       if (toolData) detectedTools = toolData;
       renderTools();
@@ -212,12 +232,14 @@ const CompileTab = (() => {
     }
   }
 
+  /** @param {string} targetId */
   async function deployTarget(targetId) {
     const tool = detectedTools[targetId];
     if (!isToolAvailable(targetId, tool)) {
       Toast.warn('Target is not available');
       return;
     }
+    if (!tool) return;
     if (tool.globalReady) {
       await installGlobal(targetId);
       return;
@@ -229,7 +251,9 @@ const CompileTab = (() => {
         Toast.warn('Add a workspace before updating project outputs');
         return;
       }
-      Toast.info(`Updating ${TARGET_META[targetId]?.label || targetId} in ${workspaces.length} workspace(s)...`);
+      const targetMeta = /** @type {Record<string, TargetMeta>} */ (TARGET_META);
+      Toast.info(`Updating ${targetMeta[targetId]?.label || targetId} in ${workspaces.length} workspace(s)...`);
+      /** @type {CompileResult | null} */
       const result = await DS.compileWorkspaces([targetId], null);
       if (result?.ok) {
         workspaces = result.workspaces || workspaces;
@@ -289,13 +313,14 @@ const CompileTab = (() => {
       if (errors.length) Toast.warn(`${message}; ${errors.length} workspace issue(s)`);
       else Toast.success(message);
     } catch (e) {
-      Toast.error(e.message || 'Deployment failed');
+      Toast.error(e instanceof Error ? e.message : 'Deployment failed');
     }
   }
 
   async function addWorkspace() {
-    const pathInput = document.getElementById('ws-path-input');
-    const labelInput = document.getElementById('ws-label-input');
+    const pathInput = /** @type {HTMLInputElement | null} */ (document.getElementById('ws-path-input'));
+    const labelInput = /** @type {HTMLInputElement | null} */ (document.getElementById('ws-label-input'));
+    if (!pathInput || !labelInput) return;
     const wsPath = pathInput.value.trim();
     const label = labelInput.value.trim();
     if (!wsPath) { pathInput.focus(); return; }
@@ -311,6 +336,7 @@ const CompileTab = (() => {
     }
   }
 
+  /** @param {string} wsPath */
   async function removeWorkspace(wsPath) {
     const result = await DS.removeWorkspace(wsPath);
     if (result?.ok) {
@@ -320,6 +346,7 @@ const CompileTab = (() => {
     }
   }
 
+  /** @param {string} wsPath */
   async function compileToWorkspace(wsPath) {
     const targets = availableProjectTargets();
     if (!targets.length) { Toast.warn('No available project outputs'); return; }
@@ -328,7 +355,8 @@ const CompileTab = (() => {
     if (result?.ok) {
       workspaces = result.workspaces;
       renderWorkspaces();
-      const wsResult = result.results[Object.keys(result.results)[0]];
+      const firstKey = Object.keys(result.results)[0];
+      const wsResult = firstKey ? result.results[firstKey] : null;
       Toast.success(`Compiled ${wsResult?.targets?.length || 0} targets`);
       highlightStep(3);
     }
@@ -348,13 +376,15 @@ const CompileTab = (() => {
     }
   }
 
+  /** @param {string} targetId */
   async function copyOutput(targetId) {
     Toast.info('Generating...');
     const data = await DS.compilePreview([targetId]);
     if (!data || !data.results || !data.results[targetId]) { Toast.error('Failed'); return; }
+    const targetMeta = /** @type {Record<string, TargetMeta>} */ (TARGET_META);
     try {
       await navigator.clipboard.writeText(data.results[targetId].content);
-      Toast.success(`${TARGET_META[targetId]?.label || targetId} output copied to clipboard`);
+      Toast.success(`${targetMeta[targetId]?.label || targetId} output copied to clipboard`);
     } catch {
       Toast.error('Clipboard access denied');
     }
@@ -372,7 +402,8 @@ const CompileTab = (() => {
     lastResults = data.results;
     renderSummary(data);
     renderPreviewTabs(data.results);
-    document.getElementById('compile-preview-card').hidden = false;
+    const previewCard = document.getElementById('compile-preview-card');
+    if (previewCard) previewCard.hidden = false;
 
     const firstTarget = Object.keys(data.results)[0];
     if (firstTarget) showPreview(firstTarget);
@@ -380,9 +411,12 @@ const CompileTab = (() => {
     Toast.success('Preview generated');
   }
 
+  /** @param {{ results?: Record<string, CompilePreviewResult>, context?: { activeSkills?: number, totalSkills?: number } }} data */
   function renderSummary(data) {
     const container = document.getElementById('compile-summary');
     if (!container) return;
+    const targetMeta = /** @type {Record<string, TargetMeta>} */ (TARGET_META);
+    /** @type {Record<string, CompilePreviewResult>} */
     const results = data.results || {};
     const ctx = data.context || {};
 
@@ -391,7 +425,7 @@ const CompileTab = (() => {
     </div>`;
 
     html += Object.entries(results).map(([id, r]) => {
-      const meta = TARGET_META[id] || { label: id };
+      const meta = targetMeta[id] || { label: id };
       return `<div class="compile-result-row">
         ${targetLogo(id)}
         <span class="compile-result-name">${meta.label}</span>
@@ -403,16 +437,19 @@ const CompileTab = (() => {
     container.innerHTML = html;
   }
 
+  /** @param {Record<string, CompilePreviewResult>} results */
   function renderPreviewTabs(results) {
     const container = document.getElementById('compile-preview-tabs');
     if (!container) return;
+    const targetMeta = /** @type {Record<string, TargetMeta>} */ (TARGET_META);
     container.innerHTML = Object.keys(results).map(id => {
-      const meta = TARGET_META[id] || { label: id };
+      const meta = targetMeta[id] || { label: id };
       return `<button class="compile-tab-btn ${activePreview === id ? 'active' : ''}"
                 onclick="CompileTab.showPreview('${id}')">${meta.label}</button>`;
     }).join('');
   }
 
+  /** @param {string} targetId */
   function showPreview(targetId) {
     activePreview = targetId;
     const content = document.getElementById('compile-preview-content');
