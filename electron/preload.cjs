@@ -1,3 +1,12 @@
+// Renderer ↔ main IPC bridge. Anything exposed here is the only surface
+// area the renderer can touch the main process through.
+//
+// SEE ALSO:
+//   electron/main.cjs                 — IPC handlers (window:*, etc.)
+//   electron/updater.cjs              — emits 'update:event', listens on 'update:install'
+//   ui/app-update.js                  — primary consumer of onUpdateEvent
+//   ui/index.html                     — title-bar buttons calling minimize/maximize/close
+
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('contextEngineDesktop', {

@@ -3,6 +3,13 @@
 // events via `contextEngineDesktop.onUpdateEvent` and can trigger install via
 // `contextEngineDesktop.installUpdate`. Install is gated on user action — no
 // silent restarts.
+//
+// SEE ALSO:
+//   electron/preload.cjs              — IPC bridge (onUpdateEvent, installUpdate)
+//   ui/app-update.js                  — renderer-side toast consumer
+//   electron/main.cjs                 — startAutoUpdate() invocation point
+//   package.json (build.publish)      — GitHub release channel definition
+//   .github/workflows/release.yml     — CI that produces the assets this reads
 
 const { app, ipcMain } = require('electron');
 const { autoUpdater } = require('electron-updater');

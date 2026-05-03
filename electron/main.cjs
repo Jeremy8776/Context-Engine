@@ -1,3 +1,14 @@
+// Electron main process. Owns the BrowserWindow, the embedded HTTP server
+// lifecycle, the auto-updater wiring, and the IPC handlers the preload
+// bridge speaks to.
+//
+// SEE ALSO:
+//   electron/preload.cjs              — renderer-facing bridge surface
+//   electron/updater.cjs              — auto-update lifecycle (started here)
+//   server/server.js                  — embedded HTTP server (started here)
+//   ui/assets/brand/icon.ico          — taskbar icon set on BrowserWindow + setIcon
+//   package.json (build.appId)        — must match app.setAppUserModelId below
+
 const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const fs = require('fs');
 const path = require('path');

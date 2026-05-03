@@ -13,6 +13,11 @@
 //
 // Electron mode wins when both are available — the desktop updater drives
 // the real binary, the version poll is just a same-version sanity ping.
+//
+// SEE ALSO:
+//   electron/updater.cjs              — main-process electron-updater module
+//   electron/preload.cjs              — IPC bridge (onUpdateEvent, installUpdate)
+//   ui/store.js                       — Toast.action() definition consumed below
 
 const AppUpdate = (() => {
   const POLL_MS = 30000;
