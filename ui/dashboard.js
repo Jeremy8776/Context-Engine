@@ -37,6 +37,11 @@ const OUTPUT_LABELS = {
 };
 const DASH_FILE_STANDARD_TARGETS = new Set(['agents', 'aider', 'copilot']);
 
+/**
+ * @param {string} id
+ * @param {ToolRecord | undefined | null} tool
+ * @returns {boolean}
+ */
 function isDashboardOutputAvailable(id, tool) {
   if (!tool) return false;
   if (typeof tool.available === 'boolean') return tool.available;
@@ -94,7 +99,7 @@ const DashboardTab = (() => {
       const modesEl = document.getElementById('db-stat-modes');
       const activeModeEl = document.getElementById('db-active-mode');
       const activeMode = localStorage.getItem('cm_active_mode');
-      const mode = (modesData?.modes || []).find(m => m.id === activeMode);
+      const mode = (modesData?.modes || []).find(/** @param {{ id: string }} m */ (m) => m.id === activeMode);
       if (modesEl && typeof animateCount !== 'undefined') animateCount(modesEl, modesCount);
       if (activeModeEl) activeModeEl.textContent = mode?.label || 'Manual';
     } catch {}
@@ -125,7 +130,7 @@ const DashboardTab = (() => {
         container.innerHTML = '<div class="db-empty">No modes yet</div>';
         return;
       }
-      container.innerHTML = modes.slice(0, 8).map(mode => {
+      container.innerHTML = modes.slice(0, 8).map(/** @param {{ id: string, label?: string, skills?: unknown[] }} mode */ (mode) => {
         const skills = mode.skills || [];
         const active = mode.id === activeMode ? ' active' : '';
         return `
@@ -162,29 +167,34 @@ const DashboardTab = (() => {
     }
   }
 
+  /** @param {Record<string, { tokens: number }>} results */
   function renderOutputTokens(results) {
     const container = document.getElementById('db-output-tokens');
     if (!container) return;
-    const rows = Object.entries(results)
+    /** @type {Array<[string, { tokens: number }]>} */
+    const rows = (/** @type {Array<[string, { tokens: number }]>} */ (Object.entries(results)))
       .filter(([, result]) => Number.isFinite(result.tokens))
       .sort((a, b) => b[1].tokens - a[1].tokens);
     if (!rows.length) {
       container.innerHTML = '<div class="db-empty">No token estimates yet</div>';
       return;
     }
-    const max = rows[0][1].tokens || 1;
+    const firstRow = rows[0];
+    const max = (firstRow && firstRow[1].tokens) || 1;
     container.innerHTML = rows.map(([id, result]) => {
       const pct = Math.max(3, Math.round((result.tokens / max) * 100));
+      const label = /** @type {Record<string, string>} */ (OUTPUT_LABELS)[id] || id;
       return `
         <div class="dashboard-token-row" data-pct="${pct}">
-          <span>${esc(OUTPUT_LABELS[id] || id)}</span>
+          <span>${esc(label)}</span>
           <div class="dashboard-token-track"><i></i></div>
           <strong>~${result.tokens.toLocaleString()}</strong>
         </div>`;
     }).join('');
     container.querySelectorAll('.dashboard-token-row').forEach(row => {
-      const fill = row.querySelector('i');
-      if (fill) fill.style.width = `${row.dataset.pct}%`;
+      const el = /** @type {HTMLElement} */ (row);
+      const fill = /** @type {HTMLElement | null} */ (el.querySelector('i'));
+      if (fill) fill.style.width = `${el.dataset.pct}%`;
     });
   }
 
@@ -193,7 +203,7 @@ const DashboardTab = (() => {
     await loadSkillData();
     updateStats();
     await loadHealth();
-    if (typeof SkillsTab !== 'undefined') SkillsTab.init();
+    if (typeof SkillsTab !== 'undefined') SkillsTab.init?.();
     Toast.success(`Discovery complete: ${SKILL_DATA.length} skills found`);
   }
 
@@ -230,6 +240,7 @@ const DashboardTab = (() => {
     renderBudget(data);
   }
 
+  /** @param {{ budgetPercent?: number, estimatedTokens?: number, contextMdChars?: number, memoryChars?: number, rulesChars?: number }} d */
   function renderBudget(d) {
     const pct   = Math.min(d.budgetPercent || 0, 100);
     const tokens = (d.estimatedTokens || 0).toLocaleString();
@@ -258,10 +269,12 @@ const DashboardTab = (() => {
     const container = document.getElementById('db-health-list');
     const summary   = document.getElementById('db-health-summary');
     if (!container) return;
+    /** @typedef {{ id: string, path?: string, issue?: string, stale?: boolean, daysSinceModified?: number }} HealthSkill */
+    /** @type {HealthSkill[]} */
     const skills = data.skills || [];
-    const issues = skills.filter(s => s.issue);
-    const stale  = skills.filter(s => s.stale && !s.issue);
-    const ok     = skills.filter(s => !s.issue);
+    const issues = skills.filter(/** @param {HealthSkill} s */ (s) => !!s.issue);
+    const stale  = skills.filter(/** @param {HealthSkill} s */ (s) => !!s.stale && !s.issue);
+    const ok     = skills.filter(/** @param {HealthSkill} s */ (s) => !s.issue);
 
     // Compact chip in the keyline head.
     if (summary) {
@@ -284,12 +297,12 @@ const DashboardTab = (() => {
 
     // Issues present - show collapsed by default. Preview top 3, expand for all.
     const allRows = [
-      ...issues.map(s => `
+      ...issues.map(/** @param {HealthSkill} s */ (s) => `
         <div class="health-issue" title="${esc(s.path)}">
           <span class="health-id">${esc(s.id)}</span>
           <span class="health-msg">${esc(s.issue)}</span>
         </div>`),
-      ...stale.map(s => `
+      ...stale.map(/** @param {HealthSkill} s */ (s) => `
         <div class="health-issue stale" title="${esc(s.path)}">
           <span class="health-id">${esc(s.id)}</span>
           <span class="health-msg">Stale (${s.daysSinceModified || '30+'}d since last edit)</span>
@@ -308,7 +321,7 @@ const DashboardTab = (() => {
     if (!container) return;
     const backups = data.backups || [];
     if (!backups.length) { container.innerHTML = '<div class="db-empty">No backups yet</div>'; return; }
-    container.innerHTML = backups.map(b => `
+    container.innerHTML = backups.map(/** @param {{ timestamp: string }} b */ (b) => `
       <div class="backup-item">
         <span class="backup-ts">${b.timestamp.replace('T', ' ')}</span>
         <button class="mem-btn" onclick="DashboardTab.restore('${b.timestamp}')">Restore</button>
@@ -322,9 +335,11 @@ const DashboardTab = (() => {
     if (!container) return;
     const sessions = data.sessions || [];
     if (!sessions.length) { container.innerHTML = '<div class="db-empty">No session history yet</div>'; return; }
-    container.innerHTML = sessions.slice(0, 15).map(s => {
+    /** @typedef {{ ts: string, type?: string, mode?: string, skills?: unknown[], activeSkills?: number, activeCount?: number, timestamp?: string, targets?: string[], count?: number, workspace?: string }} SessionEntry */
+    container.innerHTML = sessions.slice(0, 15).map(/** @param {SessionEntry} s */ (s) => {
       const ts  = new Date(s.ts).toLocaleString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
-      const svg = SESS_ICONS[s.type] || SESS_ICONS.manual_regen;
+      const sessIcons = /** @type {Record<string, string>} */ (SESS_ICONS);
+      const svg = (s.type && sessIcons[s.type]) || sessIcons.manual_regen;
       const label =
         s.type === 'mode_applied'   ? `Mode applied: ${s.mode} (${(s.skills||[]).length} skills)` :
         s.type === 'toggle'         ? `Skills toggled - ${s.activeSkills} active` :
@@ -346,6 +361,7 @@ const DashboardTab = (() => {
     await loadSessionLog();
   }
 
+  /** @param {string} ts */
   async function restore(ts) {
     const ok = await AppDialog.confirm({
       title: 'Restore backup',
@@ -373,6 +389,7 @@ const DashboardTab = (() => {
     await loadSessionLog();
   }
 
+  /** @param {string} modeId */
   async function applyMode(modeId) {
     if (typeof ModesTab === 'undefined') return;
     await ModesTab.apply(modeId);
@@ -406,6 +423,7 @@ const DashboardTab = (() => {
     openTab('compile');
   }
 
+  /** @param {string} name */
   function openTab(name) {
     switchTabByName(name);
   }

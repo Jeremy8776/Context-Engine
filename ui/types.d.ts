@@ -94,6 +94,20 @@ declare const RS: {
 declare const DashboardTab: {
   refreshBudget(): Promise<void>;
 };
+declare const SkillsTab: {
+  refresh?: () => Promise<void> | void;
+  init?: () => void;
+};
+declare const AppDialog: {
+  confirm(options?: {
+    title?: string;
+    message?: string;
+    confirmText?: string;
+    cancelText?: string;
+    danger?: boolean;
+  }): Promise<boolean>;
+};
+declare function loadSkillData(): Promise<void>;
 declare const ModesTab: {
   apply(id: string): Promise<void>;
 };
