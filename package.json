@@ -7,7 +7,8 @@
     "context-engine": "cli/index.js"
   },
   "scripts": {
-    "start": "node server/server.js",
+    "start": "node scripts/start.js",
+    "start:new": "node scripts/start-new-user.js",
     "dev": "node server/server.js",
     "desktop": "electron .",
     "desktop:dev": "node scripts/desktop-dev.js",
@@ -17,6 +18,7 @@
     "build:win:portable": "electron-builder --win portable",
     "build:mac": "electron-builder --mac",
     "build:linux": "electron-builder --linux",
+    "assets:icons": "node scripts/generate-icons.js",
     "typecheck": "tsc -p tsconfig.json",
     "lint": "eslint .",
     "lint:css": "node scripts/css-guard.js",
@@ -26,10 +28,19 @@
     "handoff": "node -e \"console.log(require('fs').readFileSync('docs/llm-handoff.md','utf8'))\"",
     "smoke": "node scripts/smoke.js",
     "smoke:desktop": "node scripts/electron-smoke.js",
+    "smoke:onboarding": "electron scripts/onboarding-smoke.cjs",
     "smoke:desktop:launch": "electron .",
+    "smoke:visual": "electron scripts/electron-visual-smoke.cjs",
     "test:chunker": "node scripts/chunker-smoke.js",
     "test:embeddings": "node scripts/embeddings-smoke.js",
-    "test:vectorstore": "node scripts/vectorstore-smoke.js"
+    "test:vectorstore": "node scripts/vectorstore-smoke.js",
+    "test:mcp-hosts": "node scripts/mcp-host-config-smoke.js",
+    "mcp": "node mcp-server.mjs",
+    "mcp:http": "node mcp-http-server.mjs",
+    "mcpb:pack": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/pack-mcpb.ps1",
+    "smoke:mcp": "node scripts/mcp-smoke.mjs",
+    "smoke:mcpb": "node scripts/mcpb-smoke.mjs",
+    "smoke:mcp:http": "node scripts/mcp-http-smoke.mjs"
   },
   "keywords": [
     "ai",
@@ -76,6 +87,9 @@
       "ui/**/*",
       "cli/**/*",
       "skills/**/*",
+      "mcp-server.mjs",
+      "mcp-http-server.mjs",
+      "mcp-tools.mjs",
       "package.json",
       "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
       "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
@@ -123,7 +137,7 @@
         "dmg",
         "zip"
       ],
-      "icon": "ui/assets/brand/icon.png",
+      "icon": "ui/assets/brand/icon.icns",
       "category": "public.app-category.developer-tools"
     },
     "linux": {
@@ -131,12 +145,13 @@
         "AppImage",
         "deb"
       ],
-      "icon": "ui/assets/brand/icon.png",
+      "icon": "ui/assets/brand/icons",
       "category": "Development",
       "maintainer": "Jeremy8776 <noreply@github.com>"
     }
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
     "electron-updater": "^6.8.3"
   }
 }

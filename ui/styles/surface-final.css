@@ -8,13 +8,13 @@
   transition: grid-template-columns var(--out);
 }
 
-:root[data-nav="full"] .app,
-.app[data-nav="full"] {
+:root[data-nav='full'] .app,
+.app[data-nav='full'] {
   grid-template-columns: 248px minmax(0, 1fr);
 }
 
-:root[data-nav="mini"] .app,
-.app[data-nav="mini"] {
+:root[data-nav='mini'] .app,
+.app[data-nav='mini'] {
   grid-template-columns: var(--side-w-mini) minmax(0, 1fr);
 }
 
@@ -52,7 +52,10 @@
   border-radius: 10px;
   color: var(--text-3);
   background: transparent;
-  transition: color var(--out), background var(--out), border-color var(--out);
+  transition:
+    color var(--out),
+    background var(--out),
+    border-color var(--out);
   flex: 0 0 auto;
 }
 
@@ -76,8 +79,8 @@
   display: none;
 }
 
-:root[data-nav="mini"] .nav-brand,
-.app[data-nav="mini"] .nav-brand {
+:root[data-nav='mini'] .nav-brand,
+.app[data-nav='mini'] .nav-brand {
   justify-content: center;
   padding: 0 8px;
 }
@@ -93,35 +96,35 @@
   align-items: center;
 }
 
-:root[data-nav="mini"] .nav-brand::before,
-.app[data-nav="mini"] .nav-brand::before,
-:root[data-nav="mini"] .nav-crumbs,
-.app[data-nav="mini"] .nav-crumbs {
+:root[data-nav='mini'] .nav-brand::before,
+.app[data-nav='mini'] .nav-brand::before,
+:root[data-nav='mini'] .nav-crumbs,
+.app[data-nav='mini'] .nav-crumbs {
   display: none;
 }
 
-:root[data-nav="mini"] .nav-toggle,
-.app[data-nav="mini"] .nav-toggle {
+:root[data-nav='mini'] .nav-toggle,
+.app[data-nav='mini'] .nav-toggle {
   margin: 0;
 }
 
-:root[data-nav="mini"] .nav-tabs,
-.app[data-nav="mini"] .nav-tabs {
+:root[data-nav='mini'] .nav-tabs,
+.app[data-nav='mini'] .nav-tabs {
   align-items: center;
   padding: 12px 8px;
   /* Icon rail: keep scroll functional, hide scrollbar chrome.
      The icons themselves provide the scroll affordance. */
   scrollbar-width: none;
 }
-:root[data-nav="mini"] .nav-tabs::-webkit-scrollbar,
-.app[data-nav="mini"] .nav-tabs::-webkit-scrollbar {
+:root[data-nav='mini'] .nav-tabs::-webkit-scrollbar,
+.app[data-nav='mini'] .nav-tabs::-webkit-scrollbar {
   width: 0;
   height: 0;
   display: none;
 }
 
-:root[data-nav="mini"] .tab-btn,
-.app[data-nav="mini"] .tab-btn {
+:root[data-nav='mini'] .tab-btn,
+.app[data-nav='mini'] .tab-btn {
   justify-content: center;
   width: 42px;
   height: 42px;
@@ -129,35 +132,35 @@
   gap: 0;
 }
 
-:root[data-nav="mini"] .tab-btn::after,
-.app[data-nav="mini"] .tab-btn::after {
+:root[data-nav='mini'] .tab-btn::after,
+.app[data-nav='mini'] .tab-btn::after {
   left: -8px;
 }
 
-:root[data-nav="mini"] .tab-btn::before,
-.app[data-nav="mini"] .tab-btn::before {
+:root[data-nav='mini'] .tab-btn::before,
+.app[data-nav='mini'] .tab-btn::before {
   display: none;
 }
 
-:root[data-nav="mini"] .nav-icon,
-.app[data-nav="mini"] .nav-icon {
+:root[data-nav='mini'] .nav-icon,
+.app[data-nav='mini'] .nav-icon {
   width: 18px;
   height: 18px;
 }
 
-:root[data-nav="mini"] .nav-text,
-.app[data-nav="mini"] .nav-text {
+:root[data-nav='mini'] .nav-text,
+.app[data-nav='mini'] .nav-text {
   display: none;
 }
 
-:root[data-nav="mini"] .nav-end,
-.app[data-nav="mini"] .nav-end {
+:root[data-nav='mini'] .nav-end,
+.app[data-nav='mini'] .nav-end {
   align-items: center;
   padding: 10px 8px 14px;
 }
 
-:root[data-nav="mini"] .server-status,
-.app[data-nav="mini"] .server-status {
+:root[data-nav='mini'] .server-status,
+.app[data-nav='mini'] .server-status {
   justify-content: center;
   width: 42px;
   height: 38px;
@@ -173,12 +176,21 @@
 .integration-primary,
 .integrations-layout > section,
 #memory-tab .memory-sidebar,
-#memory-tab .memory-results,
 #memory-tab .memory-detail,
 .compile-summary {
   border: 1px solid var(--soft-line);
   border-radius: var(--r-3);
   background: var(--bg-card);
+  box-shadow: none;
+  overflow: hidden;
+}
+/* .memory-results intentionally NOT given a card border/bg here. The main
+   area is a transparent column (matching Skills' .skills-main-area), so the
+   memory cards themselves provide the visual rhythm rather than a frame
+   wrapping the whole grid. */
+#memory-tab .memory-results {
+  border: 0;
+  background: transparent;
   box-shadow: none;
   overflow: hidden;
 }
@@ -220,20 +232,17 @@
 }
 
 #memory-tab .memory-sidebar,
-#memory-tab .memory-results,
 #memory-tab .memory-detail {
   border-bottom: 1px solid var(--soft-line);
 }
 
 .compile-tools-grid,
-.compile-strategy-cards,
 #compile-workspaces-list {
   gap: 12px;
   border: 0;
 }
 
 .compile-tool,
-.strategy-option,
 .compile-ws-item {
   border: 1px solid var(--soft-line);
   border-radius: var(--r-3);
@@ -245,14 +254,9 @@
 }
 
 .compile-tool:hover,
-.strategy-option:hover,
 .compile-ws-item:hover {
   background: var(--accent-bg);
   border-color: var(--accent-line);
-}
-
-.strategy-option:last-child {
-  border-right: 1px solid var(--soft-line);
 }
 
 #compile-workspaces-list {
@@ -263,12 +267,13 @@
   padding: var(--s-4);
 }
 
-.side-panel,
 .memory-modal,
 .app-dialog,
 .toast {
   border-radius: var(--r-3);
 }
+/* .side-panel intentionally omitted: docked rail uses square corners flush
+   with the viewport edge. See inspector.css. */
 
 .side-panel {
   transform: translateX(calc(100% + var(--rail-offscreen-extra)));
@@ -372,6 +377,15 @@
   min-height: 0;
   overflow: auto;
   padding: var(--s-3);
+}
+
+/* Drop the scroll container's right padding when the docked rail is open so
+   cards reach all the way to the panel divider. The full reflow chain that
+   matters here: page wrapper padding (clean-slate/part-03.css) → memory-results
+   padding-right (memory-final/part-01.css) → this container padding. All three
+   need to collapse on the right when the rail is docked. */
+body.side-panel-active #memory-tab .memory-results-scroll {
+  padding-right: 0;
 }
 
 #memory-tab .memory-pagination {

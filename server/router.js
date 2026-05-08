@@ -1,21 +1,58 @@
 // router.js — API route handlers for Context Engine v3
 
-const fs   = require('fs');
+const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const { DATA_DIR, SKILLS_DIR, CONTEXT_MD, HOMEDIR, WORKSPACES_FILE } = require('./lib/config');
 const { body, json } = require('./lib/http');
 const { getApiKey, setApiKey, removeApiKey } = require('./lib/crypto');
 const { validateMemory, validateRules, validateStates } = require('./lib/validation');
-const { scanSkills, invalidateSkillCache, skillHealthCheck, countSkillFiles, parseAllNeedingParse, llmReviewSimilarSkills, pruneDuplicateSkillDirs, organiseSkills, getOllamaModels } = require('./lib/skills');
-const { readData, writeData, createBackup, listBackups, restoreBackup, getSessionLog, appendSession } = require('./lib/backup');
+const {
+  scanSkills,
+  invalidateSkillCache,
+  skillHealthCheck,
+  countSkillFiles,
+  parseAllNeedingParse,
+  llmReviewSimilarSkills,
+  pruneDuplicateSkillDirs,
+  organiseSkills,
+  getOllamaModels,
+} = require('./lib/skills');
+const {
+  readData,
+  writeData,
+  createBackup,
+  listBackups,
+  restoreBackup,
+  getSessionLog,
+  appendSession,
+} = require('./lib/backup');
 const { getModes, regenerateCONTEXTmd, applyMode, estimateContextBudget } = require('./lib/modes');
-const { compile, buildContext, estimateTokens, getAvailableTargets, compileToGlobal, ADAPTERS, TOOL_REGISTRY } = require('./compiler');
+const {
+  compile,
+  buildContext,
+  estimateTokens,
+  getAvailableTargets,
+  compileToGlobal,
+  ADAPTERS,
+  TOOL_REGISTRY,
+} = require('./compiler');
 const { detectTools } = require('./lib/tool-detection');
 const { chunkSkill } = require('./lib/chunker');
 const { embedTexts, DEFAULT_EMBED_MODEL } = require('./lib/embeddings');
-const { loadVectorStore, saveVectorStore, upsertVectors, replaceVectors, searchVectors } = require('./lib/vectorstore');
+const {
+  loadVectorStore,
+  saveVectorStore,
+  upsertVectors,
+  replaceVectors,
+  searchVectors,
+} = require('./lib/vectorstore');
 const { getAppVersion } = require('./lib/app-version');
+const { buildHostConfigs, installHostConfig } = require('./lib/mcp-host-config');
+const { getOnboardingSummary, completeOnboarding, resetOnboarding } = require('./lib/onboarding');
+const { checkSafeWritePath } = require('./lib/security');
+
+const ALLOWED_INGEST_HOSTS = new Set(['github.com', 'gitlab.com', 'codeberg.org', 'bitbucket.org']);
 
 const ingestJobs = {};
 const INGEST_JOB_TTL = 10 * 60 * 1000; // 10 minutes
@@ -33,10 +70,70 @@ async function handleRequest(req, res, url) {
   // ---- SKILLS ----
   if (p === '/api/skills' && req.method === 'GET') return json(res, Object.values(scanSkills()));
 
+  // GET /api/skills/:id — full skill record + body, optionally a single section.
+  // Used by the MCP bridge so hosts (Claude Desktop, Codex) can fetch a skill
+  // body on demand instead of preloading every active skill into context.
+  if (p.startsWith('/api/skills/') && req.method === 'GET') {
+    const rest = decodeURIComponent(p.replace('/api/skills/', ''));
+    // Block reserved subpaths (ingest job lookup is GET /api/skills/ingest/:jobId).
+    if (!rest || rest.startsWith('ingest/')) return null;
+    const skill = scanSkills()[rest];
+    if (!skill) return json(res, { ok: false, error: 'Unknown skill: ' + rest }, 404);
+
+    let body = '';
+    try {
+      body = fs.readFileSync(skill.path, 'utf8');
+    } catch (e) {
+      return json(res, { ok: false, error: 'Failed to read SKILL.md: ' + e.message }, 500);
+    }
+
+    // Build a lightweight section index from `## ` headings so callers can
+    // ask for one slice without parsing the whole body themselves.
+    const sections = [];
+    const lines = body.split(/\r?\n/);
+    let currentHeading = null;
+    let currentStart = 0;
+    lines.forEach((line, i) => {
+      const m = line.match(/^##\s+(.+?)\s*$/);
+      if (m) {
+        if (currentHeading)
+          sections.push({ heading: currentHeading, startLine: currentStart, endLine: i - 1 });
+        currentHeading = m[1].trim();
+        currentStart = i;
+      }
+    });
+    if (currentHeading)
+      sections.push({ heading: currentHeading, startLine: currentStart, endLine: lines.length - 1 });
+
+    const sectionParam = url.searchParams.get('section');
+    if (sectionParam) {
+      const wanted = sectionParam.toLowerCase();
+      const match = sections.find((s) => s.heading.toLowerCase() === wanted);
+      if (!match)
+        return json(
+          res,
+          {
+            ok: false,
+            error: `Section not found: ${sectionParam}`,
+            availableSections: sections.map((s) => s.heading),
+          },
+          404,
+        );
+      const slice = lines.slice(match.startLine, match.endLine + 1).join('\n');
+      return json(res, { ok: true, skill, section: match.heading, body: slice });
+    }
+
+    return json(res, { ok: true, skill, body, sections: sections.map((s) => s.heading) });
+  }
+
   if (p === '/api/skills/parse' && req.method === 'POST') {
     const data = await body(req);
     if ((data?.provider || 'anthropic') === 'anthropic' && !data?.apiKey && !getApiKey('ANTHROPIC_API_KEY')) {
-      return json(res, { ok: false, error: 'No API key configured. Add one in Rules or paste one in cleanup settings.' }, 400);
+      return json(
+        res,
+        { ok: false, error: 'No API key configured. Add one in Rules or paste one in cleanup settings.' },
+        400,
+      );
     }
     try {
       const result = await parseAllNeedingParse(data || {});
@@ -68,10 +165,36 @@ async function handleRequest(req, res, url) {
     return json(res, { ok: true, ...getAppVersion() });
   }
 
+  // ---- ONBOARDING ----
+  if (p === '/api/onboarding' && req.method === 'GET') {
+    return json(res, { ok: true, ...getOnboardingSummary() });
+  }
+
+  if (p === '/api/onboarding/complete' && req.method === 'POST') {
+    return json(res, completeOnboarding());
+  }
+
+  if (p === '/api/onboarding/reset' && req.method === 'POST') {
+    return json(res, resetOnboarding());
+  }
+
+  // ---- MCP HOST CONFIG ----
+  if (p === '/api/mcp/hosts' && req.method === 'GET') {
+    return json(res, { ok: true, hosts: buildHostConfigs() });
+  }
+
+  if (p === '/api/mcp/hosts/install' && req.method === 'POST') {
+    const data = await body(req);
+    const hostId = String(data?.hostId || '').trim();
+    if (!hostId) return json(res, { ok: false, error: 'hostId is required' }, 400);
+    const result = installHostConfig(hostId);
+    return json(res, result, result.ok ? 200 : 409);
+  }
+
   // ---- VECTOR INDEX ----
   if (p === '/api/index/status' && req.method === 'GET') {
     const store = loadVectorStore();
-    const skillIds = new Set(store.records.map(record => record.skillId));
+    const skillIds = new Set(store.records.map((record) => record.skillId));
     return json(res, {
       ok: true,
       chunks: store.records.length,
@@ -83,15 +206,25 @@ async function handleRequest(req, res, url) {
 
   if (p === '/api/index' && req.method === 'POST') {
     const skills = Object.values(scanSkills());
-    const chunks = skills.flatMap(skill => chunkSkill(skill));
-    const embedded = await embedTexts(chunks.map(chunk => chunk.text));
+    const chunks = skills.flatMap((skill) => chunkSkill(skill));
+    const embedded = await embedTexts(chunks.map((chunk) => chunk.text));
     if (!embedded.ok) {
-      return json(res, { ok: false, error: embedded.error, chunks: chunks.length, model: embedded.model }, 503);
+      return json(
+        res,
+        { ok: false, error: embedded.error, chunks: chunks.length, model: embedded.model },
+        503,
+      );
     }
     const records = chunks.map((chunk, index) => ({ ...chunk, vector: embedded.vectors[index] }));
     const store = replaceVectors(records, embedded.model || DEFAULT_EMBED_MODEL);
     saveVectorStore(store);
-    return json(res, { ok: true, chunks: store.records.length, skills: skills.length, model: store.model, updatedAt: store.updatedAt });
+    return json(res, {
+      ok: true,
+      chunks: store.records.length,
+      skills: skills.length,
+      model: store.model,
+      updatedAt: store.updatedAt,
+    });
   }
 
   if (p.startsWith('/api/index/skill/') && req.method === 'POST') {
@@ -99,14 +232,24 @@ async function handleRequest(req, res, url) {
     const skill = scanSkills()[skillId];
     if (!skill) return json(res, { ok: false, error: 'Unknown skill: ' + skillId }, 404);
     const chunks = chunkSkill(skill);
-    const embedded = await embedTexts(chunks.map(chunk => chunk.text));
+    const embedded = await embedTexts(chunks.map((chunk) => chunk.text));
     if (!embedded.ok) {
-      return json(res, { ok: false, error: embedded.error, chunks: chunks.length, model: embedded.model }, 503);
+      return json(
+        res,
+        { ok: false, error: embedded.error, chunks: chunks.length, model: embedded.model },
+        503,
+      );
     }
     const records = chunks.map((chunk, index) => ({ ...chunk, vector: embedded.vectors[index] }));
     const store = upsertVectors(loadVectorStore(), records, embedded.model || DEFAULT_EMBED_MODEL);
     saveVectorStore(store);
-    return json(res, { ok: true, skillId, chunks: records.length, model: store.model, updatedAt: store.updatedAt });
+    return json(res, {
+      ok: true,
+      skillId,
+      chunks: records.length,
+      model: store.model,
+      updatedAt: store.updatedAt,
+    });
   }
 
   if (p === '/api/search' && req.method === 'POST') {
@@ -115,21 +258,53 @@ async function handleRequest(req, res, url) {
     const limit = Number(data?.limit || 10);
     if (!query) return json(res, { ok: false, error: 'query is required' }, 400);
     const store = loadVectorStore();
-    if (!store.records.length) return json(res, { ok: false, error: 'Index is empty. Run /api/index first.' }, 400);
+    if (!store.records.length)
+      return json(res, { ok: false, error: 'Index is empty. Run /api/index first.' }, 400);
     const embedded = await embedTexts([query], { model: store.model || DEFAULT_EMBED_MODEL });
     if (!embedded.ok) return json(res, { ok: false, error: embedded.error, model: embedded.model }, 503);
-    return json(res, { ok: true, query, results: searchVectors(store, embedded.vectors[0], { limit }), model: embedded.model });
+    return json(res, {
+      ok: true,
+      query,
+      results: searchVectors(store, embedded.vectors[0], { limit }),
+      model: embedded.model,
+    });
   }
 
   // ---- SKILL INGEST (GitHub clone) ----
   if (p === '/api/skills/ingest' && req.method === 'POST') {
     const data = await body(req);
     let repoUrl = data?.url;
-    if (!repoUrl || !repoUrl.startsWith('http')) return json(res, { ok: false, error: 'Invalid URL' }, 400);
-    repoUrl = repoUrl.replace(/\/tree\/[^/]+.*$/, '').replace(/\.git$/, '').replace(/\/+$/, '');
-    const urlParts = repoUrl.replace(/^https?:\/\/github\.com\//, '').split('/');
-    if (urlParts.length < 2) return json(res, { ok: false, error: 'Invalid GitHub URL — need owner/repo' }, 400);
-    const slug = `${urlParts[0]}-${urlParts[1]}`.toLowerCase();
+    if (!repoUrl || typeof repoUrl !== 'string' || !/^https:\/\//i.test(repoUrl)) {
+      return json(res, { ok: false, error: 'Invalid URL — must be https://' }, 400);
+    }
+    repoUrl = repoUrl
+      .replace(/\/tree\/[^/]+.*$/, '')
+      .replace(/\.git$/, '')
+      .replace(/\/+$/, '');
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(repoUrl);
+    } catch {
+      return json(res, { ok: false, error: 'Invalid URL' }, 400);
+    }
+    const host = parsedUrl.hostname.toLowerCase();
+    if (!ALLOWED_INGEST_HOSTS.has(host)) {
+      return json(
+        res,
+        { ok: false, error: `Host not allowed: ${host}. Allowed: ${[...ALLOWED_INGEST_HOSTS].join(', ')}` },
+        400,
+      );
+    }
+    const segments = parsedUrl.pathname.split('/').filter(Boolean);
+    if (segments.length < 2)
+      return json(res, { ok: false, error: 'Invalid repo URL — need owner/repo' }, 400);
+    // Reject anything that could escape the ingested/ directory after slugification.
+    const owner = segments[0];
+    const repo = segments[1];
+    if (!/^[A-Za-z0-9._-]+$/.test(owner) || !/^[A-Za-z0-9._-]+$/.test(repo)) {
+      return json(res, { ok: false, error: 'Invalid owner/repo characters' }, 400);
+    }
+    const slug = `${owner}-${repo}`.toLowerCase();
     const jobId = 'ingest_' + Date.now();
     const destDir = path.join(SKILLS_DIR, 'ingested', slug);
     cleanupIngestJobs();
@@ -139,12 +314,18 @@ async function handleRequest(req, res, url) {
 
     const finishJob = (git) => {
       let stderr = '';
-      git.stdout.on('data', d => job.log.push(d.toString().trim()));
-      git.stderr.on('data', d => { stderr += d.toString(); });
-      git.on('close', code => {
-        if (code !== 0) { job.log.push(`Error: ${stderr.trim() || 'git exited ' + code}`); job.status = 'error'; return; }
+      git.stdout.on('data', (d) => job.log.push(d.toString().trim()));
+      git.stderr.on('data', (d) => {
+        stderr += d.toString();
+      });
+      git.on('close', (code) => {
+        if (code !== 0) {
+          job.log.push(`Error: ${stderr.trim() || 'git exited ' + code}`);
+          job.status = 'error';
+          return;
+        }
         const dedupe = pruneDuplicateSkillDirs(destDir);
-        dedupe.removed.forEach(item => job.log.push(`Skipped duplicate: ${item.id} (${item.reason})`));
+        dedupe.removed.forEach((item) => job.log.push(`Skipped duplicate: ${item.id} (${item.reason})`));
         job.count = countSkillFiles(destDir);
         if (dedupe.kept.length) job.log.push(`Imported: ${dedupe.kept.length} unique skill(s)`);
         job.log.push(`Found: ${job.count} skill(s)`);
@@ -196,6 +377,7 @@ async function handleRequest(req, res, url) {
   }
   if (p === '/api/keys' && req.method === 'POST') {
     const data = await body(req);
+    if (!data || data._parseError) return json(res, { ok: false, error: 'Invalid JSON body' }, 400);
     if (!data?.name || !data?.value) return json(res, { ok: false, error: 'Missing name or value' }, 400);
     const allowed = ['ANTHROPIC_API_KEY'];
     if (!allowed.includes(data.name)) return json(res, { ok: false, error: 'Unknown key name' }, 400);
@@ -227,7 +409,9 @@ async function handleRequest(req, res, url) {
     } catch (e) {
       if (backup) {
         writeData('skill-states.json', backup);
-        try { regenerateCONTEXTmd(); } catch {}
+        try {
+          regenerateCONTEXTmd();
+        } catch {}
       }
       return json(res, { ok: false, error: 'State update failed: ' + e.message }, 500);
     }
@@ -235,8 +419,11 @@ async function handleRequest(req, res, url) {
 
   // ---- CONTEXT.MD ----
   if (p === '/api/context-md' && req.method === 'GET') {
-    try { return json(res, { content: fs.readFileSync(CONTEXT_MD, 'utf8'), ...estimateContextBudget() }); }
-    catch { return json(res, { content: '', error: 'File not found' }); }
+    try {
+      return json(res, { content: fs.readFileSync(CONTEXT_MD, 'utf8'), ...estimateContextBudget() });
+    } catch {
+      return json(res, { content: '', error: 'File not found' });
+    }
   }
   if (p === '/api/context-md' && req.method === 'POST') {
     const r = regenerateCONTEXTmd();
@@ -245,7 +432,8 @@ async function handleRequest(req, res, url) {
   }
 
   // ---- HEALTH ----
-  if (p === '/api/health' && req.method === 'GET') return json(res, { skills: skillHealthCheck(), budget: estimateContextBudget() });
+  if (p === '/api/health' && req.method === 'GET')
+    return json(res, { skills: skillHealthCheck(), budget: estimateContextBudget() });
 
   // ---- BACKUPS ----
   if (p === '/api/backups' && req.method === 'GET') return json(res, { backups: listBackups() });
@@ -263,14 +451,31 @@ async function handleRequest(req, res, url) {
 
   // ---- SESSION LOG ----
   if (p === '/api/session-log' && req.method === 'GET') return json(res, getSessionLog());
-  if (p === '/api/session-log' && req.method === 'POST') { appendSession(await body(req)); return json(res, { ok: true }); }
+  if (p === '/api/session-log' && req.method === 'POST') {
+    const data = await body(req);
+    if (!data || data._parseError || typeof data.type !== 'string') {
+      return json(res, { ok: false, error: '"type" string is required' }, 400);
+    }
+    // Whitelist the fields we persist so callers cannot inject API keys, raw
+    // request bodies, or other PII into the on-disk session log.
+    const allowed = ['type', 'count', 'targets', 'outputDir', 'activeSkills', 'timestamp'];
+    /** @type {Record<string, unknown>} */
+    const entry = {};
+    for (const key of allowed) if (data[key] !== undefined) entry[key] = data[key];
+    appendSession(entry);
+    return json(res, { ok: true });
+  }
 
   // ---- MODES ----
   if (p === '/api/modes' && req.method === 'GET') return json(res, getModes());
   if (p === '/api/modes' && req.method === 'POST') {
     const data = await body(req);
     if (data && Array.isArray(data.modes)) {
-      fs.writeFileSync(path.join(DATA_DIR, 'modes.json'), JSON.stringify({ modes: data.modes }, null, 2), 'utf8');
+      fs.writeFileSync(
+        path.join(DATA_DIR, 'modes.json'),
+        JSON.stringify({ modes: data.modes }, null, 2),
+        'utf8',
+      );
       return json(res, { ok: true });
     }
     return json(res, { ok: false, error: 'Invalid modes data' }, 400);
@@ -278,7 +483,9 @@ async function handleRequest(req, res, url) {
   if (p === '/api/modes/apply' && req.method === 'POST') {
     const { modeId } = await body(req);
     const result = applyMode(modeId);
-    return result ? json(res, { ok: true, states: result }) : json(res, { ok: false, error: 'Mode not found' }, 404);
+    return result
+      ? json(res, { ok: true, states: result })
+      : json(res, { ok: false, error: 'Mode not found' }, 404);
   }
 
   // ---- API DOCS ----
@@ -286,44 +493,73 @@ async function handleRequest(req, res, url) {
     return json(res, {
       version: '0.2.0',
       endpoints: [
-        { method: 'GET',  path: '/api/skills',            description: 'List all discovered skills' },
-        { method: 'GET',  path: '/api/memory',             description: 'Get memory entries' },
-        { method: 'POST', path: '/api/memory',             description: 'Update memory (validated)' },
-        { method: 'GET',  path: '/api/rules',              description: 'Get rules configuration' },
-        { method: 'POST', path: '/api/rules',              description: 'Update rules (validated)' },
-        { method: 'GET',  path: '/api/states',             description: 'Get skill toggle states' },
-        { method: 'POST', path: '/api/states',             description: 'Update states + regenerate (transactional)' },
-        { method: 'GET',  path: '/api/context-md',         description: 'Get CONTEXT.md content + budget' },
-        { method: 'POST', path: '/api/context-md',         description: 'Force-regenerate CONTEXT.md' },
-        { method: 'GET',  path: '/api/compile/targets',    description: 'List available compile targets' },
-        { method: 'POST', path: '/api/compile/preview',    description: 'Preview compiled output' },
-        { method: 'POST', path: '/api/compile',            description: 'Compile and write files to disk' },
-        { method: 'GET',  path: '/api/health',             description: 'Skill health check + budget' },
-        { method: 'GET',  path: '/api/backups',            description: 'List backup snapshots' },
-        { method: 'POST', path: '/api/backups',            description: 'Create backup snapshot' },
-        { method: 'POST', path: '/api/restore',            description: 'Restore from backup' },
-        { method: 'GET',  path: '/api/session-log',        description: 'Get activity log' },
-        { method: 'GET',  path: '/api/modes',              description: 'List mode presets' },
-        { method: 'POST', path: '/api/modes/apply',        description: 'Apply mode preset (transactional)' },
-        { method: 'POST', path: '/api/index',              description: 'Index all skill chunks into the vector store' },
-        { method: 'POST', path: '/api/index/skill/:id',    description: 'Index one skill into the vector store' },
-        { method: 'POST', path: '/api/search',             description: 'Search indexed skill chunks' },
-        { method: 'GET',  path: '/api/index/status',       description: 'Get vector index status' },
-        { method: 'GET',  path: '/api/tools/detect',       description: 'Auto-detect installed AI tools' },
-        { method: 'POST', path: '/api/tools/install-global', description: 'Install compiled context to global tool paths' },
-        { method: 'GET',  path: '/api/workspaces',         description: 'List registered project workspaces' },
-        { method: 'POST', path: '/api/workspaces',         description: 'Add or remove a workspace' },
-        { method: 'POST', path: '/api/workspaces/compile', description: 'Compile into one or all workspaces' },
-      ]
+        { method: 'GET', path: '/api/skills', description: 'List all discovered skills' },
+        {
+          method: 'GET',
+          path: '/api/skills/:id',
+          description: 'Get one skill (record + body + section index). Optional ?section= for a slice.',
+        },
+        { method: 'GET', path: '/api/memory', description: 'Get memory entries' },
+        { method: 'POST', path: '/api/memory', description: 'Update memory (validated)' },
+        { method: 'GET', path: '/api/rules', description: 'Get rules configuration' },
+        { method: 'POST', path: '/api/rules', description: 'Update rules (validated)' },
+        { method: 'GET', path: '/api/states', description: 'Get skill toggle states' },
+        { method: 'POST', path: '/api/states', description: 'Update states + regenerate (transactional)' },
+        { method: 'GET', path: '/api/context-md', description: 'Get CONTEXT.md content + budget' },
+        { method: 'POST', path: '/api/context-md', description: 'Force-regenerate CONTEXT.md' },
+        { method: 'GET', path: '/api/compile/targets', description: 'List available compile targets' },
+        { method: 'POST', path: '/api/compile/preview', description: 'Preview compiled output' },
+        { method: 'POST', path: '/api/compile', description: 'Compile and write files to disk' },
+        { method: 'GET', path: '/api/health', description: 'Skill health check + budget' },
+        { method: 'GET', path: '/api/backups', description: 'List backup snapshots' },
+        { method: 'POST', path: '/api/backups', description: 'Create backup snapshot' },
+        { method: 'POST', path: '/api/restore', description: 'Restore from backup' },
+        { method: 'GET', path: '/api/session-log', description: 'Get activity log' },
+        { method: 'GET', path: '/api/modes', description: 'List mode presets' },
+        { method: 'POST', path: '/api/modes/apply', description: 'Apply mode preset (transactional)' },
+        { method: 'POST', path: '/api/index', description: 'Index all skill chunks into the vector store' },
+        {
+          method: 'POST',
+          path: '/api/index/skill/:id',
+          description: 'Index one skill into the vector store',
+        },
+        { method: 'POST', path: '/api/search', description: 'Search indexed skill chunks' },
+        { method: 'GET', path: '/api/index/status', description: 'Get vector index status' },
+        { method: 'GET', path: '/api/mcp/hosts', description: 'List MCP host config status and snippets' },
+        {
+          method: 'POST',
+          path: '/api/mcp/hosts/install',
+          description: 'Safely install Context Engine MCP config for one supported host',
+        },
+        { method: 'GET', path: '/api/tools/detect', description: 'Auto-detect installed AI tools' },
+        {
+          method: 'POST',
+          path: '/api/tools/install-global',
+          description: 'Install compiled context to global tool paths',
+        },
+        { method: 'GET', path: '/api/workspaces', description: 'List registered project workspaces' },
+        { method: 'POST', path: '/api/workspaces', description: 'Add or remove a workspace' },
+        {
+          method: 'POST',
+          path: '/api/workspaces/compile',
+          description: 'Compile into one or all workspaces',
+        },
+      ],
     });
   }
 
   // ---- COMPILER ----
-  if (p === '/api/compile/targets' && req.method === 'GET') return json(res, { targets: getAvailableTargets() });
+  if (p === '/api/compile/targets' && req.method === 'GET')
+    return json(res, { targets: getAvailableTargets() });
   if (p === '/api/compile/preview' && req.method === 'POST') {
     const { targets } = await body(req);
     try {
-      const result = compile({ dataDir: DATA_DIR, skillsDir: SKILLS_DIR, scanSkills, targets: targets || undefined });
+      const result = compile({
+        dataDir: DATA_DIR,
+        skillsDir: SKILLS_DIR,
+        scanSkills,
+        targets: targets || undefined,
+      });
       return json(res, result);
     } catch (e) {
       return json(res, { ok: false, error: e.message }, 500);
@@ -332,10 +568,26 @@ async function handleRequest(req, res, url) {
   if (p === '/api/compile' && req.method === 'POST') {
     const { targets, outputDir } = await body(req);
     if (!outputDir) {
-      return json(res, { ok: false, error: 'outputDir is required. Use /api/compile/preview to inspect output without writing, /api/tools/install-global to write to home, or /api/workspaces/compile to write to a registered workspace.' }, 400);
+      return json(
+        res,
+        {
+          ok: false,
+          error:
+            'outputDir is required. Use /api/compile/preview to inspect output without writing, /api/tools/install-global to write to home, or /api/workspaces/compile to write to a registered workspace.',
+        },
+        400,
+      );
     }
+    const denyReason = checkSafeWritePath(outputDir);
+    if (denyReason) return json(res, { ok: false, error: denyReason }, 400);
     try {
-      const result = compile({ dataDir: DATA_DIR, skillsDir: SKILLS_DIR, scanSkills, targets: targets || undefined, outputDir });
+      const result = compile({
+        dataDir: DATA_DIR,
+        skillsDir: SKILLS_DIR,
+        scanSkills,
+        targets: targets || undefined,
+        outputDir,
+      });
       appendSession({ type: 'compile', targets: targets || Object.keys(result.results), outputDir });
       return json(res, { ok: true, ...result });
     } catch (e) {
@@ -345,15 +597,30 @@ async function handleRequest(req, res, url) {
 
   // ---- TOOL DETECTION & GLOBAL INSTALL ----
   if (p === '/api/tools/detect' && req.method === 'GET') {
-    return json(res, detectTools(HOMEDIR, { dataDir: DATA_DIR, skillsDir: SKILLS_DIR, scanSkills, adapters: ADAPTERS, buildContext, estimateTokens }));
+    return json(
+      res,
+      detectTools(HOMEDIR, {
+        dataDir: DATA_DIR,
+        skillsDir: SKILLS_DIR,
+        scanSkills,
+        adapters: ADAPTERS,
+        buildContext,
+        estimateTokens,
+      }),
+    );
   }
   if (p === '/api/tools/install-global' && req.method === 'POST') {
     const { targets } = await body(req);
     if (!targets || !Array.isArray(targets) || !targets.length) {
       return json(res, { ok: false, error: 'targets must be a non-empty array' }, 400);
     }
+    const unknown = targets.filter((t) => !TOOL_REGISTRY[t]);
+    if (unknown.length) return json(res, { ok: false, error: `Unknown targets: ${unknown.join(', ')}` }, 400);
     try {
-      const result = compileToGlobal({ dataDir: DATA_DIR, skillsDir: SKILLS_DIR, scanSkills, targets }, HOMEDIR);
+      const result = compileToGlobal(
+        { dataDir: DATA_DIR, skillsDir: SKILLS_DIR, scanSkills, targets },
+        HOMEDIR,
+      );
       appendSession({ type: 'global_install', targets, count: Object.keys(result.installed).length });
       return json(res, result);
     } catch (e) {
@@ -363,32 +630,46 @@ async function handleRequest(req, res, url) {
 
   // ---- WORKSPACES ----
   if (p === '/api/workspaces' && req.method === 'GET') {
-    try { return json(res, JSON.parse(fs.readFileSync(WORKSPACES_FILE, 'utf8'))); }
-    catch { return json(res, { version: '1.0', workspaces: [] }); }
+    try {
+      return json(res, JSON.parse(fs.readFileSync(WORKSPACES_FILE, 'utf8')));
+    } catch {
+      return json(res, { version: '1.0', workspaces: [] });
+    }
   }
   if (p === '/api/workspaces' && req.method === 'POST') {
     const { action, path: wsPath, label } = await body(req);
     let data;
-    try { data = JSON.parse(fs.readFileSync(WORKSPACES_FILE, 'utf8')); } catch { data = {}; }
+    try {
+      data = JSON.parse(fs.readFileSync(WORKSPACES_FILE, 'utf8'));
+    } catch {
+      data = {};
+    }
     if (!Array.isArray(data.workspaces)) data.workspaces = [];
 
     if (action === 'add') {
       if (!wsPath) return json(res, { ok: false, error: 'path is required' }, 400);
       const resolved = path.resolve(wsPath);
+      const denyReason = checkSafeWritePath(resolved);
+      if (denyReason) return json(res, { ok: false, error: denyReason }, 400);
       if (!fs.existsSync(resolved) || !fs.statSync(resolved).isDirectory()) {
         return json(res, { ok: false, error: 'Directory does not exist: ' + resolved }, 400);
       }
-      if (data.workspaces.some(w => path.normalize(w.path) === path.normalize(resolved))) {
+      if (data.workspaces.some((w) => path.normalize(w.path) === path.normalize(resolved))) {
         return json(res, { ok: false, error: 'Workspace already registered' }, 400);
       }
-      data.workspaces.push({ path: resolved, label: label || path.basename(resolved), added: new Date().toISOString().split('T')[0], lastCompiled: null });
+      data.workspaces.push({
+        path: resolved,
+        label: label || path.basename(resolved),
+        added: new Date().toISOString().split('T')[0],
+        lastCompiled: null,
+      });
       fs.writeFileSync(WORKSPACES_FILE, JSON.stringify(data, null, 2), 'utf8');
       return json(res, { ok: true, workspaces: data.workspaces });
     }
     if (action === 'remove') {
       if (!wsPath) return json(res, { ok: false, error: 'path is required' }, 400);
       const resolved = path.resolve(wsPath);
-      data.workspaces = data.workspaces.filter(w => path.normalize(w.path) !== path.normalize(resolved));
+      data.workspaces = data.workspaces.filter((w) => path.normalize(w.path) !== path.normalize(resolved));
       fs.writeFileSync(WORKSPACES_FILE, JSON.stringify(data, null, 2), 'utf8');
       return json(res, { ok: true, workspaces: data.workspaces });
     }
@@ -396,13 +677,18 @@ async function handleRequest(req, res, url) {
   }
   if (p === '/api/workspaces/compile' && req.method === 'POST') {
     const { targets, workspacePath } = await body(req);
-    const selectedTargets = targets || Object.keys(TOOL_REGISTRY).filter(id => TOOL_REGISTRY[id].supportsProject);
+    const selectedTargets =
+      targets || Object.keys(TOOL_REGISTRY).filter((id) => TOOL_REGISTRY[id].supportsProject);
     let data;
-    try { data = JSON.parse(fs.readFileSync(WORKSPACES_FILE, 'utf8')); } catch { data = {}; }
+    try {
+      data = JSON.parse(fs.readFileSync(WORKSPACES_FILE, 'utf8'));
+    } catch {
+      data = {};
+    }
     if (!Array.isArray(data.workspaces)) data.workspaces = [];
 
     const toCompile = workspacePath
-      ? data.workspaces.filter(w => path.normalize(w.path) === path.normalize(workspacePath))
+      ? data.workspaces.filter((w) => path.normalize(w.path) === path.normalize(workspacePath))
       : data.workspaces;
 
     if (!toCompile.length) return json(res, { ok: false, error: 'No matching workspaces' }, 400);
@@ -410,8 +696,21 @@ async function handleRequest(req, res, url) {
     const results = {};
     const errors = [];
     for (const ws of toCompile) {
+      // Re-check on every compile: a stored workspace could have been edited
+      // outside the API surface to point at a sensitive directory.
+      const denyReason = checkSafeWritePath(ws.path);
+      if (denyReason) {
+        errors.push(`${ws.path}: ${denyReason}`);
+        continue;
+      }
       try {
-        const r = compile({ dataDir: DATA_DIR, skillsDir: SKILLS_DIR, scanSkills, targets: selectedTargets, outputDir: ws.path });
+        const r = compile({
+          dataDir: DATA_DIR,
+          skillsDir: SKILLS_DIR,
+          scanSkills,
+          targets: selectedTargets,
+          outputDir: ws.path,
+        });
         results[ws.path] = { targets: Object.keys(r.results), errors: r.errors };
         ws.lastCompiled = new Date().toISOString().split('T')[0];
       } catch (e) {

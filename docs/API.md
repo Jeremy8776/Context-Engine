@@ -9,9 +9,11 @@ All endpoints accept and return `application/json`. The server binds to localhos
 ## Skills
 
 ### GET /api/skills
+
 List all discovered skills from the `skills/` directory.
 
 **Response:** `Skill[]`
+
 ```json
 [
   {
@@ -30,20 +32,21 @@ List all discovered skills from the `skills/` directory.
 ## Memory
 
 ### GET /api/memory
+
 Get the full memory store.
 
 **Response:** `MemoryData`
+
 ```json
 {
   "version": "1.1",
   "last_updated": "2026-03-28",
-  "entries": [
-    { "id": "entry_1", "category": "general", "label": "", "content": "..." }
-  ]
+  "entries": [{ "id": "entry_1", "category": "general", "label": "", "content": "..." }]
 }
 ```
 
 ### POST /api/memory
+
 Update the memory store. Validates that `entries` is an array of objects with `content` strings.
 
 **Request body:** `MemoryData`
@@ -55,9 +58,11 @@ Update the memory store. Validates that `entries` is an array of objects with `c
 ## Rules
 
 ### GET /api/rules
+
 Get the rules configuration.
 
 **Response:** `RulesData`
+
 ```json
 {
   "version": "1.0",
@@ -68,6 +73,7 @@ Get the rules configuration.
 ```
 
 ### POST /api/rules
+
 Update rules. Validates that `coding`, `general`, and `soul` are all strings.
 
 **Request body:** `RulesData`
@@ -79,9 +85,11 @@ Update rules. Validates that `coding`, `general`, and `soul` are all strings.
 ## Skill States
 
 ### GET /api/states
+
 Get current skill toggle states.
 
 **Response:** `StatesData`
+
 ```json
 {
   "version": "1.0",
@@ -91,11 +99,13 @@ Get current skill toggle states.
 ```
 
 ### POST /api/states
+
 Update skill states and regenerate CONTEXT.md. Transactional — rolls back on failure. Validates all state values are booleans.
 
 **Request body:** `StatesData`
 
 **Response:**
+
 ```json
 { "ok": true, "activeCount": 5, "total": 10 }
 ```
@@ -105,9 +115,11 @@ Update skill states and regenerate CONTEXT.md. Transactional — rolls back on f
 ## Context Manifest
 
 ### GET /api/context-md
+
 Get the current CONTEXT.md content and budget estimation.
 
 **Response:**
+
 ```json
 {
   "content": "# System Context\n...",
@@ -127,6 +139,7 @@ Get the current CONTEXT.md content and budget estimation.
 ```
 
 ### POST /api/context-md
+
 Force-regenerate CONTEXT.md from current skill states.
 
 **Response:** `{ "ok": true, "activeCount": 5, "total": 10 }`
@@ -136,9 +149,11 @@ Force-regenerate CONTEXT.md from current skill states.
 ## Cross-Tool Compiler
 
 ### GET /api/compile/targets
+
 List available compilation targets.
 
 **Response:**
+
 ```json
 {
   "targets": [
@@ -152,15 +167,19 @@ List available compilation targets.
 ```
 
 ### POST /api/compile/preview
+
 Generate compiled output without writing files. Returns content and token estimates.
 
 **Request body:**
+
 ```json
 { "targets": ["claude", "cursor"] }
 ```
+
 Omit `targets` to compile all.
 
 **Response:**
+
 ```json
 {
   "results": {
@@ -173,15 +192,18 @@ Omit `targets` to compile all.
 ```
 
 ### POST /api/compile
+
 Compile and write files to disk.
 
 **Request body:**
+
 ```json
 {
   "targets": ["claude", "cursor", "agents"],
   "outputDir": "/optional/custom/path"
 }
 ```
+
 Omit `outputDir` to write to the Context Engine root. Omit `targets` to compile all.
 
 **Response:** Same as preview, plus `"ok": true`.
@@ -191,9 +213,11 @@ Omit `outputDir` to write to the Context Engine root. Omit `targets` to compile 
 ## Health
 
 ### GET /api/health
+
 Check skill file integrity and context budget.
 
 **Response:**
+
 ```json
 {
   "skills": [
@@ -218,14 +242,17 @@ Skills with `stale: true` have not been modified in 30+ days.
 ## Backups
 
 ### GET /api/backups
+
 List available backup snapshots (max 20, newest first).
 
 **Response:**
+
 ```json
 { "backups": [{ "timestamp": "2026-03-28T14-30-00" }] }
 ```
 
 ### POST /api/backups
+
 Create a new backup snapshot of memory, rules, states, and CONTEXT.md.
 
 **Response:** `{ "ok": true, "timestamp": "2026-03-28T14-30-00" }`
@@ -235,6 +262,7 @@ Create a new backup snapshot of memory, rules, states, and CONTEXT.md.
 ## Restore
 
 ### POST /api/restore
+
 Restore from a backup snapshot. Regenerates CONTEXT.md after restore.
 
 **Request body:** `{ "timestamp": "2026-03-28T14-30-00" }`
@@ -246,9 +274,11 @@ Restore from a backup snapshot. Regenerates CONTEXT.md after restore.
 ## Session Log
 
 ### GET /api/session-log
+
 Get the activity log (max 50 entries, newest first).
 
 **Response:**
+
 ```json
 {
   "sessions": [
@@ -261,6 +291,7 @@ Get the activity log (max 50 entries, newest first).
 ```
 
 ### POST /api/session-log
+
 Append a custom log entry.
 
 **Request body:** Any JSON object (will be timestamped automatically).
@@ -270,9 +301,11 @@ Append a custom log entry.
 ## Modes
 
 ### GET /api/modes
+
 List available mode presets.
 
 **Response:**
+
 ```json
 {
   "modes": [
@@ -283,6 +316,7 @@ List available mode presets.
 ```
 
 ### POST /api/modes/apply
+
 Apply a mode preset. Transactional — resets all skills, then activates the mode's skill list.
 
 **Request body:** `{ "modeId": "coding" }`
@@ -294,12 +328,13 @@ Apply a mode preset. Transactional — resets all skills, then activates the mod
 ## Error Responses
 
 All endpoints return errors as:
+
 ```json
 { "ok": false, "error": "Human-readable error message" }
 ```
 
-| Status | Meaning |
-|--------|---------|
-| 400 | Validation failed (malformed JSON, missing fields, wrong types) |
-| 404 | Resource not found (mode, backup) |
-| 500 | Server error (file write failure, regeneration error) |
+| Status | Meaning                                                         |
+| ------ | --------------------------------------------------------------- |
+| 400    | Validation failed (malformed JSON, missing fields, wrong types) |
+| 404    | Resource not found (mode, backup)                               |
+| 500    | Server error (file write failure, regeneration error)           |

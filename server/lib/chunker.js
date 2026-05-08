@@ -71,13 +71,13 @@ function splitSections(content) {
   for (const line of content.split('\n')) {
     const heading = line.match(/^(#{1,6})\s+(.+?)\s*$/);
     if (heading) {
-      if (current.lines.some(item => item.trim())) sections.push(current);
+      if (current.lines.some((item) => item.trim())) sections.push(current);
       current = { title: heading[2]?.trim() || 'Untitled', lines: [] };
       continue;
     }
     current.lines.push(line);
   }
-  if (current.lines.some(item => item.trim())) sections.push(current);
+  if (current.lines.some((item) => item.trim())) sections.push(current);
   return sections;
 }
 
@@ -161,7 +161,11 @@ function classifyChunk(text) {
  */
 function createChunk(input, section, text, type) {
   const cleaned = text.trim();
-  const hash = crypto.createHash('sha1').update(`${input.skillId}:${section}:${cleaned}`).digest('hex').slice(0, 10);
+  const hash = crypto
+    .createHash('sha1')
+    .update(`${input.skillId}:${section}:${cleaned}`)
+    .digest('hex')
+    .slice(0, 10);
   return {
     id: `${input.skillId}:${slug(section)}:${hash}`,
     skillId: input.skillId,
@@ -177,7 +181,7 @@ function createChunk(input, section, text, type) {
  */
 function dedupeChunks(chunks) {
   const seen = new Set();
-  return chunks.filter(chunk => {
+  return chunks.filter((chunk) => {
     const key = `${chunk.section}:${chunk.text}`;
     if (seen.has(key)) return false;
     seen.add(key);
@@ -189,7 +193,12 @@ function dedupeChunks(chunks) {
  * @param {string} value
  */
 function slug(value) {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'section';
+  return (
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '') || 'section'
+  );
 }
 
 module.exports = { chunkSkill, chunkSkillContent, classifyChunk };

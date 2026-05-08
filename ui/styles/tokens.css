@@ -3,6 +3,12 @@
    Swap this file to reskin; add density mode by overriding :root on an attribute. */
 
 :root {
+  /* Tells Chromium / Electron to render native form controls (dropdown
+     highlights, scrollbar thumbs, focus rings) against a dark surface, and
+     to use our brand purple as the form-control accent instead of system blue. */
+  color-scheme: dark;
+  accent-color: var(--accent);
+
   /* DRAM source tokens. Raw design values live here; downstream CSS uses aliases. */
   --dram-bg-base: #060607;
   --dram-bg-surface: #060607;

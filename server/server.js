@@ -8,6 +8,7 @@ const { PORT, UI_DIR, MIME } = require('./lib/config');
 const { cors, json } = require('./lib/http');
 const { handleRequest } = require('./router');
 const { regenerateCONTEXTmd } = require('./lib/modes');
+const { isLocalRequest, SECURITY_HEADERS } = require('./lib/security');
 
 /**
  * @returns {import('http').Server}
@@ -19,8 +20,16 @@ const { regenerateCONTEXTmd } = require('./lib/modes');
  * @param {import('http').ServerResponse} res
  */
 async function handleHttpRequest(req, res) {
+  // Reject DNS-rebinding and cross-origin browser CSRF before any handler runs.
+  if (!isLocalRequest(req, PORT)) {
+    res.writeHead(403, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ ok: false, error: 'Forbidden: non-local request' }));
+  }
   cors(req, res);
-  if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    return res.end();
+  }
   const url = new URL(req.url || '/', `http://localhost:${PORT}`);
 
   try {
@@ -39,7 +48,10 @@ async function handleHttpRequest(req, res) {
   }
   if (fs.existsSync(safePath)) {
     const mimeMap = /** @type {Record<string, string>} */ (MIME);
-    res.writeHead(200, { 'Content-Type': mimeMap[path.extname(safePath)] || 'text/plain' });
+    res.writeHead(200, {
+      'Content-Type': mimeMap[path.extname(safePath)] || 'text/plain',
+      ...SECURITY_HEADERS,
+    });
     return res.end(fs.readFileSync(safePath));
   }
   res.writeHead(404);
@@ -55,7 +67,12 @@ function createContextServer() {
     handleHttpRequest(req, res).catch((e) => {
       const msg = e instanceof Error ? e.message : String(e);
       console.error('Unhandled request error:', msg);
-      try { res.writeHead(500); res.end('Internal error'); } catch { /* response already sent */ }
+      try {
+        res.writeHead(500);
+        res.end('Internal error');
+      } catch {
+        /* response already sent */
+      }
     });
   });
 }

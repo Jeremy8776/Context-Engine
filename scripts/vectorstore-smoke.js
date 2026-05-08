@@ -14,26 +14,30 @@ const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ce-vectorstore-'));
 const filePath = path.join(tmpDir, 'vectors.json');
 
 try {
-  const store = upsertVectors(loadVectorStore(filePath), [
-    {
-      id: 'skill-a:overview:1',
-      skillId: 'skill-a',
-      section: 'Overview',
-      text: 'Use TypeScript for safer refactors.',
-      type: 'rule',
-      sourcePath: 'skill-a/SKILL.md',
-      vector: [1, 0, 0],
-    },
-    {
-      id: 'skill-b:overview:1',
-      skillId: 'skill-b',
-      section: 'Overview',
-      text: 'Design visual interface states.',
-      type: 'knowledge',
-      sourcePath: 'skill-b/SKILL.md',
-      vector: [0, 1, 0],
-    },
-  ], 'fixture-model');
+  const store = upsertVectors(
+    loadVectorStore(filePath),
+    [
+      {
+        id: 'skill-a:overview:1',
+        skillId: 'skill-a',
+        section: 'Overview',
+        text: 'Use TypeScript for safer refactors.',
+        type: 'rule',
+        sourcePath: 'skill-a/SKILL.md',
+        vector: [1, 0, 0],
+      },
+      {
+        id: 'skill-b:overview:1',
+        skillId: 'skill-b',
+        section: 'Overview',
+        text: 'Design visual interface states.',
+        type: 'knowledge',
+        sourcePath: 'skill-b/SKILL.md',
+        vector: [0, 1, 0],
+      },
+    ],
+    'fixture-model',
+  );
 
   saveVectorStore(store, filePath);
   const reloaded = loadVectorStore(filePath);

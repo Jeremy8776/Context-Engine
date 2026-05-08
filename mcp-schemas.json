@@ -1,0 +1,57 @@
+{
+  "name": "context-engine",
+  "version": "0.2.1",
+  "tools": [
+    {
+      "name": "context_engine_search",
+      "description": "Semantic search across the indexed Context Engine skill chunks. Returns ranked chunks with skill id, section, text, and relevance score. Use this to pull just the relevant context for the question at hand instead of preloading entire skills.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": { "type": "string", "description": "Natural-language query to search for." },
+          "limit": {
+            "type": "number",
+            "description": "Maximum chunks to return. Default 10, max 50.",
+            "minimum": 1,
+            "maximum": 50
+          }
+        },
+        "required": ["query"]
+      }
+    },
+    {
+      "name": "context_engine_list_skills",
+      "description": "List all skills discovered by Context Engine, with id, name, category, description, triggers, and active state. Use this to understand what context is available before issuing targeted searches or fetches.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "activeOnly": {
+            "type": "boolean",
+            "description": "If true, return only skills currently toggled active. Default false."
+          },
+          "category": { "type": "string", "description": "Optional category filter (matches skill.cat)." }
+        }
+      }
+    },
+    {
+      "name": "context_engine_get_skill",
+      "description": "Fetch the full body of a single skill by id. Pass a section heading to return just that ## section instead of the whole file. Use this after a search or list call has narrowed the candidates.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "description": "Skill id (matches the directory name)." },
+          "section": {
+            "type": "string",
+            "description": "Optional ## section heading. Returns full body when omitted."
+          }
+        },
+        "required": ["id"]
+      }
+    },
+    {
+      "name": "context_engine_status",
+      "description": "Report the Context Engine vector index status: chunk count, indexed skill count, embedding model, and last-indexed timestamp. Use this to detect a stale or unbuilt index before searching.",
+      "inputSchema": { "type": "object", "properties": {} }
+    }
+  ]
+}

@@ -11,7 +11,8 @@ function latestCodeMtime(dir) {
     if (item.name === 'node_modules') continue;
     const fullPath = path.join(dir, item.name);
     if (item.isDirectory()) latest = Math.max(latest, latestCodeMtime(fullPath));
-    else if (WATCH_EXTS.has(path.extname(item.name))) latest = Math.max(latest, fs.statSync(fullPath).mtimeMs);
+    else if (WATCH_EXTS.has(path.extname(item.name)))
+      latest = Math.max(latest, fs.statSync(fullPath).mtimeMs);
   }
   return latest;
 }

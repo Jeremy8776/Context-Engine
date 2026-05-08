@@ -1,39 +1,48 @@
 /* shell.css — left sidebar + thin top bar. Dense, tool-native. */
 
 :root {
-  --side-w:       220px;
-  --side-w-mini:  56px;
-  --top-h:        48px;
+  --side-w: 220px;
+  --side-w-mini: 56px;
+  --top-h: 48px;
 }
 
 .app {
   display: grid;
   grid-template-columns: var(--side-w) minmax(0, 1fr);
-  grid-template-rows: var(--top-h) 1fr;
+  /* The `top` row is reserved for a future `.topbar` element. Keep it in
+     the grid so the layout doesn't have to be restructured if one is added
+     later, but collapse to 0px today so the main content starts flush with
+     the top of the window instead of leaving a 48px dead strip. */
+  grid-template-rows: 0px 1fr;
   grid-template-areas:
-    "side  top"
-    "side  main";
+    'side  top'
+    'side  main';
   height: 100vh;
   width: 100vw;
 }
-.app[data-nav="mini"] { grid-template-columns: var(--side-w-mini) minmax(0, 1fr); }
+.app[data-nav='mini'] {
+  grid-template-columns: var(--side-w-mini) minmax(0, 1fr);
+}
 
 .desktop-titlebar {
   display: none;
 }
 
 /* Electron mode: title bar becomes a row inside .app, occupying only the
-   right column. Sidebar spans all three rows so its border-right is the
-   single, unbroken vertical divider from y=0 to the bottom of the window. */
-html[data-runtime="electron"] .app {
-  grid-template-rows: var(--desktop-titlebar-h) var(--top-h) 1fr;
+   right column. Sidebar spans all rows so its border-right is the single,
+   unbroken vertical divider from y=0 to the bottom of the window.
+   The legacy `top` row (48px reserved for a `.topbar` that doesn't exist
+   in this app) is collapsed via `0px` so the title bar sits flush against
+   the main content area — no dead strip between them. */
+html[data-runtime='electron'] .app {
+  grid-template-rows: var(--desktop-titlebar-h) 0px 1fr;
   grid-template-areas:
-    "side  titlebar"
-    "side  top"
-    "side  main";
+    'side  titlebar'
+    'side  top'
+    'side  main';
 }
 
-html[data-runtime="electron"] .desktop-titlebar {
+html[data-runtime='electron'] .desktop-titlebar {
   grid-area: titlebar;
   -webkit-app-region: drag;
   display: flex;
@@ -48,12 +57,12 @@ html[data-runtime="electron"] .desktop-titlebar {
 /* Empty drag-region anchor on the left of the title bar. No brand text or
    icon — Windows owns the taskbar identity via app.setAppUserModelId and the
    .ico set on BrowserWindow. The chrome stays minimal. */
-html[data-runtime="electron"] .desktop-titlebar-brand {
+html[data-runtime='electron'] .desktop-titlebar-brand {
   flex: 1 1 auto;
   min-width: 0;
 }
 
-html[data-runtime="electron"] .desktop-titlebar-actions svg {
+html[data-runtime='electron'] .desktop-titlebar-actions svg {
   width: 14px;
   height: 14px;
   fill: none;
@@ -63,14 +72,14 @@ html[data-runtime="electron"] .desktop-titlebar-actions svg {
   stroke-linejoin: round;
 }
 
-html[data-runtime="electron"] .desktop-titlebar-actions {
+html[data-runtime='electron'] .desktop-titlebar-actions {
   -webkit-app-region: no-drag;
   display: inline-flex;
   align-items: center;
   gap: var(--s-1);
 }
 
-html[data-runtime="electron"] .desktop-titlebar-actions button {
+html[data-runtime='electron'] .desktop-titlebar-actions button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -80,16 +89,19 @@ html[data-runtime="electron"] .desktop-titlebar-actions button {
   border: 1px solid transparent;
   border-radius: var(--r-1);
   background: transparent;
-  transition: color var(--out), background var(--out), border-color var(--out);
+  transition:
+    color var(--out),
+    background var(--out),
+    border-color var(--out);
 }
 
-html[data-runtime="electron"] .desktop-titlebar-actions button:hover {
+html[data-runtime='electron'] .desktop-titlebar-actions button:hover {
   color: var(--text);
   background: var(--bg-hover);
   border-color: var(--line-2);
 }
 
-html[data-runtime="electron"] .desktop-titlebar-actions .desktop-titlebar-close:hover {
+html[data-runtime='electron'] .desktop-titlebar-actions .desktop-titlebar-close:hover {
   color: var(--err);
   background: var(--err-bg);
   border-color: var(--err);
@@ -121,9 +133,15 @@ html[data-runtime="electron"] .desktop-titlebar-actions .desktop-titlebar-close:
   align-items: center;
   gap: var(--s-2);
   padding: 0 var(--s-4);
-  height: var(--top-h);
+  /* Match the Electron title-bar row height so the sidebar's bottom-of-brand
+     border lines up with the bottom-of-titlebar border — no dead strip
+     between them. In browser mode there's no title bar; the brand is then
+     simply a 32px header above the main content. */
+  height: var(--desktop-titlebar-h);
   font-family: var(--display);
-  font-variation-settings: 'opsz' 14, 'wght' 500;
+  font-variation-settings:
+    'opsz' 14,
+    'wght' 500;
   font-size: var(--fs-05);
   font-weight: 500;
   color: var(--text);
@@ -134,7 +152,8 @@ html[data-runtime="electron"] .desktop-titlebar-actions .desktop-titlebar-close:
 }
 .nav-brand::before {
   content: '';
-  width: 8px; height: 8px;
+  width: 8px;
+  height: 8px;
   background: var(--accent);
   border-radius: 50%;
   box-shadow: 0 0 12px var(--accent-glow);
@@ -142,13 +161,20 @@ html[data-runtime="electron"] .desktop-titlebar-actions .desktop-titlebar-close:
   animation: pulse-brand 3s ease-out infinite;
 }
 @keyframes pulse-brand {
-  0%, 100% { box-shadow: 0 0 12px var(--accent-glow); }
-  50%      { box-shadow: 0 0 20px var(--accent-hi); }
+  0%,
+  100% {
+    box-shadow: 0 0 12px var(--accent-glow);
+  }
+  50% {
+    box-shadow: 0 0 20px var(--accent-hi);
+  }
 }
 .nav-brand span {
   color: var(--accent);
   font-weight: 300;
-  font-variation-settings: 'opsz' 14, 'wght' 300;
+  font-variation-settings:
+    'opsz' 14,
+    'wght' 300;
 }
 .nav-version {
   font-family: var(--mono);
@@ -186,7 +212,9 @@ html[data-runtime="electron"] .desktop-titlebar-actions .desktop-titlebar-close:
   letter-spacing: var(--tr-body);
   text-align: left;
   border-radius: var(--r-1);
-  transition: color var(--out), background var(--out);
+  transition:
+    color var(--out),
+    background var(--out);
   text-transform: none;
 }
 .tab-btn::before {
@@ -203,7 +231,9 @@ html[data-runtime="electron"] .desktop-titlebar-actions .desktop-titlebar-close:
 .tab-btn::after {
   content: '';
   position: absolute;
-  left: 0; top: 6px; bottom: 6px;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
   width: 2px;
   background: var(--accent);
   border-radius: 0 2px 2px 0;
@@ -214,13 +244,19 @@ html[data-runtime="electron"] .desktop-titlebar-actions .desktop-titlebar-close:
   color: var(--text);
   background: var(--bg-hover);
 }
-.tab-btn:hover::before { color: var(--text-2); }
+.tab-btn:hover::before {
+  color: var(--text-2);
+}
 .tab-btn.active {
   color: var(--text);
   background: var(--accent-bg);
 }
-.tab-btn.active::before { color: var(--accent); }
-.tab-btn.active::after { transform: scaleY(1); }
+.tab-btn.active::before {
+  color: var(--accent);
+}
+.tab-btn.active::after {
+  transform: scaleY(1);
+}
 
 .nav-end {
   padding: var(--s-3) var(--s-3);
@@ -244,24 +280,37 @@ html[data-runtime="electron"] .desktop-titlebar-actions .desktop-titlebar-close:
 }
 .server-status::before {
   content: '';
-  width: 6px; height: 6px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--text-4);
   flex-shrink: 0;
 }
-.server-status.online { color: var(--ok); }
+.server-status.online {
+  color: var(--ok);
+}
 .server-status.online::before {
   background: var(--ok);
   box-shadow: 0 0 0 0 var(--ok);
   animation: pulse-dot 2.2s ease-out infinite;
 }
-.server-status.offline { color: var(--err); }
-.server-status.offline::before { background: var(--err); }
+.server-status.offline {
+  color: var(--err);
+}
+.server-status.offline::before {
+  background: var(--err);
+}
 
 @keyframes pulse-dot {
-  0%   { box-shadow: 0 0 0 0 var(--alpha-mint-60); }
-  70%  { box-shadow: 0 0 0 8px var(--alpha-mint-0); }
-  100% { box-shadow: 0 0 0 0 var(--alpha-mint-0); }
+  0% {
+    box-shadow: 0 0 0 0 var(--alpha-mint-60);
+  }
+  70% {
+    box-shadow: 0 0 0 8px var(--alpha-mint-0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 var(--alpha-mint-0);
+  }
 }
 
 /* ═════════════ TOP BAR ═════════════ */
@@ -319,7 +368,9 @@ html[data-runtime="electron"] .desktop-titlebar-actions .desktop-titlebar-close:
   cursor: pointer;
   transition: all var(--out);
 }
-.cmd-k-hint span { color: var(--text-2); }
+.cmd-k-hint span {
+  color: var(--text-2);
+}
 .cmd-k-hint kbd {
   font-family: var(--mono);
   font-size: var(--fs-01);
@@ -334,7 +385,9 @@ html[data-runtime="electron"] .desktop-titlebar-actions .desktop-titlebar-close:
   color: var(--text);
   border-color: var(--line-hi);
 }
-.cmd-k-hint:hover kbd { color: var(--text); }
+.cmd-k-hint:hover kbd {
+  color: var(--text);
+}
 
 /* ═════════════ MAIN CONTENT ═════════════ */
 
@@ -361,8 +414,14 @@ html[data-runtime="electron"] .desktop-titlebar-actions .desktop-titlebar-close:
 }
 
 @keyframes panel-in {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Page wrapper — denser than before */
@@ -376,18 +435,28 @@ html[data-runtime="electron"] .desktop-titlebar-actions .desktop-titlebar-close:
   max-width: 1020px;
   margin: 0 auto;
 }
-.simple-inner.wide { max-width: 1280px; }
+.simple-inner.wide {
+  max-width: 1280px;
+}
 
 @media (max-width: 1080px) {
-  :root { --side-w: 188px; }
-  .tab-btn { padding-inline: var(--s-2); gap: var(--s-2); }
-  .nav-version { display: none; }
+  :root {
+    --side-w: 188px;
+  }
+  .tab-btn {
+    padding-inline: var(--s-2);
+    gap: var(--s-2);
+  }
+  .nav-version {
+    display: none;
+  }
 }
 
 /* ═════════════ LOADER ═════════════ */
 
 .loading-overlay {
-  position: fixed; inset: 0;
+  position: fixed;
+  inset: 0;
   background: var(--bg);
   display: flex;
   flex-direction: column;
@@ -395,7 +464,9 @@ html[data-runtime="electron"] .desktop-titlebar-actions .desktop-titlebar-close:
   justify-content: center;
   gap: var(--s-5);
   z-index: var(--z-load);
-  transition: opacity var(--out-slow), visibility var(--out-slow);
+  transition:
+    opacity var(--out-slow),
+    visibility var(--out-slow);
 }
 .loading-overlay.hidden {
   opacity: 0;
@@ -407,17 +478,30 @@ html[data-runtime="electron"] .desktop-titlebar-actions .desktop-titlebar-close:
   gap: 6px;
 }
 .loading-dots span {
-  width: 8px; height: 8px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: var(--accent);
   animation: load-bounce 1.4s ease-in-out infinite;
 }
-.loading-dots span:nth-child(2) { animation-delay: 0.18s; }
-.loading-dots span:nth-child(3) { animation-delay: 0.36s; }
+.loading-dots span:nth-child(2) {
+  animation-delay: 0.18s;
+}
+.loading-dots span:nth-child(3) {
+  animation-delay: 0.36s;
+}
 
 @keyframes load-bounce {
-  0%, 80%, 100% { transform: scale(0.4); opacity: 0.5; }
-  40%           { transform: scale(1.0); opacity: 1.0; }
+  0%,
+  80%,
+  100% {
+    transform: scale(0.4);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 .loading-text {
   font-family: var(--mono);
@@ -432,9 +516,19 @@ html[data-runtime="electron"] .desktop-titlebar-actions .desktop-titlebar-close:
   .app {
     grid-template-columns: 1fr;
     grid-template-rows: var(--top-h) auto 1fr;
-    grid-template-areas: "top" "side" "main";
+    grid-template-areas: 'top' 'side' 'main';
   }
-  .nav { border-right: none; border-bottom: 1px solid var(--line); }
-  .nav-tabs { flex-direction: row; overflow-x: auto; }
-  .nav-end { flex-direction: row; border-top: none; border-left: 1px solid var(--line); }
+  .nav {
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+  }
+  .nav-tabs {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+  .nav-end {
+    flex-direction: row;
+    border-top: none;
+    border-left: 1px solid var(--line);
+  }
 }

@@ -1,2 +1,2 @@
 /* styles.css — barrel. Delegates to the modular design system in ./styles/. */
-@import url("styles/_index.css");
+@import url('styles/_index.css');

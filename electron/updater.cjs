@@ -27,19 +27,24 @@ function bindUpdaterEvents() {
   autoUpdater.on('update-available', (info) => send('available', { version: info?.version }));
   autoUpdater.on('update-not-available', (info) => send('not-available', { version: info?.version }));
   autoUpdater.on('error', (err) => send('error', { message: err?.message || String(err) }));
-  autoUpdater.on('download-progress', (p) => send('progress', {
-    percent: Math.round(p?.percent || 0),
-    transferred: p?.transferred,
-    total: p?.total,
-  }));
+  autoUpdater.on('download-progress', (p) =>
+    send('progress', {
+      percent: Math.round(p?.percent || 0),
+      transferred: p?.transferred,
+      total: p?.total,
+    }),
+  );
   autoUpdater.on('update-downloaded', (info) => send('downloaded', { version: info?.version }));
 }
 
 function bindIpc() {
   ipcMain.on('update:install', () => {
     // quitAndInstall(true, true): non-silent installer, restart on completion.
-    try { autoUpdater.quitAndInstall(false, true); }
-    catch (err) { send('error', { message: err?.message || String(err) }); }
+    try {
+      autoUpdater.quitAndInstall(false, true);
+    } catch (err) {
+      send('error', { message: err?.message || String(err) });
+    }
   });
 }
 

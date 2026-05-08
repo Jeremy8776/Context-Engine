@@ -2,6 +2,8 @@
 
 How LLMs and humans hand off work in this codebase without making the next person re-read everything. Three artifacts, one habit.
 
+> **Note on tracked vs untracked artifacts.** `docs/llm-handoff.md`, `TODO.md`, and `PLAN-V4.md` are **gitignored** because they accumulate per-contributor session state and strategic context that doesn't belong in a public repo. Each contributor maintains their own copies locally. The format and habit described below still apply — just keep the files out of commits.
+
 ## Three artifacts
 
 ### 1. `docs/llm-handoff.md` — the session journal

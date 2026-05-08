@@ -98,10 +98,6 @@
   border-bottom: 1px solid var(--line);
 }
 
-.compile-primary-actions {
-  margin-bottom: var(--s-5);
-}
-
 .compile-tools-grid,
 #skills-tab .grid-mode .skills-container {
   gap: var(--s-3);
@@ -236,7 +232,7 @@ body.side-panel-active #skills-tab .grid-mode .skills-container {
 }
 
 #skills-tab .grid-mode .skill-row:not(.inactive) {
-  border-color: var(--dram-card-border-active);
+  border-color: var(--dram-card-border);
 }
 
 #skills-tab .grid-mode .skill-row:hover {
@@ -280,12 +276,14 @@ body.side-panel-active #skills-tab .grid-mode .skills-container {
   opacity: 1;
 }
 
-#skills-tab .grid-mode .skill-row.inactive {
+#skills-tab .grid-mode .skill-row.inactive,
+#skills-tab #skills-list:not(.grid-mode) .skill-row.inactive {
   background: var(--skill-card-disabled-bg);
   border-color: var(--dram-card-border);
 }
 
-#skills-tab .grid-mode .skill-row.inactive:hover {
+#skills-tab .grid-mode .skill-row.inactive:hover,
+#skills-tab #skills-list:not(.grid-mode) .skill-row.inactive:hover {
   background: var(--skill-card-disabled-bg);
   border-color: var(--dram-card-border-hover);
 }

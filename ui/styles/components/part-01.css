@@ -18,7 +18,9 @@
   display: flex;
   flex-direction: column;
   gap: var(--s-4);
-  transition: border-color var(--out), box-shadow var(--out);
+  transition:
+    border-color var(--out),
+    box-shadow var(--out);
 }
 .card:hover,
 .keyline:hover {
@@ -28,9 +30,7 @@
 
 /* Accent variant — for the hero / primary card */
 .card.accent {
-  background:
-    linear-gradient(135deg, var(--alpha-accent-04) 0%, transparent 60%),
-    var(--bg-raised);
+  background: linear-gradient(135deg, var(--alpha-accent-04) 0%, transparent 60%), var(--bg-raised);
   border-color: var(--line-accent);
 }
 
@@ -60,7 +60,8 @@
 .card-head .eyebrow::before,
 .keyline-head .eyebrow::before {
   content: '';
-  width: 6px; height: 6px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--text-4);
   flex-shrink: 0;
@@ -97,7 +98,11 @@
 
 @media (max-width: 720px) {
   .card-head,
-  .keyline-head { flex-direction: column; align-items: flex-start; gap: var(--s-1); }
+  .keyline-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--s-1);
+  }
 }
 
 /* Legacy section-block compat (for tabs still using it) — re-themed, no card chrome */
@@ -106,7 +111,10 @@
   padding: var(--s-6) 0;
   border-top: 1px solid var(--line);
 }
-.section-block.flex1 { flex: 1; min-width: 0; }
+.section-block.flex1 {
+  flex: 1;
+  min-width: 0;
+}
 
 .sb-header {
   display: flex;
@@ -168,15 +176,15 @@
   align-items: center;
   gap: var(--s-5);
   padding: var(--s-4) var(--s-5);
-  background:
-    linear-gradient(135deg, var(--alpha-accent-06) 0%, transparent 60%),
-    var(--bg-raised);
+  background: linear-gradient(135deg, var(--alpha-accent-06) 0%, transparent 60%), var(--bg-raised);
   backdrop-filter: blur(20px) saturate(140%);
   -webkit-backdrop-filter: blur(20px) saturate(140%);
   border: 1px solid var(--line-accent);
   border-radius: var(--r-2);
   position: relative;
-  transition: border-color var(--out), box-shadow var(--out);
+  transition:
+    border-color var(--out),
+    box-shadow var(--out);
   overflow: hidden;
 }
 .hero-stat:hover {
@@ -204,7 +212,8 @@
 }
 .hero-eyebrow::before {
   content: '';
-  width: 6px; height: 6px;
+  width: 6px;
+  height: 6px;
   background: var(--accent);
   border-radius: 50%;
   box-shadow: 0 0 10px var(--accent-glow);
@@ -212,8 +221,13 @@
   flex-shrink: 0;
 }
 @keyframes pulse-dot-v {
-  0%, 100% { box-shadow: 0 0 8px var(--accent-glow); }
-  50%      { box-shadow: 0 0 16px var(--accent-hi); }
+  0%,
+  100% {
+    box-shadow: 0 0 8px var(--accent-glow);
+  }
+  50% {
+    box-shadow: 0 0 16px var(--accent-hi);
+  }
 }
 
 .hero-body {
@@ -224,7 +238,9 @@
 }
 .hero-value {
   font-family: var(--display);
-  font-variation-settings: 'opsz' 96, 'wght' 300;
+  font-variation-settings:
+    'opsz' 96,
+    'wght' 300;
   font-size: 46px;
   font-weight: 300;
   color: var(--text);
@@ -282,10 +298,21 @@
 }
 
 @media (max-width: 720px) {
-  .hero-stat { grid-template-columns: 1fr; }
-  .hero-body { flex-direction: column; align-items: flex-start; gap: var(--s-2); }
-  .hero-meta { margin-left: 0; text-align: left; }
-  .hero-spark { width: 100%; }
+  .hero-stat {
+    grid-template-columns: 1fr;
+  }
+  .hero-body {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--s-2);
+  }
+  .hero-meta {
+    margin-left: 0;
+    text-align: left;
+  }
+  .hero-spark {
+    width: 100%;
+  }
 }
 
 /* ═══════════════════════════════════════════════════
@@ -315,11 +342,14 @@
   transition: background var(--out);
   position: relative;
 }
-.stat-chip:last-child { border-right: none; }
+.stat-chip:last-child {
+  border-right: none;
+}
 .stat-chip::before {
   content: '';
   position: absolute;
-  top: 0; left: 0;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 1px;
   background: var(--accent);
@@ -327,12 +357,18 @@
   transform-origin: left;
   transition: transform var(--spring);
 }
-.stat-chip:hover { background: var(--bg-hover); }
-.stat-chip:hover::before { transform: scaleX(1); }
+.stat-chip:hover {
+  background: var(--bg-hover);
+}
+.stat-chip:hover::before {
+  transform: scaleX(1);
+}
 
 .sc-value {
   font-family: var(--display);
-  font-variation-settings: 'opsz' 32, 'wght' 400;
+  font-variation-settings:
+    'opsz' 32,
+    'wght' 400;
   font-size: var(--fs-06);
   font-weight: 400;
   color: var(--text);
@@ -347,9 +383,15 @@
   letter-spacing: var(--tr-wide);
   text-transform: uppercase;
 }
-.stat-chip.g .sc-value { color: var(--ok); }
-.stat-chip.p .sc-value { color: var(--accent); }
-.stat-chip.a .sc-value { color: var(--text); }
+.stat-chip.g .sc-value {
+  color: var(--ok);
+}
+.stat-chip.p .sc-value {
+  color: var(--accent);
+}
+.stat-chip.a .sc-value {
+  color: var(--text);
+}
 
 /* ═══════════════════════════════════════════════════
    PROGRESS / BUDGET BAR
@@ -372,15 +414,25 @@
 .budget-fill::after {
   content: '';
   position: absolute;
-  right: 0; top: -2px; bottom: -2px;
+  right: 0;
+  top: -2px;
+  bottom: -2px;
   width: 2px;
   background: var(--accent-hi);
   box-shadow: 0 0 10px var(--accent-glow);
 }
-.budget-fill.warn { background: linear-gradient(90deg, var(--color-budget-warn-start), var(--warn)); }
-.budget-fill.warn::after { background: var(--warn); }
-.budget-fill.danger { background: linear-gradient(90deg, var(--color-budget-danger-start), var(--err)); }
-.budget-fill.danger::after { background: var(--err); }
+.budget-fill.warn {
+  background: linear-gradient(90deg, var(--color-budget-warn-start), var(--warn));
+}
+.budget-fill.warn::after {
+  background: var(--warn);
+}
+.budget-fill.danger {
+  background: linear-gradient(90deg, var(--color-budget-danger-start), var(--err));
+}
+.budget-fill.danger::after {
+  background: var(--err);
+}
 
 .budget-label {
   font-family: var(--mono);

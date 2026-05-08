@@ -1,0 +1,71 @@
+{
+  "manifest_version": "0.3",
+  "name": "context-engine",
+  "display_name": "Context Engine",
+  "version": "0.2.1",
+  "description": "Connect Claude Desktop to the local Context Engine broker.",
+  "long_description": "Runs locally in Claude Desktop and forwards MCP tool calls to Context Engine on your machine. Use this when Context Engine is running locally and you want Claude Desktop to access skills, memory, and index status without an HTTPS tunnel.",
+  "author": {
+    "name": "Jeremy8776"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Jeremy8776/context-engine.git"
+  },
+  "icon": "icon.png",
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.mjs",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/server/index.mjs"],
+      "env": {
+        "CE_HOST": "${user_config.ce_host}",
+        "CE_PORT": "${user_config.ce_port}"
+      }
+    }
+  },
+  "user_config": {
+    "ce_host": {
+      "type": "string",
+      "title": "Context Engine Host",
+      "description": "Host where the local Context Engine HTTP server is listening.",
+      "default": "127.0.0.1",
+      "required": false
+    },
+    "ce_port": {
+      "type": "string",
+      "title": "Context Engine Port",
+      "description": "Port the local Context Engine HTTP server is bound to.",
+      "default": "3847",
+      "required": false
+    }
+  },
+  "tools": [
+    {
+      "name": "context_engine_search",
+      "description": "Search indexed Context Engine skill chunks."
+    },
+    {
+      "name": "context_engine_list_skills",
+      "description": "List skills discovered by Context Engine."
+    },
+    {
+      "name": "context_engine_get_skill",
+      "description": "Fetch the full body of a Context Engine skill."
+    },
+    {
+      "name": "context_engine_status",
+      "description": "Report the Context Engine vector index status."
+    }
+  ],
+  "keywords": ["context", "memory", "skills", "mcp", "local"],
+  "license": "MIT",
+  "compatibility": {
+    "claude_desktop": ">=1.0.0",
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "node": ">=18.0.0"
+    }
+  }
+}

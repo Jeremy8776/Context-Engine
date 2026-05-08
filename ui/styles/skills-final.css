@@ -30,8 +30,9 @@
   grid-row: 2;
   min-height: 0;
   overflow-y: auto;
-  margin: 18px 0 24px 16px;
-  padding: 18px 12px;
+  /* Top margin tightened 18 → 10 to match the scroll area's new padding. */
+  margin: 10px 0 20px 16px;
+  padding: 14px 12px;
   border: 1px solid var(--soft-line);
   border-radius: var(--r-3);
   background: var(--bg-card);
@@ -110,7 +111,8 @@
 }
 
 #skills-tab .skills-scroll {
-  padding: 18px 24px 28px;
+  /* Tightened from 18px top to 10px to match Memory's reduced headroom. */
+  padding: 10px 24px 20px;
 }
 
 #skills-tab .toolbar {
@@ -119,7 +121,8 @@
   position: relative;
   z-index: 20;
   margin: 0;
-  padding: 14px 24px;
+  /* Was 14px vertical; reduced to 8px so toolbar height drops ~12px. */
+  padding: 8px 24px;
   border-width: 0 0 1px;
   border-radius: 0;
   border-color: var(--soft-line);
@@ -319,7 +322,9 @@
 }
 
 body.side-panel-active #skills-tab #skills-list {
-  padding-right: min(calc(var(--rail-w) - var(--rail-inner-gutter)), calc(100vw - var(--rail-max-gutter)));
+  /* Match the docked-panel width so the rightmost card sits flush with the
+     panel divider — no overlap, no halo gap. See inspector.css .side-panel. */
+  padding-right: min(var(--rail-w), calc(100vw - var(--rail-max-gutter)));
 }
 
 #skills-tab .skills-container {

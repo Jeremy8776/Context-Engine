@@ -254,10 +254,10 @@ This section governs purely visual elements that are neither structural (card, n
 
 DRAM-specific pattern. Permitted. Used to show directional flow between nodes in a pipeline or chain visualisation.
 
-| CE selector   | DRAM source                       | Contract                                                                                                                                  |
-| ------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `.pipe-arrow` | DRAM pipeline/flow connector      | 1px height, `linear-gradient(90deg, var(--accent), transparent)`. Gradient is intentional — it encodes direction. Optional arrowhead via `::after`. |
-| `.chain-join` | DRAM chain link connector         | 1px height, fixed short width (~22px), same gradient as `.pipe-arrow`. Used between adjacent chained nodes.                               |
+| CE selector   | DRAM source                  | Contract                                                                                                                                            |
+| ------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.pipe-arrow` | DRAM pipeline/flow connector | 1px height, `linear-gradient(90deg, var(--accent), transparent)`. Gradient is intentional — it encodes direction. Optional arrowhead via `::after`. |
+| `.chain-join` | DRAM chain link connector    | 1px height, fixed short width (~22px), same gradient as `.pipe-arrow`. Used between adjacent chained nodes.                                         |
 
 Rule: connectors are the **only** decorative element where a directional purple gradient is permitted. Do not borrow this gradient for dividers, card edges, or any non-directional element.
 
@@ -277,8 +277,8 @@ If a card needs more emphasis, raise its border to `--dram-card-border-active` o
 
 `<hr>`-style rules separating major page regions (not heading underlines) use the neutral keyline, not the purple divider token.
 
-| CE selector        | Contract                                                                                                          |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| CE selector        | Contract                                                                                                                                   |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | `.section-divider` | `border-top: 1px solid var(--line)`. Margin: `var(--s-7) 0`. Never purple. Use `--dram-divider-fade` only on heading `::after` separators. |
 
 Rule for picking the right divider:
@@ -292,11 +292,11 @@ Source of truth: [`app/ui/assets/brand/`](../ui/assets/brand/). All variants sha
 
 ### Asset variants
 
-| File              | Use                                                                                                                       | Background          |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------- |
-| `icon.svg`        | App icon, window icon, anywhere a self-contained square mark is needed. Has its own `#060607` rounded-square background.  | Built-in `#060607`  |
-| `icon-mono.svg`   | Tray icon, inline UI use, currentColor surfaces. Single-colour version, inherits `currentColor`.                          | Faint currentColor  |
-| `icon-simple.svg` | Favicons and very small sizes (16/24/32 px). No background, just the C glyph + node. Minimum legible size: ~20 px.        | Transparent         |
+| File              | Use                                                                                                                      | Background         |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------ |
+| `icon.svg`        | App icon, window icon, anywhere a self-contained square mark is needed. Has its own `#060607` rounded-square background. | Built-in `#060607` |
+| `icon-mono.svg`   | Tray icon, inline UI use, currentColor surfaces. Single-colour version, inherits `currentColor`.                         | Faint currentColor |
+| `icon-simple.svg` | Favicons and very small sizes (16/24/32 px). No background, just the C glyph + node. Minimum legible size: ~20 px.       | Transparent        |
 
 ### Geometry contract (do not redraw — reference these specs)
 
@@ -317,11 +317,11 @@ Source of truth: [`app/ui/assets/brand/`](../ui/assets/brand/). All variants sha
 
 ### Cross-product family
 
-| Product           | Mark concept                                       | Shared elements                                      |
-| ----------------- | -------------------------------------------------- | ---------------------------------------------------- |
-| DRAM              | `D` outline + interior purple core dot             | Canvas, accent, stroke, rounded square, accent dot   |
-| Context Engine    | `C` outline + bridging purple core at the aperture | Same canvas, accent, stroke, rounded square          |
-| AI Models DB      | Three lines + terminal purple node                 | Same accent, rounded square, terminal node           |
+| Product        | Mark concept                                       | Shared elements                                    |
+| -------------- | -------------------------------------------------- | -------------------------------------------------- |
+| DRAM           | `D` outline + interior purple core dot             | Canvas, accent, stroke, rounded square, accent dot |
+| Context Engine | `C` outline + bridging purple core at the aperture | Same canvas, accent, stroke, rounded square        |
+| AI Models DB   | Three lines + terminal purple node                 | Same accent, rounded square, terminal node         |
 
 Any future product mark in this ecosystem must reuse the canvas, accent, stroke language, and a single-purple-node motif. The shape of the glyph is what differentiates products.
 

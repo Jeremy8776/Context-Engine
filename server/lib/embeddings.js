@@ -27,7 +27,10 @@ async function checkOllamaEmbeddings(options = {}) {
   try {
     const data = await requestJson(`${baseUrl}/api/tags`, null, options.timeoutMs);
     const models = Array.isArray(data.models) ? data.models : [];
-    const available = models.some(/** @param {{ name?: string, model?: string }} item */ (item) => item?.name === model || item?.model === model);
+    const available = models.some(
+      /** @param {{ name?: string, model?: string }} item */ (item) =>
+        item?.name === model || item?.model === model,
+    );
     return { ok: available, model, baseUrl, error: available ? null : `${model} is not installed in Ollama` };
   } catch (e) {
     return { ok: false, model, baseUrl, error: e instanceof Error ? e.message : String(e) };
@@ -68,28 +71,38 @@ function requestJson(url, body, timeoutMs = 5000) {
   const payload = body ? JSON.stringify(body) : null;
 
   return new Promise((resolve, reject) => {
-    const req = http.request({
-      hostname: target.hostname,
-      port: target.port,
-      path: `${target.pathname}${target.search}`,
-      method: payload ? 'POST' : 'GET',
-      timeout: timeoutMs,
-      headers: payload ? {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(payload),
-      } : undefined,
-    }, res => {
-      let raw = '';
-      res.on('data', chunk => { raw += chunk; });
-      res.on('end', () => {
-        if (res.statusCode && res.statusCode >= 400) {
-          reject(new Error(`Ollama returned ${res.statusCode}`));
-          return;
-        }
-        try { resolve(JSON.parse(raw)); }
-        catch { reject(new Error('Ollama returned invalid JSON')); }
-      });
-    });
+    const req = http.request(
+      {
+        hostname: target.hostname,
+        port: target.port,
+        path: `${target.pathname}${target.search}`,
+        method: payload ? 'POST' : 'GET',
+        timeout: timeoutMs,
+        headers: payload
+          ? {
+              'Content-Type': 'application/json',
+              'Content-Length': Buffer.byteLength(payload),
+            }
+          : undefined,
+      },
+      (res) => {
+        let raw = '';
+        res.on('data', (chunk) => {
+          raw += chunk;
+        });
+        res.on('end', () => {
+          if (res.statusCode && res.statusCode >= 400) {
+            reject(new Error(`Ollama returned ${res.statusCode}`));
+            return;
+          }
+          try {
+            resolve(JSON.parse(raw));
+          } catch {
+            reject(new Error('Ollama returned invalid JSON'));
+          }
+        });
+      },
+    );
     req.on('timeout', () => req.destroy(new Error('Ollama request timed out')));
     req.on('error', reject);
     if (payload) req.write(payload);

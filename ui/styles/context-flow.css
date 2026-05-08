@@ -13,8 +13,7 @@
   border-radius: var(--r-2);
   background:
     radial-gradient(70% 90% at 50% 0%, var(--alpha-purple-18), transparent 64%),
-    linear-gradient(180deg, var(--alpha-white-05-tight), transparent 34%),
-    var(--bg-raised);
+    linear-gradient(180deg, var(--alpha-white-05-tight), transparent 34%), var(--bg-raised);
   backdrop-filter: blur(22px) saturate(150%);
   -webkit-backdrop-filter: blur(22px) saturate(150%);
   box-shadow: var(--shadow-glass);
@@ -132,19 +131,29 @@
   stroke-width: 1.3;
 }
 
-.flow-line.hot { opacity: 0.9; }
-.flow-line.cold { opacity: 0.22; }
+.flow-line.hot {
+  opacity: 0.9;
+}
+.flow-line.cold {
+  opacity: 0.22;
+}
 
 .flow-source circle:first-child {
   fill: var(--alpha-deep-violet-72);
   stroke: var(--line-hi);
 }
 .flow-source.s1 .flow-source-dot,
-.flow-particle.s1 { fill: var(--iri-1); }
+.flow-particle.s1 {
+  fill: var(--iri-1);
+}
 .flow-source.s2 .flow-source-dot,
-.flow-particle.s2 { fill: var(--iri-3); }
+.flow-particle.s2 {
+  fill: var(--iri-3);
+}
 .flow-source.s3 .flow-source-dot,
-.flow-particle.s3 { fill: var(--iri-4); }
+.flow-particle.s3 {
+  fill: var(--iri-4);
+}
 
 .flow-source-label,
 .flow-tool-label {
@@ -187,7 +196,9 @@
   fill: var(--text);
 }
 
-.flow-hub-text { font-size: 10px; }
+.flow-hub-text {
+  font-size: 10px;
+}
 .flow-hub-sub {
   font-size: 8px;
   fill: var(--accent-hi);
@@ -221,13 +232,29 @@
 }
 
 @keyframes flow-breathe {
-  0%, 100% { opacity: 0.78; transform: scale(1); transform-origin: 456px 140px; }
-  50% { opacity: 1; transform: scale(1.04); transform-origin: 456px 140px; }
+  0%,
+  100% {
+    opacity: 0.78;
+    transform: scale(1);
+    transform-origin: 456px 140px;
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+    transform-origin: 456px 140px;
+  }
 }
 
 @keyframes flow-ring {
-  0%, 100% { r: 34px; opacity: 0.28; }
-  50% { r: 42px; opacity: 0.62; }
+  0%,
+  100% {
+    r: 34px;
+    opacity: 0.28;
+  }
+  50% {
+    r: 42px;
+    opacity: 0.62;
+  }
 }
 
 @media (max-width: 980px) {

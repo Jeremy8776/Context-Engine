@@ -24,12 +24,29 @@ function cors(req, res) {
  */
 function body(req) {
   return new Promise((resolve, reject) => {
+    // Defense in depth: refuse non-JSON content types so browser "simple
+    // requests" (text/plain, multipart/form-data, application/x-www-form-
+    // urlencoded) cannot bypass CORS preflight to issue side-effecting calls.
+    const ct = String(req.headers['content-type'] || '').toLowerCase();
+    if (ct && !ct.startsWith('application/json')) {
+      req.resume();
+      return resolve({ _parseError: true, _contentType: ct });
+    }
     let d = '';
-    req.on('data', c => {
+    req.on('data', (c) => {
       d += c;
-      if (d.length > MAX_BODY) { req.destroy(); reject(new Error('Payload too large')); }
+      if (d.length > MAX_BODY) {
+        req.destroy();
+        reject(new Error('Payload too large'));
+      }
     });
-    req.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve({ _parseError: true }); } });
+    req.on('end', () => {
+      try {
+        resolve(d ? JSON.parse(d) : {});
+      } catch {
+        resolve({ _parseError: true });
+      }
+    });
   });
 }
 

@@ -41,8 +41,8 @@ function saveVectorStore(store, filePath = DEFAULT_VECTOR_FILE) {
  */
 function upsertVectors(store, records, model) {
   const next = normalizeStore(store);
-  const byId = new Map(next.records.map(record => [record.id, record]));
-  records.forEach(record => byId.set(record.id, record));
+  const byId = new Map(next.records.map((record) => [record.id, record]));
+  records.forEach((record) => byId.set(record.id, record));
   next.records = Array.from(byId.values()).sort((a, b) => a.id.localeCompare(b.id));
   next.model = model;
   next.updatedAt = new Date().toISOString();
@@ -70,9 +70,9 @@ function replaceVectors(records, model) {
  */
 function searchVectors(store, queryVector, options = {}) {
   const limit = options.limit || 10;
-  return normalizeStore(store).records
-    .filter(record => !options.skillId || record.skillId === options.skillId)
-    .map(record => ({ ...record, score: cosineSimilarity(queryVector, record.vector) }))
+  return normalizeStore(store)
+    .records.filter((record) => !options.skillId || record.skillId === options.skillId)
+    .map((record) => ({ ...record, score: cosineSimilarity(queryVector, record.vector) }))
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
 }

@@ -7,8 +7,7 @@
 .app {
   grid-template-columns: 224px minmax(0, 1fr);
   grid-template-rows: 1fr;
-  grid-template-areas:
-    "side main";
+  grid-template-areas: 'side main';
 }
 
 .nav-brand {
@@ -53,7 +52,10 @@
   background: transparent;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  pointer-events: none;
+  /* Was `pointer-events: none` — that broke click-outside-to-close globally
+     because panel.js listens for clicks on this element. Re-enabling pointer
+     events makes the X button, ESC, and overlay-click all close the panel. */
+  pointer-events: auto;
 }
 
 .side-panel-overlay.open {
@@ -61,15 +63,21 @@
 }
 
 .side-panel {
-  top: calc(var(--side-panel-top, 72px) + 18px);
-  right: var(--rail-inset);
-  bottom: 18px;
-  width: min(calc(var(--rail-w) - var(--rail-inner-gutter)), calc(100vw - var(--rail-max-gutter)));
+  /* Docked rail — see inspector.css for the canonical rule. This file used
+     to inset the panel and round its corners; we now keep it flush with the
+     viewport edge so the page reflow padding and the panel left edge land
+     on the same pixel. */
+  top: var(--side-panel-top, 72px);
+  right: 0;
+  bottom: 0;
+  width: min(var(--rail-w), calc(100vw - var(--rail-max-gutter)));
   max-width: calc(100vw - var(--rail-max-gutter));
-  border: 1px solid var(--soft-line);
-  border-radius: var(--r-3);
-  background: var(--alpha-black-96);
-  box-shadow: -22px 0 80px var(--alpha-black-52);
+  border: 0;
+  border-left: 1px solid var(--soft-line);
+  border-radius: 0;
+  /* Fully opaque so the cards behind the panel are not visible through it. */
+  background: var(--dram-card-bg);
+  box-shadow: inset 1px 0 0 var(--alpha-black-52);
   overflow: hidden;
   pointer-events: auto;
 }
@@ -179,7 +187,10 @@
 }
 
 .section-hdr,
-.dashboard-head > div:first-child {
+.dashboard-head {
+  /* Hide the entire dashboard-head section, not just its inner content.
+     Otherwise the empty section still occupies a slot in `.simple-inner.wide`
+     flex column gap (--s-5 = 20px), wasting headroom above the metric cards. */
   display: none;
 }
 
@@ -192,7 +203,9 @@
 
 .simple-page,
 .skills-scroll {
-  padding-top: 22px;
+  /* Tightened from 22 → 12 to reduce headroom across all tabs (Rules, Modes,
+     Compile, etc). Memory has its own override above with the same value. */
+  padding-top: 12px;
 }
 
 #memory-tab {
@@ -200,7 +213,16 @@
 }
 
 #modes-tab .simple-page {
-  padding: 22px 32px 32px;
+  /* Tightened from 22px top → 8px so the section header sits flush under the
+     title bar; bottom dropped from 32 → 16 since the modes list scrolls. */
+  padding: 8px 32px 16px;
+}
+
+/* Drop wrapper's right padding when the docked rail is open so the modes
+   list flushes up against the panel divider. See clean-slate/part-03.css
+   for the matching memory-tab rule. */
+body.side-panel-active #modes-tab .simple-page {
+  padding-right: 0;
 }
 
 #modes-tab .simple-inner {
@@ -391,7 +413,9 @@
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  padding: 22px 32px 28px;
+  /* Was 22 → 12 → 6. Electron already provides its own 32px title-bar row,
+     so the tab wrapper doesn't need a tall headroom buffer of its own. */
+  padding: 6px 32px 16px;
 }
 
 #memory-tab .simple-inner {
@@ -404,7 +428,7 @@
 #memory-tab .memory-toolbar {
   grid-template-columns: minmax(260px, 520px) auto;
   flex-shrink: 0;
-  margin-bottom: 14px;
+  margin-bottom: 8px;
   padding-top: 0;
 }
 
@@ -467,4 +491,112 @@
 #memory-tab .add-memory,
 #memory-tab .save-bar {
   display: none;
+}
+
+/* Memory tab — card/list view toggle, side-panel detail.
+   Workbench drops to two columns (sidebar + results) because detail is now
+   pop-out via SidePanel. The .no-detail class keys this off, so any future
+   3-col layout can co-exist without rewriting this rule. */
+#memory-tab .memory-workbench.no-detail {
+  /* Match the Skills tab's 250px sidebar width so both surfaces share the
+     same column rhythm. The Memory cards keep their own styling, but the
+     enclosing layout reads as a sibling of Skills, not a different shape. */
+  grid-template-columns: 250px minmax(0, 1fr);
+  gap: 16px;
+}
+
+/* Sidebar section header — mirrors .skills-side-label visual treatment so
+   the two tabs feel like siblings. The mono uppercase eyebrow sits above
+   the filter list as a category-group header. */
+#memory-tab .memory-side-section {
+  display: flex;
+  flex-direction: column;
+}
+#memory-tab .memory-side-section + .memory-side-section {
+  margin-top: 22px;
+}
+#memory-tab .memory-side-label {
+  display: block;
+  margin: 0 6px 8px;
+  color: var(--text-3);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+#memory-tab .memory-side-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Grid view — packs cards in a responsive auto-fill grid. List view is the
+   default vertical column flow defined in surface-final.css:367.
+   `align-content: start` is critical: without it, the implicit grid stretches
+   rows to fill the 100%-height scroll container, squeezing each card to
+   ~30px regardless of content. We want rows to size to content and overflow
+   into the scroll. */
+#memory-tab .memory-results-scroll.grid-mode {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-auto-rows: min-content;
+  align-content: start;
+  gap: 10px;
+}
+
+/* Card content. Two-line clamp on the preview so cards are uniform regardless
+   of memory length — the full text lives in the SidePanel detail view.
+   `flex-shrink: 0` is critical: list view uses a column-flex scroll container,
+   and without this, 20+ siblings squeeze each card down to padding height. */
+.memory-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+  text-align: left;
+}
+
+.memory-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.memory-title {
+  font-family: var(--sans);
+  font-size: var(--fs-04);
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.25;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.memory-preview {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  color: var(--text-3);
+  font-size: var(--fs-03);
+  line-height: 1.45;
+}
+
+/* Memory toolbar's view-toggle uses the shared .view-btn pattern from skills. */
+#memory-tab .view-toggle {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Side-panel reflow — pad by the FULL panel width (no inner-gutter subtraction).
+   The panel is docked flush with the viewport edge, so the padding has to match
+   it exactly: anything less and the rightmost cards slip under the panel,
+   anything more and a dead-space gap appears between content and the divider. */
+body.side-panel-active #memory-tab .memory-results,
+body.side-panel-active #modes-tab .modes-list {
+  padding-right: min(var(--rail-w), calc(100vw - var(--rail-max-gutter)));
 }

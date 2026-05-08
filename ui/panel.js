@@ -2,9 +2,9 @@
 
 const SidePanel = (() => {
   const overlay = () => document.getElementById('side-panel-overlay');
-  const panel   = () => document.getElementById('side-panel');
+  const panel = () => document.getElementById('side-panel');
   const titleEl = () => document.getElementById('sp-title');
-  const body    = () => document.getElementById('sp-body');
+  const body = () => document.getElementById('sp-body');
   let closeTimer = null;
   const closeDelay = 420;
 
@@ -48,11 +48,11 @@ const SidePanel = (() => {
     return panel().classList.contains('open');
   }
 
-  document.addEventListener('click', e => {
+  document.addEventListener('click', (e) => {
     if (e.target.id === 'side-panel-overlay') close();
   });
 
-  document.addEventListener('keydown', e => {
+  document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && isOpen()) close();
   });
 

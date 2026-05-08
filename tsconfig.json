@@ -31,9 +31,5 @@
     "electron/**/*.cjs",
     "scripts/**/*.js"
   ],
-  "exclude": [
-    "node_modules",
-    "data",
-    "skills"
-  ]
+  "exclude": ["node_modules", "data", "skills"]
 }

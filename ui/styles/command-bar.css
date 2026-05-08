@@ -13,9 +13,14 @@
   padding-top: 18vh;
   opacity: 0;
   visibility: hidden;
-  transition: opacity var(--out), visibility var(--out);
+  transition:
+    opacity var(--out),
+    visibility var(--out);
 }
-.cmd-overlay.open { opacity: 1; visibility: visible; }
+.cmd-overlay.open {
+  opacity: 1;
+  visibility: visible;
+}
 
 .cmd-shell {
   width: min(640px, calc(100vw - 48px));
@@ -33,7 +38,9 @@
   transform: translateY(-8px);
   transition: transform var(--spring);
 }
-.cmd-overlay.open .cmd-shell { transform: translateY(0); }
+.cmd-overlay.open .cmd-shell {
+  transform: translateY(0);
+}
 
 .cmd-input-wrap {
   display: flex;
@@ -59,7 +66,9 @@
   letter-spacing: var(--tr-body);
   padding: 0;
 }
-.cmd-input::placeholder { color: var(--text-3); }
+.cmd-input::placeholder {
+  color: var(--text-3);
+}
 
 .cmd-esc {
   font-family: var(--mono);

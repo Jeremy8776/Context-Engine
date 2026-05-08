@@ -25,9 +25,16 @@ const RulesLab = (() => {
           <h2>Soul &amp; Rules</h2>
           <p>Instruction policy written to <code>data\\rules.json</code></p>
         </div>
-        <div class="rules-file-pill">
-          <span>Active file</span>
-          <code>data\\rules.json</code>
+        <div class="rules-hero-end">
+          <div class="rules-file-pill">
+            <span>Active file</span>
+            <code>data\\rules.json</code>
+          </div>
+          <div class="rules-hero-actions">
+            <span class="saved-msg rules-saved-inline" id="rules-saved">Saved to disk</span>
+            <button class="save-btn ghost" onclick="ConfigTab.reset()">Reset defaults</button>
+            <button class="save-btn" onclick="ConfigTab.save()">Save changes</button>
+          </div>
         </div>
       </section>
       <div class="rules-grid">
@@ -78,11 +85,7 @@ const RulesLab = (() => {
         </section>
         </div>
       </div>
-      <div class="save-bar rules-save-bar">
-        <span class="saved-msg" id="rules-saved">Saved to disk</span>
-        <button class="save-btn ghost" onclick="ConfigTab.reset()">Reset defaults</button>
-        <button class="save-btn" onclick="ConfigTab.save()">Save changes</button>
-      </div>`;
+      `;
   }
 
   function ruleEditor(key, label, rows, wide = false) {
@@ -148,7 +151,7 @@ const RulesLab = (() => {
   }
 
   function setDraft(rules) {
-    sections.forEach(key => {
+    sections.forEach((key) => {
       const input = document.getElementById(`rules-${key}`);
       if (input) input.value = rules?.[key] || '';
     });
@@ -157,7 +160,7 @@ const RulesLab = (() => {
   }
 
   function controlsToMeta() {
-    sections.forEach(key => {
+    sections.forEach((key) => {
       meta.enabled[key] = document.getElementById(`rules-${key}-enabled`)?.checked !== false;
       meta.priority[key] = document.getElementById(`rules-${key}-priority`)?.value || meta.priority[key];
     });
@@ -165,7 +168,7 @@ const RulesLab = (() => {
   }
 
   function applyMetaToControls() {
-    sections.forEach(key => {
+    sections.forEach((key) => {
       const enabled = document.getElementById(`rules-${key}-enabled`);
       const priority = document.getElementById(`rules-${key}-priority`);
       if (enabled) enabled.checked = meta.enabled[key] !== false;
@@ -202,11 +205,17 @@ const RulesLab = (() => {
 
   function ensureDefaultProfiles() {
     const defaults = {
-      Default: { rules: { ...DEFAULT_RULES }, enabled: { ...defaultMeta.enabled }, priority: { ...defaultMeta.priority } },
+      Default: {
+        rules: { ...DEFAULT_RULES },
+        enabled: { ...defaultMeta.enabled },
+        priority: { ...defaultMeta.priority },
+      },
       'Strict Review': {
         rules: {
-          coding: 'Prioritise bugs, regressions, missing tests, unsafe assumptions, and architecture drift.\nKeep findings specific and line-referenced.',
-          general: 'Challenge weak reasoning. State uncertainty clearly. Do not overfit to the user request if the evidence points elsewhere.',
+          coding:
+            'Prioritise bugs, regressions, missing tests, unsafe assumptions, and architecture drift.\nKeep findings specific and line-referenced.',
+          general:
+            'Challenge weak reasoning. State uncertainty clearly. Do not overfit to the user request if the evidence points elsewhere.',
           soul: 'Direct, concise, critical, and practical.',
         },
         enabled: { coding: true, general: true, soul: true },
@@ -229,15 +238,19 @@ const RulesLab = (() => {
   function renderProfiles() {
     const select = document.getElementById('rules-profile-select');
     if (!select) return;
-    select.innerHTML = Object.keys(meta.profiles).sort()
-      .map(name => `<option value="${esc(name)}">${esc(name)}</option>`)
+    select.innerHTML = Object.keys(meta.profiles)
+      .sort()
+      .map((name) => `<option value="${esc(name)}">${esc(name)}</option>`)
       .join('');
   }
 
   function saveProfile() {
     const input = document.getElementById('rules-profile-name');
     const name = (input?.value || '').trim();
-    if (!name) { Toast.error('Profile name required'); return; }
+    if (!name) {
+      Toast.error('Profile name required');
+      return;
+    }
     controlsToMeta();
     meta.profiles[name] = {
       rules: draft(),
@@ -279,10 +292,10 @@ const RulesLab = (() => {
   }
 
   function switchPanel(id, btn = document.querySelector(`[data-rule-tab="${id}"]`)) {
-    document.querySelectorAll('[data-rule-panel]').forEach(panel => {
+    document.querySelectorAll('[data-rule-panel]').forEach((panel) => {
       panel.hidden = panel.dataset.rulePanel !== id;
     });
-    document.querySelectorAll('.rules-tab').forEach(tab => {
+    document.querySelectorAll('.rules-tab').forEach((tab) => {
       tab.classList.toggle('active', tab === btn || tab.dataset.ruleTab === id);
     });
   }
@@ -290,8 +303,8 @@ const RulesLab = (() => {
   function activeSections() {
     const rules = draft();
     return sections
-      .filter(key => meta.enabled[key] !== false)
-      .map(key => ({ key, label: labels[key], priority: meta.priority[key], text: rules[key].trim() }));
+      .filter((key) => meta.enabled[key] !== false)
+      .map((key) => ({ key, label: labels[key], priority: meta.priority[key], text: rules[key].trim() }));
   }
 
   function renderPreview() {
@@ -300,11 +313,13 @@ const RulesLab = (() => {
     const target = document.getElementById('rules-preview-target')?.value || 'agents';
     const items = activeSections();
     if (target === 'cursor') {
-      host.textContent = items.map(item => `[${priorityLabel(item.priority)}] ${item.label}\n${item.text}`).join('\n\n');
+      host.textContent = items
+        .map((item) => `[${priorityLabel(item.priority)}] ${item.label}\n${item.text}`)
+        .join('\n\n');
       return;
     }
     const title = target === 'claude' ? '# Context Engine Rules' : '# Rules';
-    host.textContent = `${title}\n\n${items.map(item => `## ${item.label}\nPriority: ${priorityLabel(item.priority)}\n${item.text}`).join('\n\n')}`;
+    host.textContent = `${title}\n\n${items.map((item) => `## ${item.label}\nPriority: ${priorityLabel(item.priority)}\n${item.text}`).join('\n\n')}`;
   }
 
   function priorityLabel(value) {
@@ -331,15 +346,18 @@ const RulesLab = (() => {
   }
 
   function flattenRules(rules) {
-    return sections.flatMap(key => [`## ${labels[key]}`, ...(rules[key] || '').split('\n')]);
+    return sections.flatMap((key) => [`## ${labels[key]}`, ...(rules[key] || '').split('\n')]);
   }
 
   function simpleDiff(before, after) {
     const beforeSet = new Set(before);
     const afterSet = new Set(after);
-    const removed = before.filter(line => !afterSet.has(line)).map(line => `- ${line}`);
-    const added = after.filter(line => !beforeSet.has(line)).map(line => `+ ${line}`);
-    const context = after.filter(line => beforeSet.has(line)).slice(0, 8).map(line => `  ${line}`);
+    const removed = before.filter((line) => !afterSet.has(line)).map((line) => `- ${line}`);
+    const added = after.filter((line) => !beforeSet.has(line)).map((line) => `+ ${line}`);
+    const context = after
+      .filter((line) => beforeSet.has(line))
+      .slice(0, 8)
+      .map((line) => `  ${line}`);
     return {
       added: added.length,
       removed: removed.length,
@@ -353,11 +371,17 @@ const RulesLab = (() => {
     const summary = document.getElementById('rules-history-summary');
     if (!host || !summary) return;
     summary.textContent = meta.history.length ? `${meta.history.length} snapshots` : 'No snapshots';
-    host.innerHTML = meta.history.length ? meta.history.map((snap, index) => `
+    host.innerHTML = meta.history.length
+      ? meta.history
+          .map(
+            (snap, index) => `
       <button class="rules-history-item" onclick="RulesLab.restoreHistory(${index})">
         <span>${esc(new Date(snap.ts).toLocaleString())}</span>
         <small>${wordsOf(Object.values(snap.rules).join(' '))} words</small>
-      </button>`).join('') : '<div class="rules-empty">Save changes to create snapshots.</div>';
+      </button>`,
+          )
+          .join('')
+      : '<div class="rules-empty">Save changes to create snapshots.</div>';
   }
 
   async function restoreHistory(index) {
@@ -381,28 +405,63 @@ const RulesLab = (() => {
     if (!host || !summary) return;
     const notes = memoryAlignmentNotes();
     summary.textContent = notes.length ? `${notes.length} notes` : 'Aligned';
-    host.innerHTML = notes.length ? notes.map(renderIssue).join('') : '<div class="rules-empty">No obvious memory conflicts found.</div>';
+    host.innerHTML = notes.length
+      ? notes.map(renderIssue).join('')
+      : '<div class="rules-empty">No obvious memory conflicts found.</div>';
   }
 
   function memoryAlignmentNotes() {
     const memory = MS.getData();
-    const memoryText = (memory.entries || []).map(entry => typeof entry === 'string' ? entry : entry.content || '').join('\n').toLowerCase();
+    const memoryText = (memory.entries || [])
+      .map((entry) => (typeof entry === 'string' ? entry : entry.content || ''))
+      .join('\n')
+      .toLowerCase();
     const text = Object.values(draft()).join('\n').toLowerCase();
     const notes = [];
-    if (/no memory|ignore memory|do not use memory/.test(text) && /memory is a core skill|memory source of truth/.test(memoryText)) {
-      notes.push(issue('error', 'Memory conflict', 'Rules appear to suppress memory while memory says it is core context.'));
+    if (
+      /no memory|ignore memory|do not use memory/.test(text) &&
+      /memory is a core skill|memory source of truth/.test(memoryText)
+    ) {
+      notes.push(
+        issue(
+          'error',
+          'Memory conflict',
+          'Rules appear to suppress memory while memory says it is core context.',
+        ),
+      );
     }
-    if (/always agree|please the user|yes-man/.test(text) && /not a yes-man|disagree with evidence/.test(memoryText)) {
-      notes.push(issue('warn', 'Personality conflict', 'Rules may conflict with the stored preference to challenge weak assumptions.'));
+    if (
+      /always agree|please the user|yes-man/.test(text) &&
+      /not a yes-man|disagree with evidence/.test(memoryText)
+    ) {
+      notes.push(
+        issue(
+          'warn',
+          'Personality conflict',
+          'Rules may conflict with the stored preference to challenge weak assumptions.',
+        ),
+      );
     }
-    if (!/verify|source|evidence|current|time-sensitive/.test(text) && /cutoff|verify before time-sensitive/.test(memoryText)) {
-      notes.push(issue('info', 'Verification gap', 'Memory includes time-sensitive verification guidance; consider reflecting it in General Rules.'));
+    if (
+      !/verify|source|evidence|current|time-sensitive/.test(text) &&
+      /cutoff|verify before time-sensitive/.test(memoryText)
+    ) {
+      notes.push(
+        issue(
+          'info',
+          'Verification gap',
+          'Memory includes time-sensitive verification guidance; consider reflecting it in General Rules.',
+        ),
+      );
     }
     return notes;
   }
 
   function wordsOf(text) {
-    return String(text || '').trim().split(/\s+/).filter(Boolean).length;
+    return String(text || '')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean).length;
   }
 
   return {

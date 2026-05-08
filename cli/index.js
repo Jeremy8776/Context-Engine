@@ -1,16 +1,19 @@
 #!/usr/bin/env node
 // Context Engine CLI — compile AI context across tools
 
-const fs   = require('fs');
+const fs = require('fs');
 const path = require('path');
 
 const COMMANDS = { init, compile, status, add, remove, help };
 const args = process.argv.slice(2);
-const cmd  = args[0];
+const cmd = args[0];
 
 if (!cmd || cmd === '--help' || cmd === '-h') help();
 else if (COMMANDS[cmd]) COMMANDS[cmd](args.slice(1));
-else { console.error(`Unknown command: ${cmd}\nRun 'context-engine help' for usage.`); process.exit(1); }
+else {
+  console.error(`Unknown command: ${cmd}\nRun 'context-engine help' for usage.`);
+  process.exit(1);
+}
 
 // ---- HELPERS ----
 
@@ -36,7 +39,7 @@ function scanSkills(skillsDir) {
   const map = {};
   if (!fs.existsSync(skillsDir)) return map;
   const scan = (dir, cat = 'Uncategorized') => {
-    fs.readdirSync(dir).forEach(item => {
+    fs.readdirSync(dir).forEach((item) => {
       const full = path.join(dir, item);
       if (!fs.statSync(full).isDirectory()) return;
       const skillFile = path.join(full, 'SKILL.md');
@@ -44,10 +47,13 @@ function scanSkills(skillsDir) {
         const content = fs.readFileSync(skillFile, 'utf8');
         const descMatch = content.match(/# (.*?)\n(.*?)\n/);
         map[item] = {
-          id: item, cat, type: 'custom', path: skillFile,
+          id: item,
+          cat,
+          type: 'custom',
+          path: skillFile,
           relativePath: path.relative(process.cwd(), skillFile).replace(/\\/g, '/'),
           desc: descMatch ? descMatch[2].trim() : 'No description',
-          triggers: []
+          triggers: [],
         };
       } else {
         scan(full, item);
@@ -82,7 +88,7 @@ function init(args) {
   const skillsDir = path.join(dir, 'skills');
   const exampleDir = path.join(skillsDir, 'example-skill');
 
-  [dataDir, skillsDir, exampleDir].forEach(d => {
+  [dataDir, skillsDir, exampleDir].forEach((d) => {
     if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
   });
 
@@ -90,25 +96,61 @@ function init(args) {
   fs.writeFileSync(cfgPath, JSON.stringify(config, null, 2), 'utf8');
 
   // Write template data files
-  fs.writeFileSync(path.join(dataDir, 'memory.json'), JSON.stringify({
-    version: '1.1', last_updated: new Date().toISOString().split('T')[0],
-    entries: [{ id: 'entry_1', category: 'general', label: '', content: 'Example memory entry — edit or replace this.' }]
-  }, null, 2), 'utf8');
+  fs.writeFileSync(
+    path.join(dataDir, 'memory.json'),
+    JSON.stringify(
+      {
+        version: '1.1',
+        last_updated: new Date().toISOString().split('T')[0],
+        entries: [
+          {
+            id: 'entry_1',
+            category: 'general',
+            label: '',
+            content: 'Example memory entry — edit or replace this.',
+          },
+        ],
+      },
+      null,
+      2,
+    ),
+    'utf8',
+  );
 
-  fs.writeFileSync(path.join(dataDir, 'rules.json'), JSON.stringify({
-    version: '1.0', last_updated: new Date().toISOString().split('T')[0],
-    coding: 'Modular code files. Comment the why, not the what.',
-    general: 'Think independently. Be concise.',
-    soul: 'Helpful, logical, and direct.'
-  }, null, 2), 'utf8');
+  fs.writeFileSync(
+    path.join(dataDir, 'rules.json'),
+    JSON.stringify(
+      {
+        version: '1.0',
+        last_updated: new Date().toISOString().split('T')[0],
+        coding: 'Modular code files. Comment the why, not the what.',
+        general: 'Think independently. Be concise.',
+        soul: 'Helpful, logical, and direct.',
+      },
+      null,
+      2,
+    ),
+    'utf8',
+  );
 
-  fs.writeFileSync(path.join(dataDir, 'skill-states.json'), JSON.stringify({
-    version: '1.0', last_updated: new Date().toISOString().split('T')[0],
-    states: { 'example-skill': true }
-  }, null, 2), 'utf8');
+  fs.writeFileSync(
+    path.join(dataDir, 'skill-states.json'),
+    JSON.stringify(
+      {
+        version: '1.0',
+        last_updated: new Date().toISOString().split('T')[0],
+        states: { 'example-skill': true },
+      },
+      null,
+      2,
+    ),
+    'utf8',
+  );
 
   // Write example skill
-  fs.writeFileSync(path.join(exampleDir, 'SKILL.md'), `---
+  fs.writeFileSync(
+    path.join(exampleDir, 'SKILL.md'),
+    `---
 name: example-skill
 description: An example skill to demonstrate the Context Engine format
 ---
@@ -122,7 +164,9 @@ This is a template skill. Replace this with your own instructions.
 ## Instructions
 - Be helpful and concise
 - Follow the project's coding conventions
-`, 'utf8');
+`,
+    'utf8',
+  );
 
   console.log(`
   Context Engine initialized!
@@ -143,7 +187,10 @@ This is a template skill. Replace this with your own instructions.
 
 function compile(args) {
   const root = resolveRoot();
-  if (!root) { console.error('No context-engine.json found. Run "context-engine init" first.'); process.exit(1); }
+  if (!root) {
+    console.error('No context-engine.json found. Run "context-engine init" first.');
+    process.exit(1);
+  }
 
   const config = loadConfig(root);
   const dataDir = path.resolve(root, config.dataDir || './data');
@@ -153,8 +200,12 @@ function compile(args) {
   let targets = config.targets || ['claude', 'cursor', 'agents'];
   let outputDir = root;
   for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--targets' && args[i+1]) { targets = args[++i].split(','); }
-    if (args[i] === '--output' && args[i+1])  { outputDir = path.resolve(args[++i]); }
+    if (args[i] === '--targets' && args[i + 1]) {
+      targets = args[++i].split(',');
+    }
+    if (args[i] === '--output' && args[i + 1]) {
+      outputDir = path.resolve(args[++i]);
+    }
   }
 
   const { compile: compilerFn } = require(path.join(__dirname, '..', 'server', 'compiler'));
@@ -167,7 +218,7 @@ function compile(args) {
   });
 
   if (result.errors.length) {
-    result.errors.forEach(e => console.error(`  Error: ${e}`));
+    result.errors.forEach((e) => console.error(`  Error: ${e}`));
   }
 
   console.log(`\n  Compiled ${Object.keys(result.results).length} target(s):\n`);
@@ -181,26 +232,35 @@ function compile(args) {
 
 function status(args) {
   const root = resolveRoot();
-  if (!root) { console.error('No context-engine.json found. Run "context-engine init" first.'); process.exit(1); }
+  if (!root) {
+    console.error('No context-engine.json found. Run "context-engine init" first.');
+    process.exit(1);
+  }
 
   const config = loadConfig(root);
   const dataDir = path.resolve(root, config.dataDir || './data');
   const skillsDir = path.resolve(root, config.skillsDir || './skills');
 
-  const readJSON = f => { try { return JSON.parse(fs.readFileSync(path.join(dataDir, f), 'utf8')); } catch { return null; } };
+  const readJSON = (f) => {
+    try {
+      return JSON.parse(fs.readFileSync(path.join(dataDir, f), 'utf8'));
+    } catch {
+      return null;
+    }
+  };
 
   const memory = readJSON('memory.json');
-  const rules  = readJSON('rules.json');
+  const rules = readJSON('rules.json');
   const states = readJSON('skill-states.json');
   const stateMap = (states && states.states) || {};
   const skills = scanSkills(skillsDir);
   const allIds = Object.keys(skills);
-  const activeIds = allIds.filter(id => stateMap[id] !== false);
+  const activeIds = allIds.filter((id) => stateMap[id] !== false);
 
   console.log(`\n  Context Engine Status\n`);
   console.log(`  Root:     ${root}`);
   console.log(`  Skills:   ${activeIds.length}/${allIds.length} active`);
-  console.log(`  Memory:   ${(memory && memory.entries) ? memory.entries.length : 0} entries`);
+  console.log(`  Memory:   ${memory && memory.entries ? memory.entries.length : 0} entries`);
   console.log(`  Rules:    ${rules ? 'configured' : 'not found'}`);
   console.log(`  Targets:  ${(config.targets || []).join(', ')}`);
 
@@ -215,7 +275,12 @@ function status(args) {
     if (fs.existsSync(fpath)) {
       const stat = fs.statSync(fpath);
       const age = Math.floor((Date.now() - stat.mtimeMs) / 60000);
-      const ageStr = age < 60 ? `${age}m ago` : age < 1440 ? `${Math.floor(age/60)}h ago` : `${Math.floor(age/1440)}d ago`;
+      const ageStr =
+        age < 60
+          ? `${age}m ago`
+          : age < 1440
+            ? `${Math.floor(age / 60)}h ago`
+            : `${Math.floor(age / 1440)}d ago`;
       console.log(`    ${adapter.filename.padEnd(40)} ${ageStr}`);
     } else {
       console.log(`    ${adapter.filename.padEnd(40)} (not compiled yet)`);
@@ -224,7 +289,7 @@ function status(args) {
 
   if (allIds.length) {
     console.log(`\n  Skills:`);
-    allIds.forEach(id => {
+    allIds.forEach((id) => {
       const active = stateMap[id] !== false;
       console.log(`    ${active ? '+' : '-'} ${id}`);
     });
@@ -234,17 +299,26 @@ function status(args) {
 
 function add(args) {
   const root = resolveRoot();
-  if (!root) { console.error('No context-engine.json found. Run "context-engine init" first.'); process.exit(1); }
+  if (!root) {
+    console.error('No context-engine.json found. Run "context-engine init" first.');
+    process.exit(1);
+  }
 
   const config = loadConfig(root);
   const skillsDir = path.resolve(root, config.skillsDir || './skills');
   const dataDir = path.resolve(root, config.dataDir || './data');
   const source = args[0];
 
-  if (!source) { console.error('Usage: context-engine add <path-to-skill-dir-or-skill.md>'); process.exit(1); }
+  if (!source) {
+    console.error('Usage: context-engine add <path-to-skill-dir-or-skill.md>');
+    process.exit(1);
+  }
 
   const sourcePath = path.resolve(source);
-  if (!fs.existsSync(sourcePath)) { console.error(`Not found: ${sourcePath}`); process.exit(1); }
+  if (!fs.existsSync(sourcePath)) {
+    console.error(`Not found: ${sourcePath}`);
+    process.exit(1);
+  }
 
   const stat = fs.statSync(sourcePath);
   let skillId, destDir;
@@ -256,7 +330,10 @@ function add(args) {
     if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
     // Copy SKILL.md
     const skillFile = path.join(sourcePath, 'SKILL.md');
-    if (!fs.existsSync(skillFile)) { console.error(`No SKILL.md found in ${sourcePath}`); process.exit(1); }
+    if (!fs.existsSync(skillFile)) {
+      console.error(`No SKILL.md found in ${sourcePath}`);
+      process.exit(1);
+    }
     fs.copyFileSync(skillFile, path.join(destDir, 'SKILL.md'));
   } else {
     // Single .md file
@@ -268,7 +345,9 @@ function add(args) {
 
   // Enable the skill in states
   const statesPath = path.join(dataDir, 'skill-states.json');
-  const states = fs.existsSync(statesPath) ? JSON.parse(fs.readFileSync(statesPath, 'utf8')) : { version: '1.0', states: {} };
+  const states = fs.existsSync(statesPath)
+    ? JSON.parse(fs.readFileSync(statesPath, 'utf8'))
+    : { version: '1.0', states: {} };
   if (!states.states) states.states = {};
   states.states[skillId] = true;
   states.last_updated = new Date().toISOString().split('T')[0];
@@ -281,7 +360,10 @@ function add(args) {
 
 function remove(args) {
   const root = resolveRoot();
-  if (!root) { console.error('No context-engine.json found. Run "context-engine init" first.'); process.exit(1); }
+  if (!root) {
+    console.error('No context-engine.json found. Run "context-engine init" first.');
+    process.exit(1);
+  }
 
   const config = loadConfig(root);
   const skillsDir = path.resolve(root, config.skillsDir || './skills');
@@ -289,7 +371,10 @@ function remove(args) {
   const skillId = args[0];
   const deleteFiles = args.includes('--delete');
 
-  if (!skillId) { console.error('Usage: context-engine remove <skill-id> [--delete]'); process.exit(1); }
+  if (!skillId) {
+    console.error('Usage: context-engine remove <skill-id> [--delete]');
+    process.exit(1);
+  }
 
   // Remove from states
   const statesPath = path.join(dataDir, 'skill-states.json');

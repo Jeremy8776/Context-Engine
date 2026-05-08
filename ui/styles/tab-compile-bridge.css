@@ -1,0 +1,454 @@
+/* tab-compile-bridge.css -- Runtime bridge and fallback status surfaces. */
+
+.mcp-host-card {
+  margin-bottom: var(--s-4);
+}
+
+.mcp-hosts-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--s-3);
+  padding: var(--s-4);
+}
+
+.mcp-host-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  min-height: 190px;
+  padding: var(--s-4);
+  border: 1px solid var(--dram-card-border);
+  border-radius: var(--r-3);
+  background: var(--dram-card-bg);
+}
+
+.mcp-host-row:hover {
+  border-color: var(--dram-card-border-hover);
+  background: var(--dram-card-hover);
+}
+
+.mcp-host-disabled {
+  opacity: 0.7;
+}
+
+.mcp-host-main {
+  display: grid;
+  gap: var(--s-3);
+  min-width: 0;
+}
+
+.mcp-host-top,
+.mcp-host-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+
+.mcp-host-top strong {
+  color: var(--text);
+  font-size: var(--fs-03);
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.mcp-host-main p,
+.mcp-host-note {
+  margin: 0;
+  color: var(--text-3);
+  font-size: var(--fs-02);
+  line-height: 1.45;
+}
+
+.mcp-host-path {
+  color: var(--text-4);
+  font-family: var(--mono);
+  font-size: var(--fs-01);
+  line-height: 1.45;
+  word-break: break-all;
+}
+
+.mcp-host-actions {
+  justify-content: flex-end;
+  margin-top: auto;
+}
+
+.mcp-status-connected {
+  color: var(--ok);
+  border-color: var(--ok);
+  background: var(--ok-bg);
+}
+
+.mcp-status-conflict,
+.mcp-status-invalid,
+.mcp-status-remote-required {
+  color: var(--warn);
+  border-color: var(--warn);
+  background: var(--warn-bg);
+}
+
+.mcp-status-missing,
+.mcp-status-configurable {
+  color: var(--accent-hi);
+  border-color: var(--accent-line);
+  background: var(--accent-bg);
+}
+
+.readiness-card,
+.fallback-card {
+  padding: 0;
+}
+
+.readiness-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  border: 1px solid var(--dram-card-border);
+  border-radius: var(--r-3);
+  background: var(--dram-card-bg);
+}
+
+.readiness-banner .readiness-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex: 0 0 12px;
+  box-shadow: 0 0 0 4px var(--dram-accent-subtle);
+}
+
+.readiness-ready .readiness-dot {
+  background: var(--ok);
+}
+.readiness-partial .readiness-dot {
+  background: var(--warn);
+}
+.readiness-pending .readiness-dot {
+  background: var(--text-4);
+}
+
+.readiness-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.readiness-text strong {
+  color: var(--text);
+  font-size: var(--fs-04);
+  font-weight: 700;
+}
+
+.readiness-meta {
+  color: var(--text-3);
+  font-size: var(--fs-02);
+}
+
+.index-card .compile-card-actions {
+  display: flex;
+  gap: var(--s-2);
+}
+
+.index-status {
+  padding: var(--s-3) var(--s-4);
+}
+
+.index-status-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+
+.index-status .index-line {
+  color: var(--text);
+  font-size: var(--fs-03);
+}
+
+.index-status .index-meta {
+  color: var(--text-4);
+  font-family: var(--mono);
+  font-size: var(--fs-01);
+}
+
+.index-status .index-help {
+  margin-top: var(--s-2);
+  color: var(--text-3);
+  font-size: var(--fs-02);
+  line-height: 1.5;
+}
+
+/* Pending / building state for the index badge — same visual weight as
+   the ready/empty pills, accent-tinted to read as "in flight". */
+.ct-badge.ct-pending {
+  color: var(--accent-hi);
+  border-color: var(--accent-line);
+  background: var(--accent-bg);
+}
+
+/* Indeterminate progress bar — animated stripe sliding across the card
+   while the embedding job runs. The server doesn't expose granular progress,
+   so an indeterminate bar is honest about that. */
+.index-progress {
+  margin-top: var(--s-3);
+  height: 4px;
+  width: 100%;
+  border-radius: var(--r-1);
+  background: var(--dram-card-border);
+  overflow: hidden;
+}
+
+.index-progress-bar {
+  width: 30%;
+  height: 100%;
+  background: var(--accent);
+  border-radius: var(--r-1);
+  animation: index-progress-slide 1.4s ease-in-out infinite;
+}
+
+@keyframes index-progress-slide {
+  0%   { transform: translateX(-100%); }
+  50%  { transform: translateX(180%); }
+  100% { transform: translateX(-100%); }
+}
+
+.mcp-host-steps {
+  list-style: none;
+  margin: var(--s-3) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s-2);
+}
+
+.mcp-step {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--dram-card-border);
+  border-radius: var(--r-2);
+  background: var(--dram-bg-elevated);
+}
+
+.mcp-step.done {
+  border-color: var(--ok);
+  background: var(--ok-bg);
+}
+
+.mcp-step-num {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--dram-card-border);
+  border-radius: 50%;
+  color: var(--text-3);
+  font-size: var(--fs-01);
+  font-weight: 700;
+}
+
+.mcp-step.done .mcp-step-num {
+  background: var(--ok);
+  border-color: var(--ok);
+  color: var(--dram-bg-recessed);
+}
+
+.mcp-step-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mcp-step-text strong {
+  color: var(--text);
+  font-size: var(--fs-02);
+  font-weight: 600;
+}
+
+.mcp-step-text span {
+  color: var(--text-3);
+  font-size: var(--fs-01);
+  line-height: 1.45;
+}
+
+.mcp-step-action {
+  display: flex;
+  align-items: center;
+}
+
+.mcp-host-modal {
+  width: min(760px, 100%);
+}
+
+.mcp-config-summary,
+.mcp-config-meta,
+.mcp-config-steps {
+  display: grid;
+  gap: var(--s-3);
+}
+
+.mcp-config-summary {
+  padding: var(--s-4);
+  border: 1px solid var(--dram-card-border);
+  border-radius: var(--r-3);
+  background: var(--dram-card-bg);
+}
+
+.mcp-config-summary p,
+.mcp-config-note {
+  margin: 0;
+  color: var(--text-3);
+  font-size: var(--fs-02);
+  line-height: 1.5;
+}
+
+.mcp-config-status {
+  display: flex;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+
+.mcp-config-meta {
+  padding: var(--s-3);
+  border: 1px solid var(--soft-line);
+  border-radius: var(--r-3);
+  background: var(--bg-card);
+}
+
+.mcp-config-row {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: var(--s-3);
+  align-items: start;
+}
+
+.mcp-config-row span {
+  color: var(--text-4);
+  font-family: var(--mono);
+  font-size: var(--fs-01);
+  font-weight: 700;
+  letter-spacing: var(--tr-wide);
+  text-transform: uppercase;
+}
+
+.mcp-config-row strong,
+.mcp-config-row code {
+  min-width: 0;
+  color: var(--text);
+  font-size: var(--fs-02);
+  line-height: 1.45;
+}
+
+.mcp-config-row code {
+  font-family: var(--mono);
+  word-break: break-all;
+}
+
+.mcp-config-section-head {
+  display: grid;
+  gap: 2px;
+}
+
+.mcp-config-section-head strong {
+  color: var(--text);
+  font-size: var(--fs-04);
+  font-weight: 750;
+}
+
+.fallback-summary {
+  cursor: pointer;
+  list-style: none;
+  padding: var(--s-3) var(--s-4);
+}
+
+.fallback-summary::-webkit-details-marker {
+  display: none;
+}
+
+.fallback-summary::after {
+  content: 'v';
+  margin-left: auto;
+  color: var(--text-4);
+  transition: transform 0.15s ease;
+}
+
+.fallback-card[open] .fallback-summary::after {
+  transform: rotate(180deg);
+}
+
+.fallback-hint {
+  color: var(--text-4);
+  font-size: var(--fs-01);
+  margin-left: var(--s-3);
+}
+
+.fallback-body {
+  padding: 0 var(--s-4) var(--s-4);
+  display: grid;
+  gap: var(--s-4);
+}
+
+.fallback-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-3);
+  border: 1px solid var(--dram-card-border);
+  border-radius: var(--r-3);
+  background: var(--dram-card-bg);
+}
+
+.fallback-toolbar strong {
+  display: block;
+  color: var(--text);
+  font-size: var(--fs-03);
+  font-weight: 750;
+}
+
+.fallback-summary-meta,
+.fallback-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+
+.fallback-summary-meta {
+  margin-top: var(--s-2);
+  color: var(--text-3);
+  font-family: var(--mono);
+  font-size: var(--fs-01);
+}
+
+.fallback-summary-meta span {
+  display: inline-flex;
+  gap: var(--s-1);
+}
+
+.fallback-summary-meta strong {
+  display: inline;
+  color: var(--accent-hi);
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 800;
+}
+
+.compile-card-inner {
+  border-color: var(--dram-card-border);
+}
+
+@media (max-width: 720px) {
+  .mcp-host-row {
+    min-height: 0;
+  }
+
+  .mcp-config-row {
+    grid-template-columns: 1fr;
+    gap: var(--s-1);
+  }
+}

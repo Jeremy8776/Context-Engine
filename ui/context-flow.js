@@ -16,31 +16,41 @@ const ContextFlow = (() => {
     const host = document.getElementById('flow-stage');
     if (!host) return;
     let detected = null;
-    try { detected = await DS.detectTools(); } catch {}
+    try {
+      detected = await DS.detectTools();
+    } catch {}
     render(host, normalizeTools(detected));
   }
 
   function normalizeTools(detected) {
     if (!detected || typeof detected !== 'object') return fallbackTools;
-    return Object.entries(detected).slice(0, 10).map(([id, t]) => ({
-      id,
-      label: t.label || id,
-      glyph: initials(t.label || id),
-      installed: !!t.installed,
-    }));
+    return Object.entries(detected)
+      .slice(0, 10)
+      .map(([id, t]) => ({
+        id,
+        label: t.label || id,
+        glyph: initials(t.label || id),
+        installed: !!t.installed,
+      }));
   }
 
   function initials(label) {
-    return label.split(/[\s()/.-]+/).filter(Boolean).slice(0, 2).map(x => x[0]).join('').toUpperCase();
+    return label
+      .split(/[\s()/.-]+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((x) => x[0])
+      .join('')
+      .toUpperCase();
   }
 
   function render(host, tools) {
-    const activeSkills = SKILL_DATA.filter(s => SS.active(s.id)).length;
+    const activeSkills = SKILL_DATA.filter((s) => SS.active(s.id)).length;
     const memory = MS.getData();
     const memories = Array.isArray(memory.entries) ? memory.entries.length : 0;
     const rules = RS.get();
-    const ruleBlocks = ['coding', 'general', 'soul'].filter(k => rules[k]).length || 3;
-    const connected = tools.filter(t => t.installed).length;
+    const ruleBlocks = ['coding', 'general', 'soul'].filter((k) => rules[k]).length || 3;
+    const connected = tools.filter((t) => t.installed).length;
 
     const labels = [
       { name: 'Skills', count: activeSkills, x: 54, y: 68, cls: 's1' },
@@ -75,7 +85,7 @@ const ContextFlow = (() => {
           </radialGradient>
         </defs>
         ${labels.map((s, i) => sourceMarkup(s, i)).join('')}
-        ${labels.map(s => `<path id="src-${s.cls}" class="flow-line" d="M ${s.x + 34} ${s.y} C 250 ${s.y}, 340 140, 456 140"/>`).join('')}
+        ${labels.map((s) => `<path id="src-${s.cls}" class="flow-line" d="M ${s.x + 34} ${s.y} C 250 ${s.y}, 340 140, 456 140"/>`).join('')}
         <circle class="flow-hub-glow" cx="456" cy="140" r="70"/>
         <circle class="flow-hub-ring" cx="456" cy="140" r="36"/>
         <circle class="flow-hub-core" cx="456" cy="140" r="24"/>

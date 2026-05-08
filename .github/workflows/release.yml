@@ -48,19 +48,18 @@ jobs:
               dist/*.exe
               dist/*.exe.blockmap
               dist/latest.yml
-          # Add macOS / Linux runners here when those targets become priorities.
-          # - os: macos-latest
-          #   build_script: build:mac
-          #   artifact_glob: |
-          #     dist/*.dmg
-          #     dist/*.zip
-          #     dist/latest-mac.yml
-          # - os: ubuntu-latest
-          #   build_script: build:linux
-          #   artifact_glob: |
-          #     dist/*.AppImage
-          #     dist/*.deb
-          #     dist/latest-linux.yml
+          - os: macos-latest
+            build_script: build:mac
+            artifact_glob: |
+              dist/*.dmg
+              dist/*.zip
+              dist/latest-mac.yml
+          - os: ubuntu-latest
+            build_script: build:linux
+            artifact_glob: |
+              dist/*.AppImage
+              dist/*.deb
+              dist/latest-linux.yml
 
     steps:
       - name: Checkout
@@ -86,6 +85,7 @@ jobs:
           # when a signing certificate is available. Empty means unsigned.
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
         run: |
           if ('${{ github.event_name }}' -eq 'push' -or '${{ github.event.inputs.publish }}' -eq 'true') {
             npm run ${{ matrix.build_script }} -- --publish always

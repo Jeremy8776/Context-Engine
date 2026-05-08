@@ -47,7 +47,7 @@ const ConfigTab = (() => {
       const metric = document.getElementById(metricId);
       if (!input || !metric) return;
       const words = input.value.trim().split(/\s+/).filter(Boolean).length;
-      const lines = input.value.split(/\n/).filter(line => line.trim()).length;
+      const lines = input.value.split(/\n/).filter((line) => line.trim()).length;
       metric.textContent = `${words} words / ${lines} lines`;
     });
   }
@@ -60,7 +60,7 @@ const ConfigTab = (() => {
   }
 
   function initKeyboardSave() {
-    document.getElementById('config-tab').addEventListener('keydown', e => {
+    document.getElementById('config-tab').addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         save();
@@ -91,12 +91,15 @@ const ConfigTab = (() => {
     const input = document.getElementById('anthropic-api-key');
     if (!input) return;
     const value = input.value.trim();
-    if (!value) { Toast.error('Enter an API key'); return; }
+    if (!value) {
+      Toast.error('Enter an API key');
+      return;
+    }
     try {
       const res = await fetch('/api/keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'ANTHROPIC_API_KEY', value })
+        body: JSON.stringify({ name: 'ANTHROPIC_API_KEY', value }),
       });
       const data = await res.json();
       if (data.ok) {
@@ -106,7 +109,9 @@ const ConfigTab = (() => {
       } else {
         Toast.error(data.error || 'Failed to save');
       }
-    } catch (e) { Toast.error('Failed to save key'); }
+    } catch (e) {
+      Toast.error('Failed to save key');
+    }
   }
 
   async function removeApiKey() {
@@ -121,7 +126,7 @@ const ConfigTab = (() => {
       const res = await fetch('/api/keys', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'ANTHROPIC_API_KEY' })
+        body: JSON.stringify({ name: 'ANTHROPIC_API_KEY' }),
       });
       const data = await res.json();
       if (data.ok) {
@@ -130,7 +135,9 @@ const ConfigTab = (() => {
         if (input) input.placeholder = 'sk-ant-...';
         loadKeyStatus();
       }
-    } catch (e) { Toast.error('Failed to remove key'); }
+    } catch (e) {
+      Toast.error('Failed to remove key');
+    }
   }
 
   function toggleKeyVisibility(inputId) {

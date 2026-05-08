@@ -29,7 +29,9 @@ function detectTools(homedir, opts = {}) {
   const results = {};
   let ctx = null;
   if (opts.dataDir && opts.scanSkills && opts.buildContext) {
-    try { ctx = opts.buildContext(opts); } catch {
+    try {
+      ctx = opts.buildContext(opts);
+    } catch {
       ctx = null;
     }
   }
@@ -38,16 +40,35 @@ function detectTools(homedir, opts = {}) {
     const tool = baseTool(id, reg, homedir, adapter);
     for (const dp of reg.detectPaths) {
       const full = path.join(homedir, dp);
-      if (fs.existsSync(full)) { tool.installed = true; tool.signals.push(dp); }
+      if (fs.existsSync(full)) {
+        tool.installed = true;
+        tool.signals.push(dp);
+      }
     }
     if (tool.globalPath && fs.existsSync(tool.globalPath)) tool.globalInstalled = true;
     if (tool.globalPath) tool.globalWritable = canWriteNear(tool.globalPath);
     validateAdapter(tool, adapter, ctx, opts.estimateTokens);
-    tool.fileStandard = !!(!tool.detectionRequired && tool.supportsProject && !tool.supportsGlobal && reg.category !== 'manual');
-    tool.available = !!(tool.installed || tool.globalInstalled || tool.fileStandard || reg.category === 'manual');
+    tool.fileStandard = !!(
+      !tool.detectionRequired &&
+      tool.supportsProject &&
+      !tool.supportsGlobal &&
+      reg.category !== 'manual'
+    );
+    tool.available = !!(
+      tool.installed ||
+      tool.globalInstalled ||
+      tool.fileStandard ||
+      reg.category === 'manual'
+    );
     tool.detected = !!(tool.installed || tool.globalInstalled);
     tool.projectReady = !!(tool.supportsProject && tool.compileReady && tool.available);
-    tool.globalReady = !!(tool.supportsGlobal && tool.compileReady && tool.available && tool.globalPath && tool.globalWritable);
+    tool.globalReady = !!(
+      tool.supportsGlobal &&
+      tool.compileReady &&
+      tool.available &&
+      tool.globalPath &&
+      tool.globalWritable
+    );
     tool.outputReady = !!(tool.compileReady && tool.available);
     tool.status = statusFor(tool);
     results[id] = tool;

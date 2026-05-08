@@ -57,7 +57,7 @@ export default [
     extends: [...tseslint.configs.recommendedTypeChecked],
     languageOptions: {
       parserOptions: {
-        project: './tsconfig.json',
+        projectService: true,
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -87,10 +87,24 @@ export default [
   }),
 
   {
-    files: ['server/**/*.js', 'electron/**/*.cjs', 'scripts/**/*.js'],
+    files: ['server/**/*.js', 'electron/**/*.cjs', 'scripts/**/*.js', 'scripts/**/*.cjs'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'commonjs',
+      globals: {
+        ...globals.node,
+      },
+    },
+    rules: {
+      'no-console': 'off',
+      'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    },
+  },
+  {
+    files: ['*.mjs', 'scripts/**/*.mjs', 'mcpb/**/*.mjs'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
       globals: {
         ...globals.node,
       },

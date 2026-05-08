@@ -14,7 +14,7 @@ const fs = require('fs');
 const path = require('path');
 const { PORT, UI_DIR } = require('../server/lib/config');
 const { startServer } = require('../server/server');
-const { startAutoUpdate } = require('./updater');
+const { startAutoUpdate } = require('./updater.cjs');
 
 let mainWindow = null;
 let server = null;
@@ -55,15 +55,20 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      // Sandboxed renderer + sandboxed preload. The preload only uses
+      // contextBridge / ipcRenderer, both of which are sandbox-safe.
+      sandbox: true,
     },
   });
 
   // Some dev-mode launches don't fully honour the constructor `icon` for the
   // taskbar entry. Explicitly setting it after construction is the reliable path.
   if (process.platform === 'win32' && fs.existsSync(appIconPath)) {
-    try { mainWindow.setIcon(appIconPath); }
-    catch (err) { console.warn('[ce-electron] setIcon failed:', err.message); }
+    try {
+      mainWindow.setIcon(appIconPath);
+    } catch (err) {
+      console.warn('[ce-electron] setIcon failed:', err.message);
+    }
   }
 
   void mainWindow.loadURL(`http://127.0.0.1:${PORT}/`);
@@ -83,9 +88,35 @@ function createWindow() {
       app.quit();
     });
   }
+  // Only open external links over http(s) or mailto. Blocks file://, vscode://,
+  // ms-cxh:// and other custom URI schemes that could be triggered by hostile
+  // content rendered in the local UI (e.g. injected via a skill body).
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    void shell.openExternal(url);
+    try {
+      const parsed = new URL(url);
+      if (['http:', 'https:', 'mailto:'].includes(parsed.protocol)) {
+        void shell.openExternal(url);
+      } else {
+        console.warn(`[ce-electron] blocked external open with protocol ${parsed.protocol}: ${url}`);
+      }
+    } catch {
+      console.warn(`[ce-electron] blocked external open with invalid URL: ${url}`);
+    }
     return { action: 'deny' };
+  });
+
+  // Block in-window navigation away from the local UI origin. Defense in depth
+  // against a renderer that somehow follows a link into untrusted content.
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    try {
+      const parsed = new URL(url);
+      if (parsed.origin !== `http://127.0.0.1:${PORT}`) {
+        event.preventDefault();
+        if (['http:', 'https:', 'mailto:'].includes(parsed.protocol)) void shell.openExternal(url);
+      }
+    } catch {
+      event.preventDefault();
+    }
   });
 
   mainWindow.on('closed', () => {
@@ -122,16 +153,19 @@ function watchPath(rootDir, onChange) {
 function setupHotReload() {
   if (!hotReload) return;
   console.log('[desktop-dev] Hot reload enabled');
-  watchPath(UI_DIR, changedPath => {
+  watchPath(UI_DIR, (changedPath) => {
     if (/\.(html|css|js|svg)$/i.test(changedPath)) {
       console.log('[desktop-dev] Renderer reload:', path.relative(UI_DIR, changedPath));
       reloadRenderer();
     }
   });
-  [path.join(__dirname), path.join(__dirname, '..', 'server')].forEach(rootDir => {
-    watchPath(rootDir, changedPath => {
+  [path.join(__dirname), path.join(__dirname, '..', 'server')].forEach((rootDir) => {
+    watchPath(rootDir, (changedPath) => {
       if (/\.(cjs|js|json)$/i.test(changedPath)) {
-        console.log('[desktop-dev] Main/server change, relaunching:', path.relative(path.join(__dirname, '..'), changedPath));
+        console.log(
+          '[desktop-dev] Main/server change, relaunching:',
+          path.relative(path.join(__dirname, '..'), changedPath),
+        );
         relaunchApp();
       }
     });

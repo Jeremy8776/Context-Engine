@@ -437,121 +437,28 @@ const SkillsTab = (() => {
   }
 
   // ---- INGEST ----
+  async function refreshAfterIngest() {
+    await loadSkillData();
+    renderSources();
+    renderCategories();
+    render();
+    renderStats();
+  }
+
   async function ingest() {
-    const input = document.getElementById('ingest-url');
-    const btn = document.getElementById('btn-ingest');
-    const url = input.value.trim();
-
-    if (!url) {
-      input.focus();
-      return;
-    }
-    if (!url.startsWith('http')) {
-      Toast.error('Must be a full https://... URL');
-      return;
-    }
-
-    let progressEl = document.getElementById('ingest-progress');
-    if (!progressEl) {
-      progressEl = document.createElement('div');
-      progressEl.id = 'ingest-progress';
-      progressEl.className = 'ingest-progress';
-      document.querySelector('.skills-connect-modal .memory-modal-body')?.appendChild(progressEl);
-    }
-    progressEl.style.display = 'block';
-    progressEl.style.opacity = '1';
-    progressEl.innerHTML = '<div class="ingest-log"></div>';
-    const logEl = progressEl.querySelector('.ingest-log');
-
-    const pushLog = (msg, cls = '') => {
-      const line = document.createElement('div');
-      line.className = 'ingest-log-line' + (cls ? ` ${cls}` : '');
-      line.textContent = msg;
-      logEl.appendChild(line);
-      logEl.scrollTop = logEl.scrollHeight;
-    };
-
-    btn.textContent = '...';
-    btn.disabled = true;
-    input.disabled = true;
-    pushLog('Sending request to server...');
-
-    const startRes = await DS.ingestRepo(url);
-    if (!startRes?.ok || !startRes.jobId) {
-      pushLog(startRes?.error || 'Failed to start ingest job.', 'log-error');
-      btn.textContent = 'Import skills';
-      btn.disabled = false;
-      input.disabled = false;
-      return;
-    }
-
-    const { jobId } = startRes;
-    let lastLogLen = 0;
-    const poll = setInterval(async () => {
-      const status = await DS.pollIngestJob(jobId);
-      if (!status?.ok) {
-        clearInterval(poll);
-        return;
-      }
-      const newLines = (status.log || []).slice(lastLogLen);
-      lastLogLen = status.log.length;
-      newLines.forEach((line) => {
-        const cls = line.startsWith('Error')
-          ? 'log-error'
-          : line.startsWith('Found:')
-            ? 'log-found'
-            : line.startsWith('Done')
-              ? 'log-done'
-              : '';
-        pushLog(line, cls);
-      });
-      if (status.status === 'done' || status.status === 'error') {
-        clearInterval(poll);
-        if (status.count > 0) {
-          await loadSkillData();
-          renderSources();
-          renderCategories();
-          render();
-          renderStats();
-          input.value = '';
-          Toast.success(`${status.count} skills imported`);
-        }
-        btn.textContent = 'Import skills';
-        btn.disabled = false;
-        input.disabled = false;
-      }
-    }, 600);
+    await SkillsIngest.ingest(refreshAfterIngest);
   }
 
   function quickAdd(slug) {
-    openConnectModal();
-    const input = document.getElementById('ingest-url');
-    input.value = `https://github.com/${slug}`;
-    ingest();
+    SkillsIngest.quickAdd(slug);
   }
 
   function openConnectModal() {
-    const overlay = document.getElementById('skills-connect-overlay');
-    const input = document.getElementById('ingest-url');
-    const progress = document.getElementById('ingest-progress');
-    const btn = document.getElementById('btn-ingest');
-    if (!overlay || !input) return;
-    input.disabled = false;
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = 'Import skills';
-    }
-    if (progress) {
-      progress.innerHTML = '';
-      progress.style.display = 'none';
-    }
-    overlay.classList.add('open');
-    setTimeout(() => input.focus(), 0);
+    SkillsIngest.openConnectModal();
   }
 
   function closeConnectModal(event) {
-    if (event && event.target.id !== 'skills-connect-overlay') return;
-    document.getElementById('skills-connect-overlay')?.classList.remove('open');
+    SkillsIngest.closeConnectModal(event);
   }
 
   async function parseDescriptions() {

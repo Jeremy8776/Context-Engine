@@ -54,8 +54,7 @@ const AppUpdate = (() => {
       progressToastEl = document.createElement('div');
       progressToastEl.className = 'toast toast-info visible';
       progressToastEl.innerHTML =
-        '<span class="toast-icon">i</span>' +
-        '<span class="toast-message">Downloading update… 0%</span>';
+        '<span class="toast-icon">i</span>' + '<span class="toast-message">Downloading update… 0%</span>';
       container.appendChild(progressToastEl);
     }
     const msg = progressToastEl.querySelector('.toast-message');
@@ -89,10 +88,8 @@ const AppUpdate = (() => {
         clearProgress();
         if (downloadedToastShown) return;
         downloadedToastShown = true;
-        Toast.action(
-          `Update ${payload.version || ''} ready — restart to install`.trim(),
-          'Restart',
-          () => window.contextEngineDesktop?.installUpdate?.(),
+        Toast.action(`Update ${payload.version || ''} ready — restart to install`.trim(), 'Restart', () =>
+          window.contextEngineDesktop?.installUpdate?.(),
         );
         break;
       case 'error':

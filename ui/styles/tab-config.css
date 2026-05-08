@@ -1,21 +1,66 @@
 /* tab-config.css - soul & rules, provider keys */
 
 #config-tab .simple-inner {
-  max-width: var(--content-max);
+  /* Content fills the available width — no centered column with negative
+     gutters on 1440p / ultrawide. The grid below auto-fits cards at every
+     breakpoint, so wider viewports just unlock more columns instead of
+     leaving dead space. */
+  max-width: none;
+  width: 100%;
+}
+
+#config-tab .simple-page {
+  /* Same headroom diet applied to Memory/Dashboard/Modes/Skills. */
+  padding-top: 6px;
+  padding-bottom: var(--s-5);
 }
 
 .rules-hero {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--s-6);
-  margin-bottom: var(--s-6);
-  padding-bottom: var(--s-5);
+  gap: var(--s-4);
+  /* Tightened — section-hdr inside is display:none on most pages, so the hero
+     is effectively just the file pill. Was s-6/s-5 (24/16) — far too much
+     vertical space below a pill. */
+  margin-bottom: var(--s-3);
+  padding-bottom: var(--s-3);
   border-bottom: 1px solid var(--line);
 }
 
 .rules-hero .section-hdr {
   margin-bottom: 0;
+}
+
+/* Right edge of the rules hero: file pill + save controls grouped in one
+   flex row. Moved here from the legacy bottom save-bar so the user can hit
+   Save without scrolling past the preview. */
+.rules-hero-end {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.rules-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.rules-saved-inline {
+  color: var(--text-3);
+  font-family: var(--mono);
+  font-size: var(--fs-01);
+  letter-spacing: var(--tr-wide);
+  text-transform: uppercase;
+  opacity: 0;
+  transition: opacity var(--out);
+}
+
+.rules-saved-inline.show {
+  opacity: 1;
 }
 
 .rules-file-pill {
@@ -45,7 +90,13 @@
 
 .rules-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(min(var(--rules-card-min), 100%), 1fr));
+  /* auto-fit + minmax so the grid grows with viewport width:
+       <760px   → 1 column
+       760-1140 → 2 columns
+       1140+    → 3 columns
+       1900+    → 4 columns (still fine — cards just have more breathing room)
+     No centered cap, no leftover gutters. */
+  grid-template-columns: repeat(auto-fit, minmax(min(var(--rules-card-min), 100%), 1fr));
   gap: var(--s-4);
 }
 
@@ -61,8 +112,12 @@
   box-shadow: var(--shadow-glass);
 }
 
+/* `.rules-block-wide` used to force Soul to span every column unconditionally,
+   which created huge dead bands on wide viewports. Now Soul flows like the
+   other cards and only spans extra columns when the row would otherwise leave
+   a single-column gap (handled by auto-fit). */
 .rules-block-wide {
-  grid-column: 1 / -1;
+  grid-column: auto;
 }
 
 .rules-block-hdr {
@@ -336,7 +391,9 @@
   overflow: hidden;
   transition: border-color var(--out);
 }
-.api-key-input-wrap:focus-within { border-color: var(--line-accent); }
+.api-key-input-wrap:focus-within {
+  border-color: var(--line-accent);
+}
 .api-key-input-wrap .api-key-input {
   border: none;
   background: transparent;
@@ -345,7 +402,9 @@
 .api-key-input-wrap .fb.small {
   border-left: 1px solid var(--line);
   border-radius: 0;
-  border-top: 0; border-bottom: 0; border-right: 0;
+  border-top: 0;
+  border-bottom: 0;
+  border-right: 0;
 }
 .api-key-actions {
   display: flex;
@@ -360,8 +419,12 @@
   text-transform: uppercase;
   margin-top: var(--s-2);
 }
-.api-key-status.ok  { color: var(--ok); }
-.api-key-status.err { color: var(--err); }
+.api-key-status.ok {
+  color: var(--ok);
+}
+.api-key-status.err {
+  color: var(--err);
+}
 
 @media (max-width: 720px) {
   .rules-hero {
@@ -383,5 +446,7 @@
     grid-template-columns: 1fr;
   }
 
-  .api-key-row { grid-template-columns: 1fr; }
+  .api-key-row {
+    grid-template-columns: 1fr;
+  }
 }

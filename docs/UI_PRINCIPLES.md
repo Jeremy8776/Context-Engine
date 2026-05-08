@@ -23,16 +23,16 @@ Context Engine follows the shared ecosystem product language, with AI Model DB a
 
 ## Context Engine Application
 
-Context Engine is a context control plane, not a marketing dashboard.
+Context Engine is the admin panel for a local context broker, not the place where AI work happens.
 
 Top-level sections map to the ecosystem model:
 
-- Context: active context, budget, health, and manifest.
+- Context: active context, budget, broker health, and runtime/file-output status.
 - Skills: searchable/toggleable instruction modules.
 - Modes: saved context profiles and workflow chains.
 - Memory: persistent knowledge used in generated context.
 - Rules: behaviour, coding, and system rules.
-- Outputs: compiled files for Claude, Codex, Cursor, and other tools.
+- Outputs: host app connections, MCP bridge setup, and compiled file fallbacks.
 - Registry: detected tools, MCP servers, and installable ecosystem packs.
 
 ## Layout Rules

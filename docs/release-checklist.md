@@ -33,14 +33,14 @@ Use this before committing or pushing Context Engine changes.
 
 Outputs land in `app/dist/`. `dist/` is build output — never commit it.
 
-| Command                       | Produces                                                          |
-| ----------------------------- | ----------------------------------------------------------------- |
-| `npm run build:win`           | Both NSIS installer and portable .exe for Windows.                |
-| `npm run build:win:installer` | Only the NSIS installer (`Context Engine-<v>-setup-x64.exe`).     |
+| Command                       | Produces                                                               |
+| ----------------------------- | ---------------------------------------------------------------------- |
+| `npm run build:win`           | Both NSIS installer and portable .exe for Windows.                     |
+| `npm run build:win:installer` | Only the NSIS installer (`Context Engine-<v>-setup-x64.exe`).          |
 | `npm run build:win:portable`  | Only the portable single-file (`Context Engine-<v>-portable-x64.exe`). |
-| `npm run build:mac`           | DMG and ZIP for macOS (icon falls back to PNG).                   |
-| `npm run build:linux`         | AppImage and .deb for Linux.                                      |
-| `npm run build`               | All targets enabled for the current host platform.                |
+| `npm run build:mac`           | DMG and ZIP for macOS using `icon.icns`.                               |
+| `npm run build:linux`         | AppImage and .deb for Linux using the generated icon set.              |
+| `npm run build`               | All targets enabled for the current host platform.                     |
 
 ### Installer behaviour
 
@@ -50,7 +50,7 @@ Outputs land in `app/dist/`. `dist/` is build output — never commit it.
 - Creates Desktop and Start Menu shortcuts named "Context Engine".
 - Uninstall preserves user data by default (`deleteAppDataOnUninstall: false`).
 - Portable variant runs from any location; writes runtime data alongside the .exe.
-- Brand icon: `ui/assets/brand/icon.ico` (multi-size 16/32/48/64/128/256). Regenerate via `magick -background none -density 600 ui/assets/brand/icon.svg -define icon:auto-resize=256,128,64,48,32,16 ui/assets/brand/icon.ico` if the SVG changes.
+- Brand icon source: `ui/assets/brand/icon.svg`. Regenerate Windows `.ico`, macOS `.icns`, Linux icon set, and 512px PNG with `npm run assets:icons` after changing the SVG.
 - Code signing: not configured. NSIS and portable .exe ship unsigned — Windows SmartScreen will warn on first run until a code-signing certificate is added (then set `CSC_LINK` and `CSC_KEY_PASSWORD` env vars before building).
 - Auto-update channel: GitHub releases (`Jeremy8776/context-engine`). `latest.yml` and `.blockmap` files in `dist/` go up with the release for `electron-updater` to consume.
 

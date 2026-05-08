@@ -1,29 +1,43 @@
 /* DRAM page-specific role mapping. */
 
 .dashboard-mode-btn {
-  min-height: var(--dram-card-compact-h);
-  align-items: flex-start;
-  padding: var(--s-3);
+  position: relative;
+  min-height: 44px;
+  align-items: center;
+  padding: var(--s-2) var(--s-4) var(--s-2) calc(var(--s-4) + 10px);
   color: var(--text);
-  background: var(--skill-preset-card-bg);
-  border: 1px solid var(--dram-card-border);
-  border-radius: var(--r-3);
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-1);
   transform: none;
+  overflow: hidden;
 }
 
 .dashboard-mode-btn::before {
-  display: none;
+  content: '';
+  position: absolute;
+  left: var(--s-2);
+  top: 50%;
+  width: 3px;
+  height: 12px;
+  border-radius: var(--r-full);
+  background: transparent;
+  transform: translateY(-50%);
 }
 
 .dashboard-mode-btn:hover {
-  background: var(--skill-preset-card-hover);
-  border-color: var(--dram-card-border-hover);
+  background: var(--dram-hover-fade);
+  border-color: transparent;
   transform: none;
 }
 
 .dashboard-mode-btn.active {
-  background: var(--skill-preset-card-active);
-  border-color: var(--dram-card-border-active);
+  background: var(--dram-active-fade);
+  border-color: transparent;
+}
+
+.dashboard-mode-btn.active::before {
+  background: var(--accent);
 }
 
 .dashboard-mode-btn strong,
@@ -53,7 +67,6 @@
 }
 
 .compile-tool-card,
-.strategy-option,
 .compile-ws-row,
 .rules-block,
 .rules-tool,
@@ -69,7 +82,6 @@
 }
 
 .compile-tool-card,
-.strategy-option,
 .mode-card,
 #skills-tab .grid-mode .skill-row {
   min-height: var(--dram-card-compact-h);

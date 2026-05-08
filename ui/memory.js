@@ -6,8 +6,7 @@ const MemoryTab = (() => {
   let filter = 'all';
   let query = '';
   let selected = 0;
-  let currentPage = 1;
-  const pageSize = 20;
+  let view = 'grid'; // 'grid' | 'list' — mirrors Skills tab pattern
 
   const categoryLabels = {
     profile: 'Profile',
@@ -42,7 +41,9 @@ const MemoryTab = (() => {
       text,
       category,
       title: titleFor(text, category),
-      preview: text.length > 220 ? `${text.slice(0, 220).trim()}...` : text,
+      // Short preview — CSS clamps to a few lines too, but truncating here
+      // keeps the DOM small in card view where there are dozens on screen.
+      preview: text.length > 140 ? `${text.slice(0, 140).trim()}...` : text,
       words: text.split(/\s+/).filter(Boolean).length,
     };
   }
@@ -53,55 +54,29 @@ const MemoryTab = (() => {
       .trim();
     if (value && value !== 'general') return value.replace(/[^a-z0-9-]/g, '-');
 
+    // Generic keyword-based auto-categorization. Patterns are intentionally
+    // broad so they work for any user. To extend with personal patterns,
+    // edit this function locally — runtime user data lives in CE_ROOT/data/
+    // not in the repo.
     const s = text.toLowerCase();
-    if (/fujifilm|x100vi|film sim|photography|gyazo|captioning images/.test(s)) return 'photography';
-    if (/acid reflux|gerd|bmi|heart rate|osgood|muay thai|health|fitness|watch 6|steps|calories/.test(s))
-      return 'health';
-    if (/partner|partner|buddy|family|zhengzhou/.test(s)) return 'people';
-    if (/invoice|tax|contractor|income|rent|council tax|savings|foreign income/.test(s)) return 'finance';
-    if (
-      /comfyui|python|node|powershell|mtcnn|insightface|yolo|diffusion|api|mcp|arma|enscript|blender/.test(s)
-    )
+    if (/photo|photography|camera|lens|lightroom|capture/.test(s)) return 'photography';
+    if (/health|fitness|exercise|diet|calories|bmi|sleep|heart rate|steps/.test(s)) return 'health';
+    if (/partner|spouse|family|friend|colleague|teammate|pet/.test(s)) return 'people';
+    if (/invoice|tax|budget|expense|income|salary|savings|rent|mortgage/.test(s)) return 'finance';
+    if (/code|api|python|javascript|typescript|sql|docker|git|devops|terminal|cli/.test(s))
       return 'technical';
-    if (/windows pc|workstation|e:\\|c:\\|workspace|drive|data\\memory|claude/.test(s)) return 'workspace';
-    if (
-      /job search|director|strategist|studio|acme|client|portfolio|linkedin|cv|mpts|redundancy/.test(
-        s,
-      )
-    )
-      return 'career';
-    if (/travel|chengdu|jiuzhaigou|flight|china|mont blanc|ben nevis|snowdonia|cairngorms/.test(s))
-      return 'travel';
-    if (/born|foster|adoption|birth mother|birth father|memory suppression|stress response/.test(s))
-      return 'personal';
-    if (/jeremy walder|ravensbourne|east london|first home/.test(s)) return 'profile';
+    if (/workspace|setup|desktop|laptop|machine|drive|monitor|keyboard/.test(s)) return 'workspace';
+    if (/job|role|career|employer|client|resume|résumé|cv|linkedin|portfolio/.test(s)) return 'career';
+    if (/travel|flight|hotel|trip|vacation|visit|holiday|airport/.test(s)) return 'travel';
+    if (/childhood|biography|identity|background|history|origin/.test(s)) return 'personal';
+    if (/born|date of birth|birthday|nickname/.test(s)) return 'profile';
     return 'general';
   }
 
   function titleFor(text, category) {
-    const known = [
-      [/jeremy walder/i, 'Identity and background'],
-      [/active job search/i, 'Current positioning'],
-      [/director of ai strategy at acme/i, 'Acme role'],
-      [/studio/i, 'Studio role'],
-      [/never reference as clients/i, 'Client history and exclusions'],
-      [/comfyui/i, 'ComfyUI and AI production stack'],
-      [/windows pc/i, 'Machine and workspace'],
-      [/partner partner/i, 'Partner context'],
-      [/white cavapoo/i, 'Buddy'],
-      [/foster care/i, 'Early life context'],
-      [/visual memory suppression/i, 'Memory suppression model'],
-      [/height 176cm/i, 'Health baseline'],
-      [/strong athletic baseline/i, 'Fitness baseline'],
-      [/fujifilm x100vi/i, 'Photography setup'],
-      [/arma reforger/i, 'Games and modding'],
-      [/uk-based contractor/i, 'Contractor finance'],
-      [/three-week family visit/i, 'China trip'],
-      [/personal website/i, 'Public positioning gap'],
-    ];
-    const match = known.find(([pattern]) => pattern.test(text));
-    if (match) return match[1];
-
+    // Falls through to a sentence-based heuristic. The previous version had
+    // a hardcoded title map tuned to one user's biography; that's been
+    // removed so the public repo doesn't ship personal-specific defaults.
     const sentence = text.split(/[.!?]\s/)[0] || text;
     const cleaned = sentence.replace(/\s+/g, ' ').trim();
     if (cleaned.length <= 68) return cleaned;
@@ -114,20 +89,6 @@ const MemoryTab = (() => {
       .map(normalizeEntry)
       .filter((item) => filter === 'all' || item.category === filter)
       .filter((item) => !q || `${item.title} ${item.text}`.toLowerCase().includes(q));
-  }
-
-  function pageTotal(items) {
-    return Math.max(1, Math.ceil(items.length / pageSize));
-  }
-
-  function clampPage(items) {
-    currentPage = Math.min(Math.max(1, currentPage), pageTotal(items));
-  }
-
-  function currentPageItems(items) {
-    clampPage(items);
-    const start = (currentPage - 1) * pageSize;
-    return items.slice(start, start + pageSize);
   }
 
   function matchesQuery(item, q) {
@@ -143,7 +104,7 @@ const MemoryTab = (() => {
     allItems.forEach((item) => counts.set(item.category, (counts.get(item.category) || 0) + 1));
     queryItems.forEach((item) => queryCounts.set(item.category, (queryCounts.get(item.category) || 0) + 1));
     const cats = [...counts.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-    return [['all', entries.length], ...cats]
+    const buttons = [['all', entries.length], ...cats]
       .map(([id, count]) => {
         const active = filter === id ? ' active' : '';
         const label = id === 'all' ? 'All' : categoryLabels[id] || sentenceCase(id);
@@ -156,6 +117,13 @@ const MemoryTab = (() => {
         </button>`;
       })
       .join('');
+    // Wrap in a labeled section to mirror the Skills sidebar pattern
+    // (.skills-side-section + .skills-side-label + .skills-side-list).
+    return `
+      <div class="memory-side-section">
+        <span class="memory-side-label">Categories</span>
+        <div class="memory-side-list">${buttons}</div>
+      </div>`;
   }
 
   function renderStats(items) {
@@ -171,55 +139,30 @@ const MemoryTab = (() => {
   function render() {
     const container = document.getElementById('memory-list');
     const items = visibleEntries();
-    clampPage(items);
+    const gridClass = view === 'grid' ? ' grid-mode' : '';
 
     if (!items.length) {
       container.innerHTML = `
-        <div class="memory-workbench">
+        <div class="memory-workbench no-detail">
           <aside class="memory-sidebar">${categories()}</aside>
           <section class="memory-results"><div class="db-empty">No memory entries match this view.</div></section>
-          <aside class="memory-detail empty">Select a memory to inspect it.</aside>
         </div>`;
       return;
     }
 
-    const pageItems = currentPageItems(items);
-    if (!pageItems.some((item) => item.index === selected)) selected = pageItems[0].index;
-    const selectedItem = pageItems.find((item) => item.index === selected) || pageItems[0];
-    selected = selectedItem.index;
+    if (!items.some((item) => item.index === selected)) selected = items[0].index;
 
+    // All items render into the scroll container — the container's own
+    // overflow-y handles long lists. No pagination control: matches the
+    // Skills tab pattern.
     container.innerHTML = `
-      <div class="memory-workbench">
+      <div class="memory-workbench no-detail">
         <aside class="memory-sidebar">${categories()}</aside>
         <section class="memory-results">
-          <div class="memory-results-scroll">
-            ${pageItems.map(renderRow).join('')}
+          <div class="memory-results-scroll${gridClass}">
+            ${items.map(renderRow).join('')}
           </div>
-          ${renderPagination(items)}
         </section>
-        <aside class="memory-detail" id="memory-detail">${renderDetail(selectedItem)}</aside>
-      </div>`;
-  }
-
-  function renderPagination(items) {
-    if (items.length <= pageSize) return '';
-    const total = pageTotal(items);
-    const start = (currentPage - 1) * pageSize + 1;
-    const end = Math.min(start + pageSize - 1, items.length);
-    const prevDisabled = currentPage <= 1 ? ' disabled' : '';
-    const nextDisabled = currentPage >= total ? ' disabled' : '';
-    return `
-      <div class="memory-pagination" aria-label="Memory pagination">
-        <span>${start}-${end} of ${items.length}</span>
-        <button class="mem-btn" type="button" onclick="MemoryTab.setPage(${currentPage - 1})"${prevDisabled} title="Previous page">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
-          <span>Prev</span>
-        </button>
-        <span class="memory-page-count">Page ${currentPage} / ${total}</span>
-        <button class="mem-btn" type="button" onclick="MemoryTab.setPage(${currentPage + 1})"${nextDisabled} title="Next page">
-          <span>Next</span>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
-        </button>
       </div>`;
   }
 
@@ -236,16 +179,19 @@ const MemoryTab = (() => {
   }
 
   function renderDetail(item) {
+    // Read-only detail rendered inside the shared SidePanel. Edit and delete
+    // route through the same actions as the inline panel did before.
     return `
-      <div class="memory-detail-head">
-        <span class="memory-cat-badge mem-cat-${esc(item.category)}">${esc(categoryLabels[item.category] || item.category)}</span>
-        <h3>${esc(item.title)}</h3>
-        <p>${item.words} words</p>
-      </div>
-      <div class="memory-detail-body">${esc(item.text)}</div>
-      <div class="memory-detail-actions">
-        <button class="save-btn" onclick="MemoryTab.startEdit(${item.index})">Edit</button>
-        <button class="mem-btn danger" onclick="MemoryTab.remove(${item.index})">Delete</button>
+      <div class="sp-detail">
+        <div class="memory-detail-head">
+          <span class="memory-cat-badge mem-cat-${esc(item.category)}">${esc(categoryLabels[item.category] || item.category)}</span>
+          <p>${item.words} words</p>
+        </div>
+        <div class="memory-detail-body">${esc(item.text)}</div>
+        <div class="sp-actions sp-actions-edit compact">
+          <button class="save-btn" onclick="MemoryTab.startEdit(${item.index})">Edit</button>
+          <button class="mem-btn danger push-end" onclick="MemoryTab.remove(${item.index})">Delete</button>
+        </div>
       </div>`;
   }
 
@@ -276,18 +222,21 @@ const MemoryTab = (() => {
 
   function select(i) {
     selected = i;
+    const item = normalizeEntry(entries[i], i);
+    render();
+    SidePanel.open(item.title, renderDetail(item));
+  }
+
+  function setView(v) {
+    view = v;
+    document.getElementById('memory-btn-grid')?.classList.toggle('on', v === 'grid');
+    document.getElementById('memory-btn-list')?.classList.toggle('on', v === 'list');
     render();
   }
 
   function setFilter(next) {
     filter = next;
-    currentPage = 1;
     selected = 0;
-    render();
-  }
-
-  function setPage(next) {
-    currentPage = next;
     render();
   }
 
@@ -318,7 +267,6 @@ const MemoryTab = (() => {
     if (!ok) return;
     entries.splice(i, 1);
     selected = Math.max(0, Math.min(selected, entries.length - 1));
-    currentPage = Math.min(currentPage, pageTotal(visibleEntries()));
     saveState();
     SidePanel.close();
     render();
@@ -334,7 +282,6 @@ const MemoryTab = (() => {
       content: text,
     });
     selected = entries.length - 1;
-    currentPage = pageTotal(visibleEntries());
     saveState();
     render();
   }
@@ -377,7 +324,6 @@ const MemoryTab = (() => {
     const searchInput = document.getElementById('memory-search-input');
     searchInput?.addEventListener('input', (e) => {
       query = e.target.value || '';
-      currentPage = 1;
       selected = 0;
       render();
     });
@@ -397,7 +343,7 @@ const MemoryTab = (() => {
     render,
     select,
     setFilter,
-    setPage,
+    setView,
     startEdit,
     saveEdit,
     remove,

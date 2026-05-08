@@ -10,7 +10,9 @@
   visibility: hidden;
   pointer-events: none;
   z-index: var(--z-rail);
-  transition: opacity var(--out), visibility var(--out);
+  transition:
+    opacity var(--out),
+    visibility var(--out);
 }
 .side-panel-overlay.open {
   opacity: 1;
@@ -18,23 +20,31 @@
 }
 
 .side-panel {
+  /* Docked rail. Hugs the right edge of the viewport so the page reflow
+     (padding-right on memory-results / skills-container / modes-list) lines
+     up flush with the panel's left edge — no halo over content, no gap. */
   position: fixed;
-  top: calc(var(--side-panel-top, var(--top-h)) + 18px);
-  right: var(--rail-inset);
-  bottom: 18px;
-  width: min(calc(var(--rail-w) - var(--rail-inner-gutter)), calc(100vw - var(--rail-max-gutter)));
+  top: var(--side-panel-top, var(--top-h));
+  right: 0;
+  bottom: 0;
+  width: min(var(--rail-w), calc(100vw - var(--rail-max-gutter)));
   max-width: calc(100vw - var(--rail-max-gutter));
   background: var(--bg-raised);
-  border: 1px solid var(--line-2);
-  border-radius: var(--r-3);
+  border: 0;
+  border-left: 1px solid var(--line-2);
+  border-radius: 0;
   z-index: calc(var(--z-rail) + 1);
   display: flex;
   flex-direction: column;
   transform: translateX(100%);
   transition: transform var(--spring);
-  box-shadow: -24px 0 64px -16px var(--alpha-black-60);
+  /* Subtle inward shadow only, so the boundary reads as a divider rather
+     than a floating card hovering over the grid. */
+  box-shadow: inset 1px 0 0 var(--alpha-black-60);
 }
-.side-panel.open { transform: translateX(0); }
+.side-panel.open {
+  transform: translateX(0);
+}
 
 .sp-header {
   display: flex;
@@ -47,7 +57,9 @@
 }
 .sp-title {
   font-family: var(--display);
-  font-variation-settings: 'opsz' 24, 'wght' 500;
+  font-variation-settings:
+    'opsz' 24,
+    'wght' 500;
   font-size: var(--fs-07);
   font-weight: 500;
   color: var(--text);
@@ -60,7 +72,8 @@
 }
 
 .sp-close {
-  width: 32px; height: 32px;
+  width: 32px;
+  height: 32px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -106,7 +119,9 @@
   padding-bottom: var(--s-4);
   border-bottom: 1px solid var(--line);
 }
-.sp-field:last-child { border-bottom: none; }
+.sp-field:last-child {
+  border-bottom: none;
+}
 
 .sp-field label {
   font-family: var(--mono);
@@ -178,9 +193,13 @@
   border-radius: var(--r-1);
   transition: background var(--out);
 }
-.sp-skill-toggle { cursor: pointer; }
+.sp-skill-toggle {
+  cursor: pointer;
+}
 .sp-skill-toggle:hover,
-.sp-skill-item:hover { background: var(--bg-hover); }
+.sp-skill-item:hover {
+  background: var(--bg-hover);
+}
 
 .sp-actions {
   display: flex;

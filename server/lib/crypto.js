@@ -3,8 +3,8 @@
 // at-rest obfuscation, not real encryption: anyone with code execution on this
 // machine can decrypt. Protects against casual repo / backup leaks only.
 
-const fs     = require('fs');
-const os     = require('os');
+const fs = require('fs');
+const os = require('os');
 const crypto = require('crypto');
 const { KEYS_FILE } = require('./config');
 
@@ -29,14 +29,35 @@ function decryptValue(envelope) {
   return decipher.update(envelope.data, 'hex', 'utf8') + decipher.final('utf8');
 }
 
-function loadKeys() { try { return JSON.parse(fs.readFileSync(KEYS_FILE, 'utf8')); } catch { return {}; } }
-function saveKeys(keys) { fs.writeFileSync(KEYS_FILE, JSON.stringify(keys, null, 2), 'utf8'); }
+function loadKeys() {
+  try {
+    return JSON.parse(fs.readFileSync(KEYS_FILE, 'utf8'));
+  } catch {
+    return {};
+  }
+}
+function saveKeys(keys) {
+  // mode 0o600 — owner read/write only. Honored on POSIX; Windows ignores
+  // this and relies on the user-profile ACL, which is sufficient there.
+  fs.writeFileSync(KEYS_FILE, JSON.stringify(keys, null, 2), { encoding: 'utf8', mode: 0o600 });
+  try {
+    fs.chmodSync(KEYS_FILE, 0o600);
+  } catch {
+    /* best-effort on Windows */
+  }
+}
 
 function getApiKey(name) {
   const envKey = process.env[name];
   if (envKey) return envKey;
   const keys = loadKeys();
-  if (keys[name]) { try { return decryptValue(keys[name]); } catch { return null; } }
+  if (keys[name]) {
+    try {
+      return decryptValue(keys[name]);
+    } catch {
+      return null;
+    }
+  }
   return null;
 }
 

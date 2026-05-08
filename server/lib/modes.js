@@ -1,6 +1,6 @@
 // modes.js — Mode presets, CONTEXT.md generation, and budget estimation
 
-const fs   = require('fs');
+const fs = require('fs');
 const { DATA_DIR, SKILLS_DIR, CONTEXT_MD, MODES_FILE } = require('./config');
 const { readData, writeData, appendSession } = require('./backup');
 const { scanSkills } = require('./skills');
@@ -9,26 +9,35 @@ const { estimateTokens, buildContext, ADAPTERS } = require('../compiler');
 const DEFAULT_MODES = {
   modes: [
     {
-      id: 'all', label: 'All On', icon: 'unlock',
+      id: 'all',
+      label: 'All On',
+      icon: 'unlock',
       desc: 'Activate all discovered skills for maximum capability.',
-      skills: []
+      skills: [],
     },
     {
-      id: 'coding', label: 'Heavy Coding', icon: 'code',
+      id: 'coding',
+      label: 'Heavy Coding',
+      icon: 'code',
       desc: 'Optimized for complex refactoring and library development.',
-      skills: []
+      skills: [],
     },
     {
-      id: 'minimal', label: 'Lean Mode', icon: 'shield',
+      id: 'minimal',
+      label: 'Lean Mode',
+      icon: 'shield',
       desc: 'Minimal context for faster inference and lower token usage.',
-      skills: []
-    }
-  ]
+      skills: [],
+    },
+  ],
 };
 
 function getModes() {
-  try { return JSON.parse(fs.readFileSync(MODES_FILE, 'utf8')); }
-  catch { return DEFAULT_MODES; }
+  try {
+    return JSON.parse(fs.readFileSync(MODES_FILE, 'utf8'));
+  } catch {
+    return DEFAULT_MODES;
+  }
 }
 
 function regenerateCONTEXTmd() {
@@ -41,31 +50,47 @@ function regenerateCONTEXTmd() {
 function applyMode(modeId) {
   const SKILL_MAP = scanSkills();
   const modesData = getModes();
-  const mode = modesData.modes.find(m => m.id === modeId);
+  const mode = modesData.modes.find((m) => m.id === modeId);
   if (!mode) return null;
   const backup = readData('skill-states.json');
   const states = backup || {};
   const stateMap = { ...(states.states || {}) };
 
-  Object.keys(SKILL_MAP).forEach(id => { stateMap[id] = false; });
+  Object.keys(SKILL_MAP).forEach((id) => {
+    stateMap[id] = false;
+  });
 
   if (mode.id === 'all') {
-    Object.keys(SKILL_MAP).forEach(id => { stateMap[id] = true; });
+    Object.keys(SKILL_MAP).forEach((id) => {
+      stateMap[id] = true;
+    });
   } else {
-    mode.skills.forEach(id => { if(SKILL_MAP[id]) stateMap[id] = true; });
+    mode.skills.forEach((id) => {
+      if (SKILL_MAP[id]) stateMap[id] = true;
+    });
   }
 
-  const newStates = { version: '1.0', last_updated: new Date().toISOString().split('T')[0], states: stateMap };
+  const newStates = {
+    version: '1.0',
+    last_updated: new Date().toISOString().split('T')[0],
+    states: stateMap,
+  };
   try {
     writeData('skill-states.json', newStates);
     const regen = regenerateCONTEXTmd();
-    appendSession({ type: 'mode_applied', mode: modeId, skills: Object.keys(stateMap).filter(k => stateMap[k]) });
+    appendSession({
+      type: 'mode_applied',
+      mode: modeId,
+      skills: Object.keys(stateMap).filter((k) => stateMap[k]),
+    });
     return newStates;
   } catch (e) {
     // Rollback both state file and CONTEXT.md on failure
     if (backup) {
       writeData('skill-states.json', backup);
-      try { regenerateCONTEXTmd(); } catch {}
+      try {
+        regenerateCONTEXTmd();
+      } catch {}
     }
     throw e;
   }
@@ -73,25 +98,30 @@ function applyMode(modeId) {
 
 function estimateContextBudget() {
   try {
-    const contextMd  = fs.existsSync(CONTEXT_MD) ? fs.readFileSync(CONTEXT_MD, 'utf8') : '';
-    const memText   = JSON.stringify(readData('memory.json') || '');
+    const contextMd = fs.existsSync(CONTEXT_MD) ? fs.readFileSync(CONTEXT_MD, 'utf8') : '';
+    const memText = JSON.stringify(readData('memory.json') || '');
     const rulesText = JSON.stringify(readData('rules.json') || '');
     const contextTokens = estimateTokens(contextMd);
-    const memoryTokens  = estimateTokens(memText);
-    const rulesTokens   = estimateTokens(rulesText);
-    const totalTokens   = contextTokens + memoryTokens + rulesTokens;
+    const memoryTokens = estimateTokens(memText);
+    const rulesTokens = estimateTokens(rulesText);
+    const totalTokens = contextTokens + memoryTokens + rulesTokens;
     return {
-      contextMdChars: contextMd.length, memoryChars: memText.length,
-      rulesChars: rulesText.length, totalChars: contextMd.length + memText.length + rulesText.length,
-      estimatedTokens: totalTokens, budgetPercent: Math.round((totalTokens / 200000) * 100),
+      contextMdChars: contextMd.length,
+      memoryChars: memText.length,
+      rulesChars: rulesText.length,
+      totalChars: contextMd.length + memText.length + rulesText.length,
+      estimatedTokens: totalTokens,
+      budgetPercent: Math.round((totalTokens / 200000) * 100),
       contextMdLines: contextMd.split('\n').length,
       breakdown: {
         context: { chars: contextMd.length, tokens: contextTokens },
-        memory:  { chars: memText.length, tokens: memoryTokens },
-        rules:   { chars: rulesText.length, tokens: rulesTokens },
-      }
+        memory: { chars: memText.length, tokens: memoryTokens },
+        rules: { chars: rulesText.length, tokens: rulesTokens },
+      },
     };
-  } catch(e) { return { error: e.message }; }
+  } catch (e) {
+    return { error: e.message };
+  }
 }
 
 module.exports = { DEFAULT_MODES, getModes, regenerateCONTEXTmd, applyMode, estimateContextBudget };

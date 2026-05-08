@@ -43,10 +43,10 @@ const AppDialog = (() => {
     root.querySelector('.app-dialog-close')?.addEventListener('click', () => settle(false));
     root.querySelector('.app-dialog-cancel')?.addEventListener('click', () => settle(false));
     root.querySelector('.app-dialog-confirm')?.addEventListener('click', () => settle(true));
-    root.addEventListener('click', e => {
+    root.addEventListener('click', (e) => {
       if (e.target === root) settle(false);
     });
-    document.addEventListener('keydown', e => {
+    document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && root?.classList.contains('open')) settle(false);
     });
     return root;
@@ -72,7 +72,7 @@ const AppDialog = (() => {
     if (cancelButton) cancelButton.textContent = options.cancelText || 'Cancel';
     el.classList.toggle('danger', !!options.danger);
     el.classList.add('open');
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       activeResolve = resolve;
       setTimeout(() => {
         /** @type {HTMLElement | null} */
@@ -128,15 +128,15 @@ const Toast = (() => {
   }
   return {
     /** @param {string} msg @param {number} [dur] */
-    info:    (msg, dur) => show(msg, 'info', dur),
+    info: (msg, dur) => show(msg, 'info', dur),
     /** @param {string} msg @param {number} [dur] */
     success: (msg, dur) => show(msg, 'success', dur),
     /** @param {string} msg @param {number} [dur] */
-    error:   (msg, dur) => show(msg, 'error', dur || 5000),
+    error: (msg, dur) => show(msg, 'error', dur || 5000),
     /** @param {string} msg @param {number} [dur] */
-    warn:    (msg, dur) => show(msg, 'warning', dur),
+    warn: (msg, dur) => show(msg, 'warning', dur),
     /** @param {string} msg @param {string} label @param {() => void | Promise<void>} onClick */
-    action:  (msg, label, onClick) => show(msg, 'info', 0, { label, onClick }),
+    action: (msg, label, onClick) => show(msg, 'info', 0, { label, onClick }),
   };
 })();
 // ---- API FETCH ----
@@ -154,15 +154,17 @@ async function apiFetch(path, method = 'GET', payload = null, options = {}) {
     if (payload) opts.body = JSON.stringify(payload);
     const res = await fetch(`${API}${path}`, opts);
     let data = null;
-    try { data = await res.json(); } catch (je) {
-       console.error(`API Parse Error: ${path}`, je);
-       Toast.error(`Server error: '${path}' returned non-JSON response.`);
-       return null;
+    try {
+      data = await res.json();
+    } catch (je) {
+      console.error(`API Parse Error: ${path}`, je);
+      Toast.error(`Server error: '${path}' returned non-JSON response.`);
+      return null;
     }
-      if (!res.ok) {
-        Toast.error(data.error || `Request failed (${res.status})`);
-        return options.returnErrors ? { ok: false, status: res.status, ...(data || {}) } : null;
-      }
+    if (!res.ok) {
+      Toast.error(data.error || `Request failed (${res.status})`);
+      return options.returnErrors ? { ok: false, status: res.status, ...(data || {}) } : null;
+    }
     return data;
   } catch (e) {
     Toast.error(`Connection failed: ${e instanceof Error ? e.message : String(e)}`);
@@ -182,17 +184,17 @@ const ServerStatus = {
       el.className = 'server-status ' + (this.online ? 'online' : 'offline');
     }
     return this.online;
-  }
+  },
 };
 // ---- SKILL DATA (fetched from server) ----
 let MEMORY_CATEGORIES = [];
 
 async function loadSkillData() {
   const resp = await apiFetch('/skills');
-  const data = (resp && resp.skills) ? resp.skills : resp;
+  const data = resp && resp.skills ? resp.skills : resp;
   if (data && Array.isArray(data)) {
     SKILL_DATA = data;
-    CATEGORIES = (resp && resp.categories) ? resp.categories : [];
+    CATEGORIES = resp && resp.categories ? resp.categories : [];
   }
 }
 
@@ -204,9 +206,10 @@ const SS = {
     if (this._cache) return this._cache;
     try {
       const raw = localStorage.getItem('ce_ss');
-      this._cache = raw ? (JSON.parse(raw) || {}) : {};
+      this._cache = raw ? JSON.parse(raw) || {} : {};
+    } catch {
+      this._cache = {};
     }
-    catch { this._cache = {}; }
     return this._cache ?? {};
   },
   /** @param {string} id @param {boolean} v */
@@ -217,8 +220,10 @@ const SS = {
     localStorage.setItem('ce_ss', JSON.stringify(s));
     if (ServerStatus.online) {
       apiFetch('/states', 'POST', {
-        version: '1.0', last_updated: new Date().toISOString().split('T')[0], states: s,
-      }).then(r => {
+        version: '1.0',
+        last_updated: new Date().toISOString().split('T')[0],
+        states: s,
+      }).then((r) => {
         if (r && r.activeCount !== undefined) {
           Toast.success(`${r.activeCount} skills active`);
           if (typeof DashboardTab !== 'undefined') DashboardTab.refreshBudget();
@@ -230,7 +235,7 @@ const SS = {
   active(id) {
     const s = this.get();
     if (id in s) return s[id];
-    const sk = SKILL_DATA.find(x => x.id === id);
+    const sk = SKILL_DATA.find((x) => x.id === id);
     return sk ? sk.type !== 'external' : true;
   },
   async loadFromServer() {
@@ -249,13 +254,19 @@ const SS = {
   /** @param {string[]} ids @param {string} keepId */
   async applyReview(ids, keepId) {
     const s = { ...this.get() };
-    ids.forEach(id => { s[id] = id === keepId; });
+    ids.forEach((id) => {
+      s[id] = id === keepId;
+    });
     return await this.saveStates(s);
   },
   /** @param {Array<{ ids: string[], keepId: string }>} choices */
   async applyReviewChoices(choices) {
     const s = { ...this.get() };
-    choices.forEach(({ ids, keepId }) => ids.forEach(id => { s[id] = id === keepId; }));
+    choices.forEach(({ ids, keepId }) =>
+      ids.forEach((id) => {
+        s[id] = id === keepId;
+      }),
+    );
     return await this.saveStates(s);
   },
   /** @param {Record<string, boolean>} s */
@@ -263,27 +274,38 @@ const SS = {
     this._cache = s;
     localStorage.setItem('ce_ss', JSON.stringify(s));
     if (!ServerStatus.online) return { ok: true, localOnly: true };
-    return await apiFetch('/states', 'POST', {
-      version: '1.0', last_updated: new Date().toISOString().split('T')[0], states: s,
-    }, { returnErrors: true });
+    return await apiFetch(
+      '/states',
+      'POST',
+      {
+        version: '1.0',
+        last_updated: new Date().toISOString().split('T')[0],
+        states: s,
+      },
+      { returnErrors: true },
+    );
   },
   /** @param {string[]} ids @param {boolean} value */
   setBulk(ids, value) {
     const s = this.get();
-    ids.forEach(id => { s[id] = value; });
+    ids.forEach((id) => {
+      s[id] = value;
+    });
     this._cache = s;
     localStorage.setItem('ce_ss', JSON.stringify(s));
     if (ServerStatus.online) {
       apiFetch('/states', 'POST', {
-        version: '1.0', last_updated: new Date().toISOString().split('T')[0], states: s,
-      }).then(r => {
+        version: '1.0',
+        last_updated: new Date().toISOString().split('T')[0],
+        states: s,
+      }).then((r) => {
         if (r && r.activeCount !== undefined) {
           Toast.success(`${r.activeCount} skills active`);
           if (typeof DashboardTab !== 'undefined') DashboardTab.refreshBudget();
         }
       });
     }
-  }
+  },
 };
 // ---- MEMORY ----
 const MS = {
@@ -293,7 +315,10 @@ const MS = {
     if (this._data) return this._data;
     try {
       const raw = localStorage.getItem('ce_mem_v2');
-      if (raw) { this._data = JSON.parse(raw); return this._data; }
+      if (raw) {
+        this._data = JSON.parse(raw);
+        return this._data;
+      }
     } catch {}
     return { version: '1.1', entries: [] };
   },
@@ -303,7 +328,7 @@ const MS = {
     memoryData.last_updated = new Date().toISOString().split('T')[0];
     localStorage.setItem('ce_mem_v2', JSON.stringify(memoryData));
     if (ServerStatus.online) {
-      apiFetch('/memory', 'POST', memoryData).then(r => {
+      apiFetch('/memory', 'POST', memoryData).then((r) => {
         if (r?.ok) Toast.success('Memory saved');
         else Toast.error('Failed to save memory');
       });
@@ -317,7 +342,7 @@ const MS = {
       return data;
     }
     return null;
-  }
+  },
 };
 
 // ---- RULES ----
@@ -329,7 +354,10 @@ const RS = {
     try {
       const raw = localStorage.getItem('ce_rules');
       const s = raw ? JSON.parse(raw) : null;
-      if (s) { this._cache = s; return s; }
+      if (s) {
+        this._cache = s;
+        return s;
+      }
     } catch {}
     return { ...DEFAULT_RULES };
   },
@@ -338,7 +366,11 @@ const RS = {
     this._cache = rules;
     localStorage.setItem('ce_rules', JSON.stringify(rules));
     if (ServerStatus.online) {
-      apiFetch('/rules', 'POST', { version: '1.0', last_updated: new Date().toISOString().split('T')[0], ...rules }).then(r => {
+      apiFetch('/rules', 'POST', {
+        version: '1.0',
+        last_updated: new Date().toISOString().split('T')[0],
+        ...rules,
+      }).then((r) => {
         if (r?.ok) Toast.success('Rules saved');
         else Toast.error('Failed to save rules');
       });
@@ -353,55 +385,128 @@ const RS = {
       return rules;
     }
     return null;
-  }
+  },
 };
 // ---- DASHBOARD DATA ----
 const DS = {
-  async getHealth()      { return await apiFetch('/health'); },
-  async getContextMd()    { return await apiFetch('/context-md'); },
-  async regenContextMd()  { return await apiFetch('/context-md', 'POST'); },
-  async getBudget()      { return await apiFetch('/health'); },
-  async getBackups()     { return await apiFetch('/backups'); },
-  async createBackup()   { return await apiFetch('/backups', 'POST'); },
+  async getHealth() {
+    return await apiFetch('/health');
+  },
+  async getContextMd() {
+    return await apiFetch('/context-md');
+  },
+  async regenContextMd() {
+    return await apiFetch('/context-md', 'POST');
+  },
+  async getBudget() {
+    return await apiFetch('/health');
+  },
+  async getBackups() {
+    return await apiFetch('/backups');
+  },
+  async createBackup() {
+    return await apiFetch('/backups', 'POST');
+  },
   /** @param {string} ts */
-  async restoreBackup(ts) { return await apiFetch('/restore', 'POST', { timestamp: ts }); },
-  async getSessionLog()  { return await apiFetch('/session-log'); },
+  async restoreBackup(ts) {
+    return await apiFetch('/restore', 'POST', { timestamp: ts });
+  },
+  async getSessionLog() {
+    return await apiFetch('/session-log');
+  },
   /** @param {unknown} e */
-  async logSession(e)    { return await apiFetch('/session-log', 'POST', e); },
-  async getModes()       { return await apiFetch('/modes'); },
+  async logSession(e) {
+    return await apiFetch('/session-log', 'POST', e);
+  },
+  async getModes() {
+    return await apiFetch('/modes');
+  },
   /** @param {string} id */
-  async applyMode(id)    { return await apiFetch('/modes/apply', 'POST', { modeId: id }); },
+  async applyMode(id) {
+    return await apiFetch('/modes/apply', 'POST', { modeId: id });
+  },
   /** @param {string} url */
-  async ingestRepo(url)  { return await apiFetch('/skills/ingest', 'POST', { url }); },
+  async ingestRepo(url) {
+    return await apiFetch('/skills/ingest', 'POST', { url });
+  },
   /** @param {string} jobId */
-  async pollIngestJob(jobId) { return await apiFetch(`/skills/ingest/${jobId}`); },
+  async pollIngestJob(jobId) {
+    return await apiFetch(`/skills/ingest/${jobId}`);
+  },
   /** @param {Record<string, unknown>} [options] */
-  async parseSkills(options = {}) { return await apiFetch('/skills/parse', 'POST', options, { returnErrors: true }); },
+  async parseSkills(options = {}) {
+    return await apiFetch('/skills/parse', 'POST', options, { returnErrors: true });
+  },
   /** @param {boolean} [apply] */
-  async organiseSkills(apply = true) { return await apiFetch('/skills/organise', 'POST', { apply }); },
+  async organiseSkills(apply = true) {
+    return await apiFetch('/skills/organise', 'POST', { apply });
+  },
   /** @param {Record<string, unknown>} [options] */
-  async reviewSimilarSkills(options = {}) { return await apiFetch('/skills/review-similar', 'POST', options, { returnErrors: true }); },
-  async getOllamaModels() { return await apiFetch('/llm/ollama-models', 'GET', null, { returnErrors: true }); },
-  async getAppVersion() { return await apiFetch('/app-version'); },
-  async getIndexStatus() { return await apiFetch('/index/status'); },
-  async indexSkills() { return await apiFetch('/index', 'POST', {}, { returnErrors: true }); },
+  async reviewSimilarSkills(options = {}) {
+    return await apiFetch('/skills/review-similar', 'POST', options, { returnErrors: true });
+  },
+  async getOllamaModels() {
+    return await apiFetch('/llm/ollama-models', 'GET', null, { returnErrors: true });
+  },
+  async getAppVersion() {
+    return await apiFetch('/app-version');
+  },
+  async getOnboarding() {
+    return await apiFetch('/onboarding');
+  },
+  async completeOnboarding() {
+    return await apiFetch('/onboarding/complete', 'POST', {});
+  },
+  async getIndexStatus() {
+    return await apiFetch('/index/status');
+  },
+  async indexSkills() {
+    return await apiFetch('/index', 'POST', {}, { returnErrors: true });
+  },
   /** @param {string} query @param {number} [limit] */
-  async searchIndex(query, limit = 10) { return await apiFetch('/search', 'POST', { query, limit }, { returnErrors: true }); },
-  async getCompileTargets() { return await apiFetch('/compile/targets'); },
+  async searchIndex(query, limit = 10) {
+    return await apiFetch('/search', 'POST', { query, limit }, { returnErrors: true });
+  },
+  async getMcpHosts() {
+    return await apiFetch('/mcp/hosts');
+  },
+  /** @param {string} hostId */
+  async installMcpHost(hostId) {
+    return await apiFetch('/mcp/hosts/install', 'POST', { hostId }, { returnErrors: true });
+  },
+  async getCompileTargets() {
+    return await apiFetch('/compile/targets');
+  },
   /** @param {string[]} targets */
-  async compilePreview(targets) { return await apiFetch('/compile/preview', 'POST', { targets }); },
+  async compilePreview(targets) {
+    return await apiFetch('/compile/preview', 'POST', { targets });
+  },
   /** @param {string[]} targets @param {string | undefined} outputDir */
-  async compile(targets, outputDir) { return await apiFetch('/compile', 'POST', { targets, outputDir }); },
-  async detectTools() { return await apiFetch('/tools/detect'); },
+  async compile(targets, outputDir) {
+    return await apiFetch('/compile', 'POST', { targets, outputDir });
+  },
+  async detectTools() {
+    return await apiFetch('/tools/detect');
+  },
   /** @param {string[]} targets */
-  async installGlobal(targets) { return await apiFetch('/tools/install-global', 'POST', { targets }); },
-  async getWorkspaces() { return await apiFetch('/workspaces'); },
+  async installGlobal(targets) {
+    return await apiFetch('/tools/install-global', 'POST', { targets });
+  },
+  async getWorkspaces() {
+    return await apiFetch('/workspaces');
+  },
   /** @param {string} wsPath @param {string} label */
-  async addWorkspace(wsPath, label) { return await apiFetch('/workspaces', 'POST', { action: 'add', path: wsPath, label }); },
+  async addWorkspace(wsPath, label) {
+    return await apiFetch('/workspaces', 'POST', { action: 'add', path: wsPath, label });
+  },
   /** @param {string} wsPath */
-  async removeWorkspace(wsPath) { return await apiFetch('/workspaces', 'POST', { action: 'remove', path: wsPath }); },
+  async removeWorkspace(wsPath) {
+    return await apiFetch('/workspaces', 'POST', { action: 'remove', path: wsPath });
+  },
   /** @param {string[]} targets @param {string | null} workspacePath */
-  async compileWorkspaces(targets, workspacePath) { return await apiFetch('/workspaces/compile', 'POST', { targets, workspacePath }); },
+  async compileWorkspaces(targets, workspacePath) {
+    return await apiFetch('/workspaces/compile', 'POST', { targets, workspacePath });
+  },
 };
 
 // ---- DEFAULT RULES (used for reset from data.js) ----

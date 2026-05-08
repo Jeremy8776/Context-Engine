@@ -11,7 +11,9 @@ const ROUTES = [
   '/',
   '/api/health',
   '/api/skills',
+  '/api/onboarding',
   '/api/index/status',
+  '/api/mcp/hosts',
   '/api/tools/detect',
   '/api/workspaces',
 ];
@@ -22,7 +24,7 @@ const ROUTES = [
  */
 function get(path) {
   return new Promise((resolve, reject) => {
-    const req = http.get({ host: '127.0.0.1', port: PORT, path, timeout: 5000 }, res => {
+    const req = http.get({ host: '127.0.0.1', port: PORT, path, timeout: 5000 }, (res) => {
       res.resume();
       res.on('end', () => resolve(res.statusCode));
     });
@@ -34,7 +36,7 @@ function get(path) {
 async function run() {
   const server = startServer({ port: PORT, refresh: false });
   try {
-    await new Promise(resolve => server.once('listening', resolve));
+    await new Promise((resolve) => server.once('listening', resolve));
     for (const route of ROUTES) {
       const status = await get(route);
       if (status === undefined || status < 200 || status >= 300) {
@@ -47,7 +49,7 @@ async function run() {
   }
 }
 
-run().catch(error => {
+run().catch((error) => {
   console.error(error.message);
   process.exitCode = 1;
 });

@@ -1,6 +1,8 @@
 node_modules
+.tmp
 data
 skills
+CONTEXT.md
 server.out.log
 server.err.log
 *.log

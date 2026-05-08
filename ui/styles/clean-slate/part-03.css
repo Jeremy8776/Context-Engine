@@ -1,4 +1,3 @@
-
 /* Memory flow corrections: no bottom add strip, fixed workbench height, modal creation. */
 #memory-tab {
   overflow: hidden;
@@ -9,7 +8,18 @@
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  padding: 22px 32px 28px;
+  /* Tightened headroom — was 22px top / 28px bottom. The Electron window
+     already has its own title-bar row above, so the page wrapper doesn't
+     need to add another tall buffer. */
+  padding: 10px 32px 16px;
+}
+
+/* When the side panel is docked, drop the wrapper's right padding so the
+   cards / pagination flush up against the panel's left edge with no dead
+   strip between them. The .memory-results padding-right then equals the
+   full panel width, putting content right up to the divider. */
+body.side-panel-active #memory-tab .simple-page {
+  padding-right: 0;
 }
 
 #memory-tab .simple-inner {
@@ -21,7 +31,7 @@
 
 #memory-tab .memory-toolbar {
   flex-shrink: 0;
-  margin-bottom: 14px;
+  margin-bottom: 8px;
 }
 
 .memory-toolbar-actions {
@@ -179,12 +189,13 @@
   grid-template-columns: minmax(280px, 520px) 1fr;
   gap: 16px;
   align-items: center;
-  margin-bottom: 18px;
-  padding-top: 2px;
+  margin-bottom: 8px;
+  padding-top: 0;
 }
 
 #memory-tab .simple-page {
-  padding-top: 22px;
+  /* Was 22px — tightened to match the consolidated rule above. */
+  padding-top: 10px;
 }
 
 .memory-search {
@@ -396,15 +407,33 @@
   white-space: nowrap;
 }
 
-.mem-cat-health { border-color: var(--alpha-green-28); background: var(--alpha-green-08); }
-.mem-cat-career { border-color: var(--alpha-purple-34); background: var(--alpha-purple-11); }
+.mem-cat-health {
+  border-color: var(--alpha-green-28);
+  background: var(--alpha-green-08);
+}
+.mem-cat-career {
+  border-color: var(--alpha-purple-34);
+  background: var(--alpha-purple-11);
+}
 .mem-cat-technical,
-.mem-cat-workspace { border-color: var(--alpha-cyan-28); background: var(--alpha-blue-08); }
+.mem-cat-workspace {
+  border-color: var(--alpha-cyan-28);
+  background: var(--alpha-blue-08);
+}
 .mem-cat-people,
-.mem-cat-personal { border-color: var(--alpha-pink-28); background: var(--alpha-pink-08); }
-.mem-cat-finance { border-color: var(--alpha-warn-28); background: var(--alpha-warn-08); }
+.mem-cat-personal {
+  border-color: var(--alpha-pink-28);
+  background: var(--alpha-pink-08);
+}
+.mem-cat-finance {
+  border-color: var(--alpha-warn-28);
+  background: var(--alpha-warn-08);
+}
 .mem-cat-photography,
-.mem-cat-travel { border-color: var(--alpha-teal-28); background: var(--alpha-teal-08); }
+.mem-cat-travel {
+  border-color: var(--alpha-teal-28);
+  background: var(--alpha-teal-08);
+}
 
 .add-memory {
   margin-top: 18px;

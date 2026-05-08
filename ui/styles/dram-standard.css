@@ -177,7 +177,10 @@ html[data-runtime='electron'] .desktop-titlebar-actions button {
 
 .simple-page,
 .skills-scroll {
-  padding: var(--s-6) var(--s-7) var(--s-8);
+  /* Top padding intentionally smaller than horizontal/bottom — the nav rail
+     above already provides separation, and 24px on top wastes a lot of
+     headroom on tabs like Rules where the first element is a small pill. */
+  padding: 12px var(--s-7) var(--s-8);
 }
 
 .simple-inner,
@@ -234,7 +237,6 @@ html[data-runtime='electron'] .desktop-titlebar-actions button {
 .dashboard-hero p,
 .section-hdr p,
 .dashboard-note,
-.strategy-option p,
 .repo-preset-grid span,
 .maintenance-option small {
   color: var(--text-3);
@@ -244,7 +246,6 @@ html[data-runtime='electron'] .desktop-titlebar-actions button {
 .dashboard-metric,
 .compile-card,
 .compile-tool-card,
-.strategy-option,
 .compile-ws-row,
 .compile-summary,
 .memory-results,
@@ -276,7 +277,6 @@ html[data-runtime='electron'] .desktop-titlebar-actions button {
 
 .memory-card,
 .mode-card,
-.strategy-option,
 .compile-tool-card,
 .dashboard-metric {
   position: relative;
@@ -285,7 +285,6 @@ html[data-runtime='electron'] .desktop-titlebar-actions button {
 
 .memory-card::before,
 .mode-card::before,
-.strategy-option::before,
 .compile-tool-card::before,
 .dashboard-metric::before {
   display: none;
@@ -355,23 +354,19 @@ html[data-runtime='electron'] .desktop-titlebar-actions button {
 .memory-card:hover,
 .memory-card.active,
 .mode-card:hover,
-.mode-card.selected,
-.strategy-option:hover,
-.strategy-option.selected {
+.mode-card.selected {
   background: var(--dram-card-hover);
   border-color: var(--dram-card-border-hover);
 }
 
 .memory-card.active,
-.mode-card.selected,
-.strategy-option.selected {
+.mode-card.selected {
   background: var(--dram-card-active);
   border-color: var(--dram-card-border-active);
 }
 
 .memory-card.active::before,
 .mode-card.selected::before,
-.strategy-option.selected::before,
 .compile-tool-card:focus-within::before,
 .dashboard-metric:hover::before {
   background: transparent;

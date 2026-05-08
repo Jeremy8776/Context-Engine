@@ -6,8 +6,8 @@
 
 const SESS_ICONS = {
   mode_applied: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="9 2 2 9 8 9 7 14 14 7 8 7 9 2"/></svg>`,
-  backup:       `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 10v3a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-3"/><polyline points="5 7 8 4 11 7"/><line x1="8" y1="4" x2="8" y2="11"/></svg>`,
-  toggle:       `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="1 4 5 4 5 8"/><path d="M5 4a7 7 0 0 1 7 7"/><polyline points="15 12 11 12 11 8"/><path d="M11 12a7 7 0 0 1-7-7"/></svg>`,
+  backup: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 10v3a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-3"/><polyline points="5 7 8 4 11 7"/><line x1="8" y1="4" x2="8" y2="11"/></svg>`,
+  toggle: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="1 4 5 4 5 8"/><path d="M5 4a7 7 0 0 1 7 7"/><polyline points="15 12 11 12 11 8"/><path d="M11 12a7 7 0 0 1-7-7"/></svg>`,
   manual_regen: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="1 4 5 4 5 8"/><path d="M5 4a7 7 0 0 1 7 7"/><polyline points="15 12 11 12 11 8"/><path d="M11 12a7 7 0 0 1-7-7"/></svg>`,
 };
 const HEALTH_SVG = `<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="2 7 5.5 11 12 3"/></svg>`;
@@ -46,7 +46,12 @@ function isDashboardOutputAvailable(id, tool) {
   if (!tool) return false;
   if (typeof tool.available === 'boolean') return tool.available;
   if (tool.compileError || tool.status === 'missing-adapter') return false;
-  return !!(tool.installed || tool.globalInstalled || tool.category === 'manual' || DASH_FILE_STANDARD_TARGETS.has(id));
+  return !!(
+    tool.installed ||
+    tool.globalInstalled ||
+    tool.category === 'manual' ||
+    DASH_FILE_STANDARD_TARGETS.has(id)
+  );
 }
 
 const DashboardTab = (() => {
@@ -56,7 +61,14 @@ const DashboardTab = (() => {
     if (bar) bar.style.width = '0%';
     if (lbl) lbl.textContent = 'Loading...';
 
-    await Promise.all([loadBudget(), loadHealth(), loadBackups(), loadSessionLog(), loadModes(), loadIndexStatus()]);
+    await Promise.all([
+      loadBudget(),
+      loadHealth(),
+      loadBackups(),
+      loadSessionLog(),
+      loadModes(),
+      loadIndexStatus(),
+    ]);
     updateStats();
     await updateExtendedStats();
     loadOutputTokens();
@@ -64,7 +76,7 @@ const DashboardTab = (() => {
 
   function updateStats() {
     const total = SKILL_DATA.length;
-    const active = SKILL_DATA.filter(s => SS.active(s.id)).length;
+    const active = SKILL_DATA.filter((s) => SS.active(s.id)).length;
     const tEl = document.getElementById('db-stat-total');
     const aEl = document.getElementById('db-stat-active');
     const status = document.getElementById('db-context-status');
@@ -84,8 +96,12 @@ const DashboardTab = (() => {
       const connCount = tools.filter(([id, tool]) => isDashboardOutputAvailable(id, tool)).length;
       const connEl = document.getElementById('db-stat-connections');
       const outputStatus = document.getElementById('db-output-status');
-      const globalCount = tools.filter(([id, tool]) => isDashboardOutputAvailable(id, tool) && tool.globalReady).length;
-      const projectCount = tools.filter(([id, tool]) => isDashboardOutputAvailable(id, tool) && tool.projectReady).length;
+      const globalCount = tools.filter(
+        ([id, tool]) => isDashboardOutputAvailable(id, tool) && tool.globalReady,
+      ).length;
+      const projectCount = tools.filter(
+        ([id, tool]) => isDashboardOutputAvailable(id, tool) && tool.projectReady,
+      ).length;
       if (connEl && typeof animateCount !== 'undefined') animateCount(connEl, connCount);
       if (outputStatus) {
         outputStatus.textContent = `${connCount} outputs are working. ${globalCount} can inherit global context and ${projectCount} can receive workspace context.`;
@@ -113,7 +129,7 @@ const DashboardTab = (() => {
 
     // Memory tokens
     const mem = MS.getData();
-    const memText = (mem.entries || []).map(e => typeof e === 'string' ? e : e.content || '').join(' ');
+    const memText = (mem.entries || []).map((e) => (typeof e === 'string' ? e : e.content || '')).join(' ');
     const memTokens = Math.ceil(memText.length / 4);
     const memoryEl = document.getElementById('db-memory-footprint');
     if (memoryEl) memoryEl.textContent = `${memTokens.toLocaleString()} tokens`;
@@ -130,10 +146,13 @@ const DashboardTab = (() => {
         container.innerHTML = '<div class="db-empty">No modes yet</div>';
         return;
       }
-      container.innerHTML = modes.slice(0, 8).map(/** @param {{ id: string, label?: string, skills?: unknown[] }} mode */ (mode) => {
-        const skills = mode.skills || [];
-        const active = mode.id === activeMode ? ' active' : '';
-        return `
+      container.innerHTML = modes
+        .slice(0, 8)
+        .map(
+          /** @param {{ id: string, label?: string, skills?: unknown[] }} mode */ (mode) => {
+            const skills = mode.skills || [];
+            const active = mode.id === activeMode ? ' active' : '';
+            return `
           <button class="dashboard-mode-btn${active}" onclick="DashboardTab.applyMode('${esc(mode.id)}')">
             <span>
               <strong>${esc(mode.label || mode.id)}</strong>
@@ -141,7 +160,9 @@ const DashboardTab = (() => {
             </span>
             <em>${active ? 'Active' : 'Apply'}</em>
           </button>`;
-      }).join('');
+          },
+        )
+        .join('');
     } catch {
       container.innerHTML = '<div class="db-empty">Modes unavailable</div>';
     }
@@ -172,7 +193,7 @@ const DashboardTab = (() => {
     const container = document.getElementById('db-output-tokens');
     if (!container) return;
     /** @type {Array<[string, { tokens: number }]>} */
-    const rows = (/** @type {Array<[string, { tokens: number }]>} */ (Object.entries(results)))
+    const rows = /** @type {Array<[string, { tokens: number }]>} */ (Object.entries(results))
       .filter(([, result]) => Number.isFinite(result.tokens))
       .sort((a, b) => b[1].tokens - a[1].tokens);
     if (!rows.length) {
@@ -181,17 +202,19 @@ const DashboardTab = (() => {
     }
     const firstRow = rows[0];
     const max = (firstRow && firstRow[1].tokens) || 1;
-    container.innerHTML = rows.map(([id, result]) => {
-      const pct = Math.max(3, Math.round((result.tokens / max) * 100));
-      const label = /** @type {Record<string, string>} */ (OUTPUT_LABELS)[id] || id;
-      return `
+    container.innerHTML = rows
+      .map(([id, result]) => {
+        const pct = Math.max(3, Math.round((result.tokens / max) * 100));
+        const label = /** @type {Record<string, string>} */ (OUTPUT_LABELS)[id] || id;
+        return `
         <div class="dashboard-token-row" data-pct="${pct}">
           <span>${esc(label)}</span>
           <div class="dashboard-token-track"><i></i></div>
           <strong>~${result.tokens.toLocaleString()}</strong>
         </div>`;
-    }).join('');
-    container.querySelectorAll('.dashboard-token-row').forEach(row => {
+      })
+      .join('');
+    container.querySelectorAll('.dashboard-token-row').forEach((row) => {
       const el = /** @type {HTMLElement} */ (row);
       const fill = /** @type {HTMLElement | null} */ (el.querySelector('i'));
       if (fill) fill.style.width = `${el.dataset.pct}%`;
@@ -242,9 +265,9 @@ const DashboardTab = (() => {
 
   /** @param {{ budgetPercent?: number, estimatedTokens?: number, contextMdChars?: number, memoryChars?: number, rulesChars?: number }} d */
   function renderBudget(d) {
-    const pct   = Math.min(d.budgetPercent || 0, 100);
+    const pct = Math.min(d.budgetPercent || 0, 100);
     const tokens = (d.estimatedTokens || 0).toLocaleString();
-    const bar   = document.getElementById('db-budget-bar');
+    const bar = document.getElementById('db-budget-bar');
     const label = document.getElementById('db-budget-label');
     const statB = document.getElementById('db-stat-budget');
     const manifest = document.getElementById('db-manifest-size');
@@ -258,8 +281,7 @@ const DashboardTab = (() => {
     if (statB) statB.textContent = pct + '%';
     if (manifest) manifest.textContent = `${(d.contextMdChars || 0).toLocaleString()} chars`;
     if (compileStatus) {
-      compileStatus.textContent =
-        `${(d.memoryChars || 0).toLocaleString()} memory chars and ${(d.rulesChars || 0).toLocaleString()} rule chars are in the shared manifest.`;
+      compileStatus.textContent = `${(d.memoryChars || 0).toLocaleString()} memory chars and ${(d.rulesChars || 0).toLocaleString()} rule chars are in the shared manifest.`;
     }
   }
 
@@ -267,21 +289,24 @@ const DashboardTab = (() => {
     const data = await DS.getHealth();
     if (!data) return;
     const container = document.getElementById('db-health-list');
-    const summary   = document.getElementById('db-health-summary');
+    const summary = document.getElementById('db-health-summary');
     if (!container) return;
     /** @typedef {{ id: string, path?: string, issue?: string, stale?: boolean, daysSinceModified?: number }} HealthSkill */
     /** @type {HealthSkill[]} */
     const skills = data.skills || [];
     const issues = skills.filter(/** @param {HealthSkill} s */ (s) => !!s.issue);
-    const stale  = skills.filter(/** @param {HealthSkill} s */ (s) => !!s.stale && !s.issue);
-    const ok     = skills.filter(/** @param {HealthSkill} s */ (s) => !s.issue);
+    const stale = skills.filter(/** @param {HealthSkill} s */ (s) => !!s.stale && !s.issue);
+    const ok = skills.filter(/** @param {HealthSkill} s */ (s) => !s.issue);
 
     // Compact chip in the keyline head.
     if (summary) {
       if (issues.length || stale.length) {
         const parts = [];
-        if (issues.length) parts.push(`<span class="chip chip-err">${issues.length} issue${issues.length>1?'s':''}</span>`);
-        if (stale.length)  parts.push(`<span class="chip chip-warn">${stale.length} stale</span>`);
+        if (issues.length)
+          parts.push(
+            `<span class="chip chip-err">${issues.length} issue${issues.length > 1 ? 's' : ''}</span>`,
+          );
+        if (stale.length) parts.push(`<span class="chip chip-warn">${stale.length} stale</span>`);
         parts.push(`<span class="chip chip-ok">${ok.length} ok</span>`);
         summary.innerHTML = parts.join('');
       } else {
@@ -297,21 +322,28 @@ const DashboardTab = (() => {
 
     // Issues present - show collapsed by default. Preview top 3, expand for all.
     const allRows = [
-      ...issues.map(/** @param {HealthSkill} s */ (s) => `
+      ...issues.map(
+        /** @param {HealthSkill} s */ (s) => `
         <div class="health-issue" title="${esc(s.path)}">
           <span class="health-id">${esc(s.id)}</span>
           <span class="health-msg">${esc(s.issue)}</span>
-        </div>`),
-      ...stale.map(/** @param {HealthSkill} s */ (s) => `
+        </div>`,
+      ),
+      ...stale.map(
+        /** @param {HealthSkill} s */ (s) => `
         <div class="health-issue stale" title="${esc(s.path)}">
           <span class="health-id">${esc(s.id)}</span>
           <span class="health-msg">Stale (${s.daysSinceModified || '30+'}d since last edit)</span>
-        </div>`)
+        </div>`,
+      ),
     ];
     const preview = allRows.slice(0, 3).join('');
-    const rest    = allRows.slice(3).join('');
-    container.innerHTML = preview +
-      (rest ? `<details class="health-more"><summary>Show ${allRows.length - 3} more</summary>${rest}</details>` : '');
+    const rest = allRows.slice(3).join('');
+    container.innerHTML =
+      preview +
+      (rest
+        ? `<details class="health-more"><summary>Show ${allRows.length - 3} more</summary>${rest}</details>`
+        : '');
   }
 
   async function loadBackups() {
@@ -320,12 +352,19 @@ const DashboardTab = (() => {
     const container = document.getElementById('db-backups-list');
     if (!container) return;
     const backups = data.backups || [];
-    if (!backups.length) { container.innerHTML = '<div class="db-empty">No backups yet</div>'; return; }
-    container.innerHTML = backups.map(/** @param {{ timestamp: string }} b */ (b) => `
+    if (!backups.length) {
+      container.innerHTML = '<div class="db-empty">No backups yet</div>';
+      return;
+    }
+    container.innerHTML = backups
+      .map(
+        /** @param {{ timestamp: string }} b */ (b) => `
       <div class="backup-item">
         <span class="backup-ts">${b.timestamp.replace('T', ' ')}</span>
         <button class="mem-btn" onclick="DashboardTab.restore('${b.timestamp}')">Restore</button>
-      </div>`).join('');
+      </div>`,
+      )
+      .join('');
   }
 
   async function loadSessionLog() {
@@ -334,22 +373,43 @@ const DashboardTab = (() => {
     const container = document.getElementById('db-session-log');
     if (!container) return;
     const sessions = data.sessions || [];
-    if (!sessions.length) { container.innerHTML = '<div class="db-empty">No session history yet</div>'; return; }
+    if (!sessions.length) {
+      container.innerHTML = '<div class="db-empty">No session history yet</div>';
+      return;
+    }
     /** @typedef {{ ts: string, type?: string, mode?: string, skills?: unknown[], activeSkills?: number, activeCount?: number, timestamp?: string, targets?: string[], count?: number, workspace?: string }} SessionEntry */
-    container.innerHTML = sessions.slice(0, 15).map(/** @param {SessionEntry} s */ (s) => {
-      const ts  = new Date(s.ts).toLocaleString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
-      const sessIcons = /** @type {Record<string, string>} */ (SESS_ICONS);
-      const svg = (s.type && sessIcons[s.type]) || sessIcons.manual_regen;
-      const label =
-        s.type === 'mode_applied'   ? `Mode applied: ${s.mode} (${(s.skills||[]).length} skills)` :
-        s.type === 'toggle'         ? `Skills toggled - ${s.activeSkills} active` :
-        s.type === 'backup'         ? `Backup created: ${s.timestamp||''}` :
-        s.type === 'manual_regen'   ? `CONTEXT.md regenerated - ${s.activeCount} skills` :
-        s.type === 'global_install' ? `Global install - ${(s.targets||[]).join(', ')} (${s.count||0} skills)` :
-        s.type === 'workspace_compile' ? `Workspace compile - ${s.workspace||'project'}` :
-        s.type ? s.type.replace(/_/g,' ').replace(/^./, c=>c.toUpperCase()) : 'Event';
-      return `<div class="session-item" title="${esc(JSON.stringify(s))}"><span class="session-icon">${svg}</span><span class="session-label">${esc(label)}</span><span class="session-ts">${ts}</span></div>`;
-    }).join('');
+    container.innerHTML = sessions
+      .slice(0, 15)
+      .map(
+        /** @param {SessionEntry} s */ (s) => {
+          const ts = new Date(s.ts).toLocaleString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+          const sessIcons = /** @type {Record<string, string>} */ (SESS_ICONS);
+          const svg = (s.type && sessIcons[s.type]) || sessIcons.manual_regen;
+          const label =
+            s.type === 'mode_applied'
+              ? `Mode applied: ${s.mode} (${(s.skills || []).length} skills)`
+              : s.type === 'toggle'
+                ? `Skills toggled - ${s.activeSkills} active`
+                : s.type === 'backup'
+                  ? `Backup created: ${s.timestamp || ''}`
+                  : s.type === 'manual_regen'
+                    ? `CONTEXT.md regenerated - ${s.activeCount} skills`
+                    : s.type === 'global_install'
+                      ? `Global install - ${(s.targets || []).join(', ')} (${s.count || 0} skills)`
+                      : s.type === 'workspace_compile'
+                        ? `Workspace compile - ${s.workspace || 'project'}`
+                        : s.type
+                          ? s.type.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase())
+                          : 'Event';
+          return `<div class="session-item" title="${esc(JSON.stringify(s))}"><span class="session-icon">${svg}</span><span class="session-label">${esc(label)}</span><span class="session-ts">${ts}</span></div>`;
+        },
+      )
+      .join('');
   }
 
   async function backup() {
@@ -375,7 +435,7 @@ const DashboardTab = (() => {
       await Promise.all([MS.loadFromServer(), RS.loadFromServer(), SS.loadFromServer()]);
       await loadBudget();
       if (typeof MemoryTab !== 'undefined') MemoryTab.init();
-      if (typeof ConfigTab  !== 'undefined') ConfigTab.init();
+      if (typeof ConfigTab !== 'undefined') ConfigTab.init();
       Toast.success('Restored successfully');
     } else Toast.error('Restore failed');
   }
@@ -428,7 +488,9 @@ const DashboardTab = (() => {
     switchTabByName(name);
   }
 
-  async function refreshBudget() { await loadBudget(); }
+  async function refreshBudget() {
+    await loadBudget();
+  }
 
   return {
     init,

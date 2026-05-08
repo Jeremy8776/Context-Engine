@@ -1,8 +1,10 @@
 /* Context dashboard */
 
 #dashboard-tab .simple-page {
-  padding-top: var(--s-5);
-  padding-bottom: var(--s-8);
+  /* Tightened from 12px → 6px after the empty `.app .top` grid row was
+     collapsed in shell.css. Cards now sit flush under the title bar. */
+  padding-top: 6px;
+  padding-bottom: var(--s-6);
 }
 
 #dashboard-tab .simple-inner.wide {
@@ -15,8 +17,8 @@
 
 .dashboard-panel,
 .dashboard-metric {
-  border: 1px solid var(--line);
-  background: var(--bg-sunken);
+  border: 1px solid var(--dram-card-border);
+  background: var(--dram-card-bg);
   border-radius: var(--r-2);
 }
 
@@ -176,8 +178,8 @@
 
 .dashboard-mode-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--s-3);
+  grid-template-columns: 1fr;
+  gap: var(--s-1);
 }
 
 .dashboard-mode-btn {
@@ -193,7 +195,10 @@
   color: var(--text);
   text-align: left;
   cursor: pointer;
-  transition: border-color var(--out), background var(--out), transform var(--out);
+  transition:
+    border-color var(--out),
+    background var(--out),
+    transform var(--out);
 }
 
 .dashboard-mode-btn:hover {

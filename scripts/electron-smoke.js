@@ -3,11 +3,13 @@
 
 const fs = require('fs');
 const path = require('path');
+const Module = require('module');
 const { createContextServer, startServer } = require('../server/server');
 
 const ROOT = path.resolve(__dirname, '..');
 const ELECTRON_MAIN = path.join(ROOT, 'electron', 'main.cjs');
 const ELECTRON_PRELOAD = path.join(ROOT, 'electron', 'preload.cjs');
+const ELECTRON_UPDATER = path.join(ROOT, 'electron', 'updater.cjs');
 const PACKAGE_JSON = path.join(ROOT, 'package.json');
 
 /** @param {unknown} condition @param {string} message */
@@ -20,10 +22,35 @@ function read(filePath) {
   return fs.readFileSync(filePath, 'utf8');
 }
 
+// Resolve every relative require() in `filePath` the same way Node would at
+// runtime. Catches missing-extension bugs (e.g. require('./updater') when the
+// file is updater.cjs) that string-grep checks miss entirely.
+/** @param {string} filePath */
+function assertRelativeRequiresResolve(filePath) {
+  const source = read(filePath);
+  const localRequire = Module.createRequire(filePath);
+  const re = /require\(\s*['"](\.[^'"]+)['"]\s*\)/g;
+  let match;
+  while ((match = re.exec(source)) !== null) {
+    const spec = match[1];
+    if (!spec) continue;
+    try {
+      localRequire.resolve(spec);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      throw new Error(`${path.relative(ROOT, filePath)}: require('${spec}') does not resolve — ${msg}`);
+    }
+  }
+}
+
 function main() {
   const pkg = JSON.parse(read(PACKAGE_JSON));
   const mainSource = read(ELECTRON_MAIN);
   const preloadSource = read(ELECTRON_PRELOAD);
+
+  assertRelativeRequiresResolve(ELECTRON_MAIN);
+  assertRelativeRequiresResolve(ELECTRON_PRELOAD);
+  assertRelativeRequiresResolve(ELECTRON_UPDATER);
 
   assert(pkg.main === 'electron/main.cjs', 'package.json main must point at electron/main.cjs');
   assert(typeof createContextServer === 'function', 'server must export createContextServer');

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # backup-daily.sh — Create a Context Engine backup via the API
-# Schedule with Windows Task Scheduler or cron equivalent
-# Example: schtasks /create /sc daily /tn "ContextEngineBackup" /tr "bash \"E:\DataCert\Context Engine\app\backup-daily.sh\"" /st 02:00
+# Schedule with Windows Task Scheduler or cron equivalent.
+# Example (Windows): schtasks /create /sc daily /tn "ContextEngineBackup" /tr "bash \"<path-to-repo>\app\backup-daily.sh\"" /st 02:00
+# Example (cron):    0 2 * * * /path/to/repo/app/backup-daily.sh
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"

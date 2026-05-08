@@ -5,11 +5,16 @@ function switchTab(name, btn) {
   ) {
     SidePanel.close();
   }
-  document.querySelectorAll('.tab-panel').forEach(p => { p.classList.remove('active'); p.style.display = 'none'; });
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach((p) => {
+    p.classList.remove('active');
+    p.style.display = 'none';
+  });
+  document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
   const panel = document.getElementById(name + '-tab');
   if (!panel) return;
-  panel.style.display = 'flex'; panel.offsetHeight; panel.classList.add('active');
+  panel.style.display = 'flex';
+  panel.offsetHeight;
+  panel.classList.add('active');
   btn.classList.add('active');
   const crumb = document.getElementById('crumb-here');
   if (crumb) crumb.textContent = btn.dataset.label || btn.textContent.trim();
@@ -37,7 +42,9 @@ function setNavCollapsed(collapsed) {
     btn.setAttribute('aria-label', collapsed ? 'Expand navigation' : 'Collapse navigation');
     btn.title = collapsed ? 'Expand navigation' : 'Collapse navigation';
   }
-  try { localStorage.setItem('ce_nav_collapsed', collapsed ? '1' : '0'); } catch {}
+  try {
+    localStorage.setItem('ce_nav_collapsed', collapsed ? '1' : '0');
+  } catch {}
 }
 function initNavCollapse() {
   setNavCollapsed(document.documentElement.dataset.nav === 'mini');
@@ -46,14 +53,15 @@ function toggleNavCollapse() {
   setNavCollapsed(document.documentElement.dataset.nav !== 'mini');
 }
 function animateCount(el, target) {
-  const dur = 700, t0 = performance.now();
+  const dur = 700,
+    t0 = performance.now();
   const isPercent = typeof target === 'string' && target.includes('%');
   const num = isPercent ? parseInt(target) : target;
   const suffix = isPercent ? '%' : '';
-  const tick = now => {
-    const p = Math.min((now-t0)/dur,1);
-    el.textContent = Math.round(num*(1-Math.pow(1-p,3))) + suffix;
-    if(p<1) requestAnimationFrame(tick);
+  const tick = (now) => {
+    const p = Math.min((now - t0) / dur, 1);
+    el.textContent = Math.round(num * (1 - Math.pow(1 - p, 3))) + suffix;
+    if (p < 1) requestAnimationFrame(tick);
   };
   requestAnimationFrame(tick);
 }
@@ -73,7 +81,7 @@ function renderHeroSparkline() {
     const bar = document.createElement('span');
     bar.className = 'hero-spark-bar';
     bar.style.height = h + '%';
-    bar.style.transitionDelay = (i * 16) + 'ms';
+    bar.style.transitionDelay = i * 16 + 'ms';
     frag.appendChild(bar);
   }
   host.innerHTML = '';
@@ -96,6 +104,7 @@ async function boot() {
   initNavCollapse();
   renderHeroSparkline();
   activateInitialTabFromHash();
+  if (typeof Onboarding !== 'undefined') await Onboarding.init();
   document.getElementById('loader').classList.add('hidden');
 }
 boot();

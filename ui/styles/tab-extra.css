@@ -2,7 +2,10 @@
 
 .ops-pipeline {
   display: grid;
-  grid-template-columns: minmax(160px, 1fr) 28px minmax(160px, 1fr) 28px minmax(160px, 1fr) 28px minmax(160px, 1fr);
+  grid-template-columns: minmax(160px, 1fr) 28px minmax(160px, 1fr) 28px minmax(160px, 1fr) 28px minmax(
+      160px,
+      1fr
+    );
   align-items: stretch;
   gap: var(--s-3);
 }
@@ -332,7 +335,10 @@
 .market-card {
   display: flex;
   flex-direction: column;
-  transition: transform var(--spring-fast), border-color var(--out), box-shadow var(--out);
+  transition:
+    transform var(--spring-fast),
+    border-color var(--out),
+    box-shadow var(--out);
 }
 
 .market-grid.compact {
@@ -360,9 +366,15 @@
     radial-gradient(90px 90px at 28% 28%, var(--alpha-white-22-tight), transparent),
     linear-gradient(135deg, var(--accent), var(--accent-lo));
 }
-.market-cyan .market-banner { background: linear-gradient(135deg, var(--iri-3), var(--color-market-blue)); }
-.market-green .market-banner { background: linear-gradient(135deg, var(--color-market-green), var(--color-market-green-2)); }
-.market-rose .market-banner { background: linear-gradient(135deg, var(--color-market-rose), var(--dram-accent)); }
+.market-cyan .market-banner {
+  background: linear-gradient(135deg, var(--iri-3), var(--color-market-blue));
+}
+.market-green .market-banner {
+  background: linear-gradient(135deg, var(--color-market-green), var(--color-market-green-2));
+}
+.market-rose .market-banner {
+  background: linear-gradient(135deg, var(--color-market-rose), var(--dram-accent));
+}
 
 .market-body {
   padding: var(--s-4);
