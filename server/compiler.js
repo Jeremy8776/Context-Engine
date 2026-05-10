@@ -400,7 +400,10 @@ function buildContext(opts) {
 
   const SKILL_MAP = scanSkills();
   const allSkills = Object.values(SKILL_MAP);
-  const activeSkills = allSkills.filter((s) => stateMap[s.id] !== false);
+  const selectedIds = Array.isArray(opts.selectedSkillIds) ? new Set(opts.selectedSkillIds) : null;
+  const activeSkills = selectedIds
+    ? allSkills.filter((s) => selectedIds.has(s.id))
+    : allSkills.filter((s) => stateMap[s.id] !== false);
 
   // Read skill file content and compute relative paths for output formats
   const skillsDir = opts.skillsDir || path.join(dataDir, '..', 'skills');

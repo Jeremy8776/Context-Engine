@@ -35,7 +35,7 @@ const OUTPUT_LABELS = {
   ollama: 'Ollama',
   kimi: 'Kimi K2',
 };
-const DASH_FILE_STANDARD_TARGETS = new Set(['agents', 'aider', 'copilot']);
+const DASH_FILE_STANDARD_TARGETS = new Set(['agents', 'copilot']);
 
 /**
  * @param {string} id
@@ -84,7 +84,7 @@ const DashboardTab = (() => {
     if (aEl && typeof animateCount !== 'undefined') animateCount(aEl, active);
     if (status) {
       const inactive = Math.max(total - active, 0);
-      status.textContent = `${active} skills are active from ${total} discovered. Memory and rules stay shared, then Context Engine compiles the right package for each tool.`;
+      status.textContent = `${active} skills are active from ${total} discovered. Memory and rules stay shared, then Context Engine syncs the right package to each host surface.`;
     }
   }
 
@@ -104,7 +104,7 @@ const DashboardTab = (() => {
       ).length;
       if (connEl && typeof animateCount !== 'undefined') animateCount(connEl, connCount);
       if (outputStatus) {
-        outputStatus.textContent = `${connCount} outputs are working. ${globalCount} can inherit global context and ${projectCount} can receive workspace context.`;
+        outputStatus.textContent = `${connCount} sync surfaces are available. ${globalCount} can inherit global context and ${projectCount} can receive workspace context.`;
       }
     } catch {}
 
@@ -236,14 +236,78 @@ const DashboardTab = (() => {
     try {
       const data = await DS.getIndexStatus();
       if (!data?.chunks) {
-        status.textContent = 'Vector index is empty. Index skills before semantic search.';
+        status.innerHTML =
+          '<span class="ct-badge ct-broken">Empty</span><span>Build the index before hosts can use live semantic search.</span>';
         return;
       }
       const time = data.updatedAt ? new Date(data.updatedAt).toLocaleString() : 'unknown time';
-      status.textContent = `${data.chunks.toLocaleString()} indexed chunks across ${data.skills || 0} skills using ${data.model || 'unknown model'}; updated ${time}.`;
+      status.innerHTML = `<span class="ct-badge ct-installed">Ready</span><strong>${Number(data.chunks).toLocaleString()} chunks / ${Number(data.skills || 0).toLocaleString()} skills</strong><code>model: ${esc(data.model || 'unknown model')} / updated: ${esc(time)}</code>`;
     } catch {
-      status.textContent = 'Vector index status unavailable.';
+      status.innerHTML =
+        '<span class="ct-badge ct-broken">Unavailable</span><span>Vector index status unavailable.</span>';
     }
+  }
+
+  async function refreshIndexStatus() {
+    await loadIndexStatus();
+    Toast.success('Vector index status refreshed');
+  }
+
+  async function smartCompile() {
+    const input = /** @type {HTMLInputElement|null} */ (document.getElementById('db-smart-task'));
+    const result = document.getElementById('db-smart-result');
+    if (!input || !result) return;
+    const task = (input.value || '').trim();
+    if (!task) {
+      Toast.warn('Describe the task first');
+      input.focus();
+      return;
+    }
+    result.hidden = false;
+    result.innerHTML = '<div class="db-empty">Selecting skills for this task&hellip;</div>';
+    Toast.info('Running smart compile...');
+    const data = await DS.smartCompile({ task });
+    if (!data || data.ok === false) {
+      const msg = (data && data.error) || 'Smart compile failed';
+      result.innerHTML = `<div class="db-empty">${esc(msg)}</div>`;
+      Toast.warn(msg);
+      return;
+    }
+    renderSmartResult(result, data);
+    Toast.success(`Smart compile picked ${data.selectedSkillIds?.length || 0} skills`);
+  }
+
+  /**
+   * @param {HTMLElement} host
+   * @param {{ selectedSkillIds: string[], matches: Array<{ skillId: string, score: number, hits: number }>, budget: { selectedTokens: number, allOnTokens: number, savedTokens: number, maxTokens: number }, stack?: { tags: string[], summary?: string } }} data
+   */
+  function renderSmartResult(host, data) {
+    const selected = data.selectedSkillIds || [];
+    const budget = data.budget || { selectedTokens: 0, allOnTokens: 0, savedTokens: 0, maxTokens: 0 };
+    const tags = (data.stack && data.stack.tags) || [];
+    const sel = Number(budget.selectedTokens || 0);
+    const all = Number(budget.allOnTokens || 0);
+    const saved = Number(budget.savedTokens || 0);
+    const pct = all > 0 ? Math.round((sel / all) * 100) : 0;
+    const matches = (data.matches || []).slice(0, 8);
+    const matchRows = matches
+      .map(
+        (m) =>
+          `<li><span class="skill-id">${esc(m.skillId)}</span><span class="skill-score">${(Number(m.score) || 0).toFixed(2)} / ${Number(m.hits) || 0} hits</span></li>`,
+      )
+      .join('');
+    const tagRow = tags.length
+      ? `<div class="smart-stack-tags">Stack: ${tags.map((t) => `<span>${esc(t)}</span>`).join('')}</div>`
+      : '';
+    host.innerHTML = `
+      <div class="smart-budget">
+        <div><span class="ct-badge ct-installed">Smart</span><strong>${sel.toLocaleString()} tokens</strong> selected</div>
+        <div class="smart-budget-meta">vs <strong>${all.toLocaleString()}</strong> all on${saved > 0 ? `, saving <strong>${saved.toLocaleString()}</strong>` : ''} (${pct}% of full)</div>
+      </div>
+      ${tagRow}
+      <div class="smart-selected"><strong>${selected.length}</strong> skills picked: ${selected.map((id) => `<code>${esc(id)}</code>`).join(' ')}</div>
+      ${matchRows ? `<ol class="smart-matches">${matchRows}</ol>` : ''}
+    `;
   }
 
   async function indexSkills() {
@@ -470,19 +534,6 @@ const DashboardTab = (() => {
     await Promise.all([loadSessionLog(), updateExtendedStats(), loadOutputTokens()]);
   }
 
-  async function compileWorkspaces() {
-    if (typeof CompileTab === 'undefined') return;
-    await CompileTab.compileAllWorkspaces();
-    await Promise.all([loadSessionLog(), updateExtendedStats()]);
-  }
-
-  async function previewOutput() {
-    if (typeof CompileTab === 'undefined') return;
-    await CompileTab.preview();
-    await loadOutputTokens();
-    openTab('compile');
-  }
-
   /** @param {string} name */
   function openTab(name) {
     switchTabByName(name);
@@ -499,13 +550,13 @@ const DashboardTab = (() => {
     regenCONTEXTmd,
     discover,
     indexSkills,
+    refreshIndexStatus,
+    smartCompile,
     refreshBudget,
     loadSessionLog,
     applyMode,
     deployAvailable,
     installGlobals,
-    compileWorkspaces,
-    previewOutput,
     openTab,
     loadOutputTokens,
   };

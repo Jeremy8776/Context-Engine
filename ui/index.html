@@ -120,17 +120,19 @@
                   <path d="M9 12l2 2 4-5" /></svg></span
               ><span class="nav-text">Rules</span>
             </button>
-            <button class="tab-btn" data-label="Outputs" title="Outputs" onclick="switchTab('compile', this)">
+            <button
+              class="tab-btn"
+              data-label="Connections"
+              title="Connections"
+              onclick="switchTab('compile', this)"
+            >
               <span class="nav-icon"
                 ><svg viewBox="0 0 24 24">
                   <path d="M5 5h6v6H5zM5 13h6v6H5z" />
                   <path d="M14 7h3a2 2 0 0 1 2 2v8" />
                   <path d="M16 15l3 3 3-3" /></svg></span
-              ><span class="nav-text">Outputs</span>
+              ><span class="nav-text">Connections</span>
             </button>
-          </div>
-          <div class="nav-end">
-            <span class="server-status offline" id="server-status">Connecting</span>
           </div>
         </div>
       </nav>
@@ -171,6 +173,22 @@
                 </article>
               </section>
 
+              <section class="dashboard-panel dashboard-index-panel">
+                <div class="dashboard-panel-head">
+                  <div>
+                    <span class="eyebrow">Search health</span>
+                    <h2>Vector index</h2>
+                  </div>
+                  <div class="db-card-actions">
+                    <button class="fb" onclick="DashboardTab.refreshIndexStatus()">Refresh</button>
+                    <button class="save-btn" onclick="DashboardTab.indexSkills()">Build Index</button>
+                  </div>
+                </div>
+                <div class="dashboard-index-status" id="db-index-status">
+                  Vector index has not been checked yet.
+                </div>
+              </section>
+
               <div class="dashboard-grid dashboard-run-grid">
                 <section class="dashboard-panel dashboard-panel-primary dashboard-run-panel">
                   <div class="dashboard-panel-head">
@@ -190,18 +208,27 @@
                 <section class="dashboard-panel">
                   <div class="dashboard-panel-head">
                     <div>
-                      <span class="eyebrow">Outputs</span>
-                      <h2>Update file fallbacks</h2>
+                      <span class="eyebrow">Connections</span>
+                      <h2>Sync host surfaces</h2>
                     </div>
                   </div>
+                  <div class="dashboard-smart-row">
+                    <input
+                      class="add-input"
+                      id="db-smart-task"
+                      type="text"
+                      placeholder="Describe the task for smart skill selection"
+                      aria-label="Smart compile task description"
+                    />
+                    <button class="fb" onclick="DashboardTab.smartCompile()">Smart Preview</button>
+                  </div>
+                  <div class="dashboard-smart-result" id="db-smart-result" hidden></div>
                   <div class="dashboard-run-actions">
-                    <button class="save-btn" onclick="DashboardTab.deployAvailable()">
-                      Update Available
-                    </button>
-                    <button class="fb" onclick="DashboardTab.previewOutput()">Preview Output</button>
+                    <button class="save-btn" onclick="DashboardTab.deployAvailable()">Sync Available</button>
+                    <button class="fb" onclick="DashboardTab.openTab('compile')">Manage Hosts</button>
                   </div>
                   <p class="dashboard-note" id="db-output-status">
-                    Detected file-output targets will appear after the first scan.
+                    Detected host and file-sync targets will appear after the first scan.
                   </p>
                   <div class="dashboard-token-list" id="db-output-tokens">
                     <div class="db-empty">Token estimates appear after preview</div>
@@ -235,14 +262,12 @@
                   </div>
                   <div class="db-card-actions">
                     <button class="save-btn" onclick="DashboardTab.discover()">Scan Skills</button>
-                    <button class="fb" onclick="DashboardTab.indexSkills()">Index Skills</button>
                     <button class="fb" onclick="DashboardTab.regenCONTEXTmd()">Rebuild Manifest</button>
                     <button class="fb" onclick="DashboardTab.backup()">Backup Source</button>
                   </div>
                   <p class="dashboard-note" id="db-compile-status">
                     Broker status will appear after the first check.
                   </p>
-                  <p class="dashboard-note" id="db-index-status">Vector index has not been checked yet.</p>
                   <div class="dashboard-edit-links">
                     <button class="mem-btn" onclick="DashboardTab.openTab('skills')">Manage Skills</button>
                     <button class="mem-btn" onclick="DashboardTab.openTab('modes')">Manage Modes</button>
@@ -295,11 +320,31 @@
                   <input class="search" id="skills-search" type="text" placeholder="Search skills..." />
                   <div class="search-suggest" id="search-suggest"></div>
                 </div>
-                <div class="filters">
-                  <button class="fb on" onclick="SkillsTab.setFilter('all', this)">All</button>
-                  <button class="fb" onclick="SkillsTab.setFilter('active', this)">Active</button>
-                  <button class="fb" onclick="SkillsTab.setFilter('inactive', this)">Inactive</button>
-                </div>
+                <button
+                  class="view-btn filter-trigger skills-filter-trigger"
+                  id="skills-filter-trigger"
+                  title="Filters"
+                  aria-label="Open filters"
+                  onclick="SkillsTab.openFilters()"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <line x1="4" y1="6" x2="20" y2="6" />
+                    <circle cx="9" cy="6" r="2" />
+                    <line x1="4" y1="12" x2="20" y2="12" />
+                    <circle cx="15" cy="12" r="2" />
+                    <line x1="4" y1="18" x2="20" y2="18" />
+                    <circle cx="11" cy="18" r="2" />
+                  </svg>
+                  <span class="filter-count" id="skills-filter-count" hidden>0</span>
+                </button>
                 <div class="view-toggle">
                   <button
                     class="view-btn on"
@@ -360,16 +405,6 @@
                 </button>
               </div>
             </div>
-            <aside class="skills-sidebar">
-              <div class="skills-side-section">
-                <span class="skills-side-label">Sources</span>
-                <div id="skills-source-list" class="skills-side-list"></div>
-              </div>
-              <div class="skills-side-section">
-                <span class="skills-side-label">Categories</span>
-                <div id="skills-category-list" class="skills-side-list"></div>
-              </div>
-            </aside>
             <div class="skills-main-area">
               <div class="skills-scroll" id="skills-main">
                 <div class="category-bar" id="category-bar"></div>
@@ -396,14 +431,44 @@
                 </p>
               </div>
               <div class="modes-toolbar">
-                <button
-                  class="save-btn modes-create-shortcut"
-                  id="modes-create-shortcut"
-                  onclick="ModesTab.createNew()"
-                  hidden
-                >
-                  + New Mode
-                </button>
+                <div class="modes-search">
+                  <input class="search" id="modes-search-input" type="search" placeholder="Search modes" />
+                  <button
+                    class="view-btn filter-trigger"
+                    id="modes-filter-trigger"
+                    title="Filters"
+                    aria-label="Open filters"
+                    onclick="ModesTab.openFilters()"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <line x1="4" y1="6" x2="20" y2="6" />
+                      <circle cx="9" cy="6" r="2" />
+                      <line x1="4" y1="12" x2="20" y2="12" />
+                      <circle cx="15" cy="12" r="2" />
+                      <line x1="4" y1="18" x2="20" y2="18" />
+                      <circle cx="11" cy="18" r="2" />
+                    </svg>
+                    <span class="filter-count" id="modes-filter-count" hidden>0</span>
+                  </button>
+                </div>
+                <div class="modes-toolbar-actions">
+                  <button
+                    class="save-btn modes-create-shortcut"
+                    id="modes-create-shortcut"
+                    onclick="ModesTab.createNew()"
+                    hidden
+                  >
+                    + New Mode
+                  </button>
+                </div>
               </div>
               <div id="modes-list" class="modes-list"></div>
             </div>
@@ -417,6 +482,31 @@
                   <input class="search" id="memory-search-input" type="search" placeholder="Search memory" />
                 </div>
                 <div class="memory-toolbar-actions">
+                  <button
+                    class="view-btn filter-trigger"
+                    id="memory-filter-trigger"
+                    title="Filters"
+                    aria-label="Open filters"
+                    onclick="MemoryTab.openFilters()"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <line x1="4" y1="6" x2="20" y2="6" />
+                      <circle cx="9" cy="6" r="2" />
+                      <line x1="4" y1="12" x2="20" y2="12" />
+                      <circle cx="15" cy="12" r="2" />
+                      <line x1="4" y1="18" x2="20" y2="18" />
+                      <circle cx="11" cy="18" r="2" />
+                    </svg>
+                    <span class="filter-count" id="memory-filter-count" hidden>0</span>
+                  </button>
                   <div class="view-toggle">
                     <button
                       class="view-btn"
@@ -495,6 +585,7 @@
     <script src="compile-markup.js"></script>
     <script src="ce-select.js"></script>
     <script src="utils.js"></script>
+    <script src="compile-connection-view.js"></script>
     <script src="compile-view.js"></script>
     <script src="data.js"></script>
     <script src="store.js"></script>
