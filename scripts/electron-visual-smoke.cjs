@@ -90,14 +90,16 @@ async function run() {
     win,
     `(() => {
       const host = document.querySelector('.mcp-host-card')?.getBoundingClientRect();
-      const readiness = document.querySelector('.readiness-card')?.getBoundingClientRect();
       const configureButtons = [...document.querySelectorAll('#mcp-hosts-list button')]
         .filter(button => button.textContent.trim() === 'Configure');
       return {
         title: document.title,
         bodyText: document.body.innerText,
         hostTop: host?.top ?? 9999,
-        readinessTop: readiness?.top ?? -1,
+        statusText: document.getElementById('compile-connection-status')?.innerText || '',
+        navStatusExists: !!document.getElementById('server-status'),
+        hasCompileIndex: !!document.getElementById('compile-index-status'),
+        hasWorkspaceSection: !!document.getElementById('compile-fallback-card'),
         hostCount: document.querySelectorAll('#mcp-hosts-list .mcp-host-row').length,
         configureCount: configureButtons.length,
       };
@@ -105,8 +107,14 @@ async function run() {
   );
 
   assert(overview.title === 'Context Engine', `Unexpected title: ${overview.title}`);
-  assert(String(overview.bodyText).includes('Connect host apps'), 'Outputs host-grid heading is missing');
-  assert(overview.hostTop < overview.readinessTop, 'Host app connection grid is not above readiness');
+  assert(String(overview.statusText).includes('Reachable'), 'Connection status is missing');
+  assert(
+    !String(overview.statusText).includes('http://127.0.0.1'),
+    'Connection endpoint should not render in page header',
+  );
+  assert(!overview.navStatusExists, 'Sidebar server status should not render');
+  assert(!overview.hasCompileIndex, 'Vector index should not render on Connections page');
+  assert(!overview.hasWorkspaceSection, 'Workspace files section should not render on Connections page');
   assert(overview.hostCount >= 1, 'No host cards rendered');
   assert(overview.configureCount >= 1, 'No Configure buttons rendered');
 
@@ -120,26 +128,43 @@ async function run() {
       button?.click();
     })()`,
   );
+  await waitFor(win, `(() => document.getElementById('side-panel')?.classList.contains('open'))()`);
   await waitFor(
     win,
-    `(() => document.getElementById('mcp-host-modal-overlay')?.classList.contains('open'))()`,
+    `(() => {
+      const rect = document.getElementById('side-panel')?.getBoundingClientRect();
+      return !!rect && rect.left < window.innerWidth - 120;
+    })()`,
   );
 
-  const modal = await js(
+  const detailPanel = await js(
     win,
     `(() => ({
-      title: document.getElementById('mcp-host-modal-title')?.textContent || '',
-      bodyText: document.getElementById('mcp-host-modal-body')?.innerText || '',
-      actionText: document.getElementById('mcp-host-modal-actions')?.innerText || '',
+      title: document.getElementById('sp-title')?.textContent || '',
+      bodyText: document.getElementById('sp-body')?.innerText || '',
+      actionText: document.querySelector('#sp-body .sp-actions')?.innerText || '',
     }))()`,
   );
-  assert(String(modal.title).startsWith('Configure '), 'Configure modal title did not update');
-  assert(String(modal.bodyText).includes('Connection checklist'), 'Configure modal checklist is missing');
+  assert(String(detailPanel.title).length > 0, 'Detail panel title did not update');
+  assert(String(detailPanel.bodyText).includes('Connection checklist'), 'Detail panel checklist is missing');
   assert(
-    /Connect host|Re-apply config|Copy snippet|Close/.test(String(modal.actionText)),
-    'Configure modal actions are missing',
+    /Connect host|Re-apply config|Copy snippet|Re-check hosts|Close/.test(String(detailPanel.actionText)),
+    'Detail panel actions are missing',
   );
-  const modalShot = await capture(win, 'outputs-configure-modal');
+  const modalShot = await capture(win, 'outputs-detail-panel');
+
+  await js(
+    win,
+    `(() => {
+      const card = [...document.querySelectorAll('#mcp-hosts-list .mcp-host-row')]
+        .find(item => item.innerText.toLowerCase().includes('codex cli'));
+      card?.click();
+    })()`,
+  );
+  await waitFor(
+    win,
+    `(() => document.getElementById('side-panel')?.classList.contains('open') && document.getElementById('sp-title')?.textContent.includes('Codex CLI'))()`,
+  );
 
   win.setSize(SCREENSHOTS[1].width, SCREENSHOTS[1].height);
   await waitFor(win, `(() => document.querySelector('.mcp-host-card')?.getBoundingClientRect().width > 0)()`);

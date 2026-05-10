@@ -1,4 +1,4 @@
-/* tab-compile-bridge.css -- Runtime bridge and fallback status surfaces. */
+/* tab-compile-bridge.css -- Runtime bridge and connection status surfaces. */
 
 .mcp-host-card {
   margin-bottom: var(--s-4);
@@ -6,43 +6,61 @@
 
 .mcp-hosts-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: var(--s-3);
-  padding: var(--s-4);
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: var(--s-4);
+  padding: 0;
+  transition: padding-right var(--spring);
+}
+
+body.side-panel-active #compile-tab .mcp-hosts-list {
+  padding-right: calc(min(var(--rail-w), calc(100vw - var(--rail-max-gutter))) + var(--s-6));
 }
 
 .mcp-host-row {
   display: flex;
   flex-direction: column;
-  gap: var(--s-4);
-  min-height: 190px;
-  padding: var(--s-4);
+  gap: var(--s-5);
+  min-height: 210px;
+  padding: var(--s-5);
   border: 1px solid var(--dram-card-border);
   border-radius: var(--r-3);
   background: var(--dram-card-bg);
+  cursor: pointer;
+  outline: none;
 }
 
-.mcp-host-row:hover {
+.mcp-host-row:hover,
+.mcp-host-row:focus-visible {
   border-color: var(--dram-card-border-hover);
   background: var(--dram-card-hover);
 }
 
+.mcp-host-muted,
 .mcp-host-disabled {
-  opacity: 0.7;
+  opacity: 0.58;
 }
 
 .mcp-host-main {
   display: grid;
-  gap: var(--s-3);
+  gap: var(--s-4);
   min-width: 0;
 }
 
 .mcp-host-top,
+.mcp-host-tags,
 .mcp-host-actions {
   display: flex;
   align-items: center;
   gap: var(--s-2);
   flex-wrap: wrap;
+}
+
+.mcp-host-top {
+  min-width: 0;
+}
+
+.mcp-host-tags:empty {
+  display: none;
 }
 
 .mcp-host-top strong {
@@ -58,7 +76,7 @@
   margin: 0;
   color: var(--text-3);
   font-size: var(--fs-02);
-  line-height: 1.45;
+  line-height: 1.55;
 }
 
 .mcp-host-path {
@@ -69,12 +87,46 @@
   word-break: break-all;
 }
 
+.connection-hero {
+  display: grid;
+  gap: var(--s-2);
+  min-width: 0;
+}
+
+.connection-hero-main {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.connection-hero-main strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: var(--fs-05);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.connection-hero p {
+  margin: 0;
+  color: var(--text-3);
+  font-size: var(--fs-02);
+}
+
 .mcp-host-actions {
   justify-content: flex-end;
   margin-top: auto;
 }
 
-.mcp-status-connected {
+.mcp-host-actions .small {
+  min-height: 30px;
+}
+
+.ct-badge.mcp-status-connected {
   color: var(--ok);
   border-color: var(--ok);
   background: var(--ok-bg);
@@ -209,9 +261,15 @@
 }
 
 @keyframes index-progress-slide {
-  0%   { transform: translateX(-100%); }
-  50%  { transform: translateX(180%); }
-  100% { transform: translateX(-100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(180%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
 }
 
 .mcp-host-steps {
@@ -278,10 +336,6 @@
 .mcp-step-action {
   display: flex;
   align-items: center;
-}
-
-.mcp-host-modal {
-  width: min(760px, 100%);
 }
 
 .mcp-config-summary,
@@ -360,54 +414,26 @@
 }
 
 .fallback-summary {
-  cursor: pointer;
-  list-style: none;
-  padding: var(--s-3) var(--s-4);
-}
-
-.fallback-summary::-webkit-details-marker {
-  display: none;
-}
-
-.fallback-summary::after {
-  content: 'v';
-  margin-left: auto;
-  color: var(--text-4);
-  transition: transform 0.15s ease;
-}
-
-.fallback-card[open] .fallback-summary::after {
-  transform: rotate(180deg);
+  align-items: flex-start;
 }
 
 .fallback-hint {
   color: var(--text-4);
-  font-size: var(--fs-01);
-  margin-left: var(--s-3);
+  font-size: var(--fs-02);
+  line-height: 1.45;
 }
 
 .fallback-body {
-  padding: 0 var(--s-4) var(--s-4);
+  padding: var(--s-4);
   display: grid;
-  gap: var(--s-4);
+  gap: var(--s-3);
 }
 
-.fallback-toolbar {
+.workspace-targets-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--s-4);
-  padding: var(--s-3);
-  border: 1px solid var(--dram-card-border);
-  border-radius: var(--r-3);
-  background: var(--dram-card-bg);
-}
-
-.fallback-toolbar strong {
-  display: block;
-  color: var(--text);
-  font-size: var(--fs-03);
-  font-weight: 750;
 }
 
 .fallback-summary-meta,
@@ -436,10 +462,6 @@
   font-family: inherit;
   font-size: inherit;
   font-weight: 800;
-}
-
-.compile-card-inner {
-  border-color: var(--dram-card-border);
 }
 
 @media (max-width: 720px) {

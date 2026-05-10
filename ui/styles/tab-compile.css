@@ -1,4 +1,4 @@
-/* tab-compile.css -- Outputs tab deployment workbench. */
+/* tab-compile.css -- Connections tab deployment workbench. */
 
 #compile-tab .simple-inner {
   max-width: none;
@@ -28,6 +28,14 @@
   line-height: 1.15;
 }
 
+.compile-card-lede {
+  max-width: 760px;
+  margin: var(--s-2) 0 0;
+  color: var(--text-3);
+  font-size: var(--fs-02);
+  line-height: 1.45;
+}
+
 .compile-card h3 {
   font-size: var(--fs-06);
 }
@@ -35,6 +43,23 @@
 .compile-card {
   margin-bottom: var(--s-4);
   overflow: hidden;
+}
+
+.connections-host-section {
+  margin-bottom: var(--s-5);
+}
+
+.connections-host-head {
+  padding: 0 0 var(--s-4);
+  border-bottom: 0;
+}
+
+.connections-support-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.85fr) minmax(420px, 1.15fr);
+  gap: var(--s-4);
+  align-items: start;
+  margin-bottom: var(--s-4);
 }
 
 .compile-card-head {
@@ -111,7 +136,15 @@
   filter: grayscale(1) invert(1);
 }
 
+.compile-target-logo svg {
+  width: 18px;
+  height: 18px;
+  color: var(--accent-hi);
+}
+
 .compile-target-logo.target-codex img,
+.compile-target-logo.target-codex-cli img,
+.compile-target-logo.target-chatgpt-app img,
 .compile-target-logo.target-kiro img,
 .compile-target-logo.target-amp img {
   width: 22px;
@@ -139,8 +172,7 @@
 }
 
 .ct-installed,
-.ct-ready,
-.ct-global-active {
+.ct-ready {
   color: var(--ok);
   border-color: var(--ok);
   background: var(--ok-bg);
@@ -164,12 +196,34 @@
 }
 
 .ct-path {
+  display: grid;
+  gap: 4px;
   min-height: 32px;
   color: var(--text-3);
-  font-family: var(--mono);
   font-size: var(--fs-01);
   line-height: 1.45;
   word-break: break-all;
+}
+
+.ct-path span {
+  color: var(--text-4);
+  font-family: var(--mono);
+  font-size: var(--fs-00);
+  font-weight: 700;
+  letter-spacing: var(--tr-wide);
+  text-transform: uppercase;
+}
+
+.ct-path code,
+.ct-path em {
+  color: var(--text-3);
+  font-family: var(--mono);
+  font-style: normal;
+}
+
+.ct-path b {
+  color: var(--text-4);
+  font-weight: 700;
 }
 
 .ct-actions {
@@ -183,8 +237,13 @@
 #compile-workspaces-list {
   display: grid;
   gap: var(--s-3);
-  padding: var(--s-4);
+  padding: 0;
   border: 0;
+}
+
+#compile-workspaces-list .db-empty {
+  padding: var(--s-3) 0;
+  text-align: left;
 }
 
 .compile-ws-row {
@@ -230,7 +289,7 @@
 }
 
 .compile-ws-add {
-  padding: 0 var(--s-4) var(--s-4);
+  padding: 0;
 }
 
 .compile-ws-add .add-input {
@@ -323,6 +382,12 @@
   overflow: auto;
 }
 
+@media (max-width: 1080px) {
+  .connections-support-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 720px) {
   .compile-tools-grid {
     grid-template-columns: 1fr;
@@ -335,7 +400,7 @@
   }
 
   .compile-ws-add,
-  .fallback-toolbar,
+  .workspace-targets-head,
   .fallback-actions,
   .ws-actions {
     align-items: stretch;

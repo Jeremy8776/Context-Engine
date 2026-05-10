@@ -6,11 +6,15 @@ const SidePanel = (() => {
   const titleEl = () => document.getElementById('sp-title');
   const body = () => document.getElementById('sp-body');
   let closeTimer = null;
-  const closeDelay = 420;
 
   function measurePanelTop() {
     const activeTab = document.querySelector('.tab-panel.active');
-    const toolbar = activeTab?.querySelector('.toolbar');
+    const content = activeTab?.querySelector(
+      '.memory-card, .skill-row, .mode-card:not(.mode-card-ghost), .mcp-host-row, .memory-results, .skills-scroll, .modes-list, .mcp-hosts-list',
+    );
+    if (content) return Math.round(content.getBoundingClientRect().top);
+
+    const toolbar = activeTab?.querySelector('.toolbar, .memory-toolbar, .modes-toolbar');
     if (toolbar) return Math.round(toolbar.getBoundingClientRect().bottom);
 
     const navBrand = document.querySelector('.nav-brand');
@@ -34,23 +38,19 @@ const SidePanel = (() => {
 
   function close() {
     if (!isOpen() && !document.body.classList.contains('side-panel-active')) return;
+    if (closeTimer) {
+      clearTimeout(closeTimer);
+      closeTimer = null;
+    }
     panel().classList.remove('open');
     overlay().classList.remove('open');
+    document.body.classList.remove('side-panel-active');
     document.dispatchEvent(new CustomEvent('sidepanel:close'));
-    if (closeTimer) clearTimeout(closeTimer);
-    closeTimer = setTimeout(() => {
-      document.body.classList.remove('side-panel-active');
-      closeTimer = null;
-    }, closeDelay);
   }
 
   function isOpen() {
     return panel().classList.contains('open');
   }
-
-  document.addEventListener('click', (e) => {
-    if (e.target.id === 'side-panel-overlay') close();
-  });
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && isOpen()) close();

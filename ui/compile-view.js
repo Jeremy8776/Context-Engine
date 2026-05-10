@@ -1,5 +1,3 @@
-// compile-view.js -- Rendering and target rules for the Outputs tab.
-
 // @ts-check
 
 const CompileView = (() => {
@@ -9,7 +7,7 @@ const CompileView = (() => {
     agents: { label: 'AGENTS.md', logo: 'https://cdn.jsdelivr.net/npm/simple-icons/icons/markdown.svg' },
     codex: {
       label: 'Codex',
-      logo: 'https://upload.wikimedia.org/wikipedia/commons/9/97/OpenAI_logo_2025.svg',
+      logo: 'https://cdn.jsdelivr.net/npm/simple-icons/icons/openai.svg',
     },
     copilot: {
       label: 'GitHub Copilot',
@@ -49,7 +47,7 @@ const CompileView = (() => {
     },
   };
 
-  const FILE_STANDARD_TARGETS = new Set(['agents', 'aider', 'copilot']);
+  const FILE_STANDARD_TARGETS = new Set(['agents', 'copilot']);
 
   /** @param {string} id */
   function targetClass(id) {
@@ -68,6 +66,16 @@ const CompileView = (() => {
     const meta = TARGET_META[id] || { label: id };
     if (!meta.logo) return '';
     return `<span class="compile-target-logo target-${targetClass(id)}"><img src="${esc(meta.logo)}" alt="" loading="lazy"></span>`;
+  }
+
+  /** @param {string} id @param {ToolRecord | undefined | null} tool */
+  function isToolDetected(id, tool) {
+    return !!(
+      tool?.detected ||
+      tool?.globalInstalled ||
+      isFileStandard(id, tool) ||
+      tool?.category === 'manual'
+    );
   }
 
   /** @param {string} id @param {ToolRecord | undefined | null} tool */
@@ -114,124 +122,87 @@ const CompileView = (() => {
 
   /** @param {string | undefined} mode */
   function modeLabel(mode) {
+    if (mode === 'local-extension') return 'Desktop extension';
     if (mode === 'remote-http') return 'Remote HTTPS';
     if (mode === 'local-stdio') return 'Local MCP';
     return 'MCP';
   }
 
-  /** @param {{ ok?: boolean, ready?: boolean, chunks?: number, skills?: number, model?: string|null, updatedAt?: string|null }|null} status @param {{ hosts: McpHostRecord[] }} ctx */
-  function renderReadinessBanner(status, ctx) {
-    const hosts = ctx.hosts || [];
-    const local = hosts.filter((h) => h.supported);
-    const connected = local.filter((h) => h.status === 'connected').length;
-    const indexReady = !!status?.ready;
-    const tone = indexReady && connected > 0 ? 'ready' : connected > 0 || indexReady ? 'partial' : 'pending';
-    const headline =
-      tone === 'ready'
-        ? 'Context Engine is reachable as MCP'
-        : tone === 'partial'
-          ? 'Almost there - finish setup below'
-          : 'Set up the runtime bridge to start using CE';
-    const indexLine = indexReady
-      ? `${(status?.chunks || 0).toLocaleString()} chunks indexed across ${(status?.skills || 0).toLocaleString()} skills`
-      : 'Vector index is empty - build it before running searches';
-    const hostsLine = local.length
-      ? `${connected} / ${local.length} local host${local.length === 1 ? '' : 's'} connected`
-      : 'No local hosts available';
-    return `<div class="readiness-banner readiness-${tone}">
-      <div class="readiness-dot"></div>
-      <div class="readiness-text">
-        <strong>${esc(headline)}</strong>
-        <span class="readiness-meta">${esc(indexLine)} / ${esc(hostsLine)}</span>
-      </div>
-    </div>`;
-  }
-
-  /** @param {{ ok?: boolean, ready?: boolean, chunks?: number, skills?: number, model?: string|null, updatedAt?: string|null }|null} status @param {boolean=} building */
-  function renderIndexStatus(status, building = false) {
-    if (!status) return '<div class="db-empty">Loading index status...</div>';
-    const ready = !!status.ready;
-    const chunks = status.chunks || 0;
-    const skills = status.skills || 0;
-    const model = status.model || 'no model';
-    const updated = status.updatedAt ? new Date(status.updatedAt).toLocaleString() : 'never';
-    const tone = building ? 'index-building' : ready ? 'index-ready' : 'index-empty';
-    const badgeText = building ? 'Building...' : ready ? 'Ready' : 'Empty';
-    const badgeClass = building ? 'ct-pending' : ready ? 'ct-installed' : 'ct-broken';
-    return `<div class="index-status ${tone}">
-      <div class="index-status-row">
-        <span class="ct-badge ${badgeClass}">${badgeText}</span>
-        <span class="index-line"><strong>${chunks.toLocaleString()}</strong> chunks / <strong>${skills.toLocaleString()}</strong> skills</span>
-        <span class="index-meta">model: ${esc(model)} / last built: ${esc(updated)}</span>
-      </div>
-      ${building ? '<div class="index-progress" role="progressbar" aria-label="Indexing in progress"><div class="index-progress-bar"></div></div>' : ''}
-      ${ready || building ? '' : `<p class="index-help">Searches return nothing until the index is built. The "Build / rebuild" action above embeds every active skill chunk into the local vector store using your configured embeddings model.</p>`}
-      ${building ? '<p class="index-help">Embedding skill chunks via your configured model. This typically takes 30-90 seconds depending on skill count and whether the model is warm.</p>' : ''}
-    </div>`;
-  }
-
-  /** @param {Array<{ id: string, title: string, body: string, done: boolean, action?: { type: string, href?: string, hostId?: string } }>} steps @param {string} hostId @param {boolean=} includeActions */
-  function renderHostSteps(steps, hostId, includeActions = true) {
+  /** @param {Array<{ id: string, title: string, body: string, done: boolean }>} steps */
+  function renderHostSteps(steps) {
     if (!Array.isArray(steps) || !steps.length) return '';
     return `<ol class="mcp-host-steps">${steps
       .map((step, idx) => {
-        const action = includeActions ? renderStepAction(step.action, hostId) : '';
         return `<li class="mcp-step ${step.done ? 'done' : 'pending'}">
         <span class="mcp-step-num">${step.done ? 'OK' : idx + 1}</span>
         <div class="mcp-step-text">
           <strong>${esc(step.title)}</strong>
           <span>${esc(step.body)}</span>
         </div>
-        ${action ? `<div class="mcp-step-action">${action}</div>` : ''}
       </li>`;
       })
       .join('')}</ol>`;
   }
 
-  /** @param {{ type: string, href?: string, hostId?: string }|undefined} action @param {string} hostId */
-  function renderStepAction(action, hostId) {
-    if (!action) return '';
-    if (action.type === 'install') {
-      return `<button class="mem-btn save" onclick="CompileTab.installMcpHost('${hostId}')">Connect</button>`;
-    }
-    if (action.type === 'copy-snippet') {
-      return `<button class="mem-btn" onclick="CompileTab.copyMcpSnippet('${hostId}')">Copy snippet</button>`;
-    }
-    if (action.type === 'open-link' && action.href) {
-      return `<a class="mem-btn" href="${esc(action.href)}" target="_blank" rel="noopener noreferrer">Open</a>`;
-    }
-    if (action.type === 'docs' && action.href) {
-      return `<a class="mem-btn" href="${esc(action.href)}" target="_blank" rel="noopener noreferrer">Read docs</a>`;
-    }
-    return '';
-  }
-
-  /** @param {McpHostRecord[]} hosts */
-  function renderMcpHosts(hosts) {
-    if (!hosts.length) return '<div class="db-empty">No MCP host metadata available.</div>';
-    return hosts
-      .map((host) => {
+  /** @param {McpHostRecord[]} hosts @param {ToolMap=} tools */
+  function renderMcpHosts(hosts, tools = {}) {
+    const hostCards = hosts.map((host) => ({ kind: 'host', rank: hostRank(host), label: host.label, host }));
+    const toolCards = Object.keys(tools).map((id) => ({
+      kind: 'tool',
+      rank: toolRank(id, tools[id]),
+      label: targetLabel(id),
+      id,
+      tool: tools[id] || {},
+    }));
+    const cards = [...hostCards, ...toolCards].sort(
+      (a, b) => a.rank - b.rank || a.label.localeCompare(b.label),
+    );
+    const html = cards
+      .map((card) => {
+        if (card.kind === 'tool') return renderToolCard(card.id, card.tool);
+        const host = card.host;
         const statusClass = `mcp-status-${targetClass(host.status)}`;
-        const detected =
-          typeof host.appDetected === 'boolean'
-            ? `<span class="ct-badge ${host.appDetected ? 'ct-installed' : 'ct-notfound'}">${host.appDetected ? 'App detected' : 'App not detected'}</span>`
-            : '';
-        return `<article class="mcp-host-row ${host.supported ? '' : 'mcp-host-disabled'}">
+        const visible = host.status === 'connected' || host.appDetected !== false;
+        return `<article class="mcp-host-row ${visible ? '' : 'mcp-host-muted'}" tabindex="0" role="button" onclick="CompileTab.openHostConfig('${host.id}')" onkeydown="CompileTab.handleCardKey(event, 'host', '${host.id}')">
         <div class="mcp-host-main">
           <div class="mcp-host-top">
+            ${CompileConnectionView.renderLogo(host)}
             <strong>${esc(host.label)}</strong>
+          </div>
+          <div class="mcp-host-tags">
             <span class="ct-badge ${statusClass}">${esc(statusLabel(host.status))}</span>
             <span class="ct-badge ct-project-only">${esc(modeLabel(host.mode))}</span>
-            ${detected}
           </div>
-          <p>${esc(host.summary)}</p>
+          ${renderHostBridge(host)}
         </div>
         <div class="mcp-host-actions">
-          <button class="save-btn small" onclick="CompileTab.openHostConfig('${host.id}')">Configure</button>
+          <button class="fb small" onclick="event.stopPropagation(); CompileTab.refreshConnections()">Scan</button>
+          <button class="save-btn small" onclick="event.stopPropagation(); CompileTab.openHostConfig('${host.id}')">Configure</button>
         </div>
       </article>`;
       })
       .join('');
+    return html || '<div class="db-empty">No host metadata available.</div>';
+  }
+
+  function hostRank(host) {
+    if (host.status === 'connected') return 0;
+    if (host.appDetected) return 1;
+    if (host.status === 'remote-required') return 2;
+    if (host.status === 'configurable' || host.status === 'conflict' || host.status === 'invalid') return 3;
+    return 4;
+  }
+
+  /** @param {McpHostRecord} host */
+  function renderHostBridge(host) {
+    const rows = [];
+    if (host.mode === 'local-extension') rows.push(['Extension', 'Claude Desktop MCPB bundle']);
+    else if (host.mode === 'local-stdio') rows.push(['Config', host.path || '~/.codex/config.toml']);
+    else if (host.mode === 'remote-http') rows.push(['Remote', 'HTTPS /mcp connector']);
+    if (!rows.length) return '';
+    return `<div class="ct-path"><span>CE connects</span>${rows
+      .map(([name, value]) => `<code><b>${esc(name)}:</b> ${esc(value)}</code>`)
+      .join('')}</div>`;
   }
 
   /** @param {McpHostRecord} host */
@@ -261,6 +232,7 @@ const CompileView = (() => {
         <span>Install mode</span>
         <strong>${esc(modeLabel(host.mode))}</strong>
       </div>
+      ${CompileConnectionView.renderRows(host)}
       ${pathRow}
     </div>
     <div class="mcp-config-steps">
@@ -268,7 +240,7 @@ const CompileView = (() => {
         <span class="compile-kicker">Setup</span>
         <strong>Connection checklist</strong>
       </div>
-      ${renderHostSteps(host.steps || [], host.id, false) || '<div class="db-empty">No setup steps for this host.</div>'}
+      ${renderHostSteps(host.steps || []) || '<div class="db-empty">No setup steps for this host.</div>'}
     </div>`;
   }
 
@@ -298,45 +270,41 @@ const CompileView = (() => {
     return actions.join('');
   }
 
-  /** @param {ToolMap} tools */
-  function renderTools(tools) {
-    const ids = Object.keys(tools).sort((a, b) => {
-      const ai = isToolAvailable(a, tools[a]) ? 0 : 1;
-      const bi = isToolAvailable(b, tools[b]) ? 0 : 1;
-      if (ai !== bi) return ai - bi;
-      return targetLabel(a).localeCompare(targetLabel(b));
-    });
-    if (!ids.length) return '<div class="db-empty">No output targets are registered.</div>';
-    return ids.map((id) => renderToolCard(id, tools[id] || {})).join('');
+  function toolRank(id, tool) {
+    if (!tool) return 8;
+    if (tool.globalInstalled) return 5;
+    if (tool.detected || tool.installed) return 6;
+    if (isFileStandard(id, tool)) return 7;
+    if (isToolAvailable(id, tool)) return 8;
+    return 9;
   }
 
   /** @param {string} id @param {ToolRecord} tool */
   function renderToolCard(id, tool) {
     const available = isToolAvailable(id, tool);
+    const detected = isToolDetected(id, tool);
     const badges = renderToolBadges(id, tool, available);
-    const pathInfo = renderToolPath(tool);
-    const action = renderToolAction(id, tool, available);
-    return `<div class="compile-tool-card target-${targetClass(id)}${available ? ' ct-detected' : ' ct-muted'}">
-      <div class="ct-header">
-        ${targetLogo(id)}
-        <span class="ct-label">${targetLabel(id)}</span>
+    return `<article class="mcp-host-row compile-tool-card target-${targetClass(id)}${detected ? ' ct-detected' : ' ct-muted'}" tabindex="0" role="button" onclick="CompileTab.openToolConfig('${id}')" onkeydown="CompileTab.handleCardKey(event, 'tool', '${id}')">
+      <div class="mcp-host-main">
+        <div class="mcp-host-top">
+          ${targetLogo(id)}
+          <strong>${targetLabel(id)}</strong>
+        </div>
+        <div class="mcp-host-tags">${badges}</div>
+        ${renderToolPath(tool, available)}
       </div>
-      <div class="ct-badges">${badges}</div>
-      ${pathInfo}
-      <div class="ct-actions">${action}</div>
-    </div>`;
+      <div class="mcp-host-actions">
+        <button class="fb small" onclick="event.stopPropagation(); CompileTab.refreshConnections()">Scan MDs</button>
+        <button class="save-btn small" onclick="event.stopPropagation(); CompileTab.openToolConfig('${id}')">Configure</button>
+      </div>
+    </article>`;
   }
 
   /** @param {string} id @param {ToolRecord} tool @param {boolean} available */
   function renderToolBadges(id, tool, available) {
     const badges = [];
     if (!available) badges.push('<span class="ct-badge ct-broken">Unavailable</span>');
-    if (tool.installed) badges.push('<span class="ct-badge ct-installed">Tool Detected</span>');
-    else if (isFileStandard(id, tool))
-      badges.push('<span class="ct-badge ct-project-only">File Standard</span>');
-    else if (tool.category !== 'manual')
-      badges.push('<span class="ct-badge ct-notfound">App Not Detected</span>');
-    if (tool.globalInstalled) badges.push('<span class="ct-badge ct-global-active">Global Active</span>');
+    if (isFileStandard(id, tool)) badges.push('<span class="ct-badge ct-project-only">File Standard</span>');
     if (available && tool.globalReady)
       badges.push('<span class="ct-badge ct-project-only">Global Writable</span>');
     if (available && tool.projectReady)
@@ -346,102 +314,102 @@ const CompileView = (() => {
     return badges.join('');
   }
 
-  /** @param {ToolRecord} tool */
-  function renderToolPath(tool) {
+  /** @param {string} id @param {ToolRecord} tool @param {boolean} available */
+  function toolSummary(id, tool, available) {
+    if (tool.compileError)
+      return `CE can see ${targetLabel(id)}, but the adapter needs attention before syncing.`;
+    if (typeof tool.description === 'string' && tool.description.trim()) return tool.description;
+    if (tool.category === 'manual')
+      return 'Manual surface. CE can generate the right context and copy it for this host.';
+    if (tool.globalReady && tool.projectReady)
+      return 'Reads shared and workspace-level instruction files generated by CE.';
+    if (tool.globalReady) return 'Reads a shared instruction file generated by CE.';
+    if (tool.projectReady) return 'Reads project instruction files generated by CE in registered workspaces.';
+    if (available) return 'Known host surface. Configure workspaces or permissions to sync context here.';
+    return 'Known host surface, but this app was not detected on this machine.';
+  }
+
+  /** @param {ToolRecord} tool @param {boolean} available */
+  function renderToolPath(tool, available) {
+    const outputFilename = typeof tool.outputFilename === 'string' ? tool.outputFilename : '';
+    const workspaceTarget = outputFilename ? `<workspace>\\${outputFilename.replace(/\//g, '\\')}` : '';
+    const targets = [];
+    if (tool.globalPath) targets.push(['Global', String(tool.globalPath)]);
+    if (available && tool.projectReady && workspaceTarget) targets.push(['Workspace', workspaceTarget]);
     const statusText =
       tool.compileError || (tool.globalPath && !tool.globalWritable ? 'Global path is not writable' : '');
-    return tool.globalPath || statusText
-      ? `<div class="ct-path">${esc([tool.globalPath, statusText].filter(Boolean).join(' - '))}</div>`
+    const label = tool.category === 'manual' ? 'CE prepares' : 'CE writes';
+    return targets.length || statusText
+      ? `<div class="ct-path"><span>${label}</span>${targets.map(([name, value]) => `<code><b>${esc(name)}:</b> ${esc(value)}</code>`).join('')}${statusText ? `<em>${esc(statusText)}</em>` : ''}</div>`
       : '';
   }
 
   /** @param {string} id @param {ToolRecord} tool @param {boolean} available */
   function renderToolAction(id, tool, available) {
     if (available && tool.category === 'manual')
-      return `<button class="mem-btn" onclick="CompileTab.copyOutput('${id}')">Copy output</button>`;
+      return `<button class="mem-btn small" onclick="CompileTab.copyOutput('${id}')">Copy</button>`;
+    if (available && (tool.globalReady || tool.projectReady))
+      return `<button class="mem-btn small" onclick="CompileTab.deployTarget('${id}')">Connect</button>`;
     return '';
   }
 
-  /** @param {ToolMap} tools @param {WorkspaceRecord[]} workspaces */
-  function renderFallbackSummary(tools, workspaces) {
-    const globalCount = availableTargets(tools, 'globalReady').length;
-    const projectCount = availableTargets(tools, 'projectReady').length;
-    const manualCount = Object.entries(tools).filter(
-      ([id, tool]) => isToolAvailable(id, tool) && tool.category === 'manual',
-    ).length;
-    return [
-      `<span><strong>${globalCount}</strong> global writable</span>`,
-      `<span><strong>${projectCount}</strong> project targets</span>`,
-      `<span><strong>${workspaces.length}</strong> workspaces</span>`,
-      manualCount ? `<span><strong>${manualCount}</strong> manual copy</span>` : '',
-    ]
-      .filter(Boolean)
-      .join('');
+  /** @param {string} id @param {ToolRecord} tool */
+  function renderToolConfig(id, tool) {
+    const available = isToolAvailable(id, tool);
+    const pathRow = tool.globalPath
+      ? `<div class="mcp-config-row"><span>Global file</span><code>${esc(tool.globalPath)}</code></div>`
+      : '';
+    const generatedRow =
+      typeof tool.outputFilename === 'string' && tool.outputFilename
+        ? `<div class="mcp-config-row"><span>Generated file</span><code>${esc(tool.outputFilename)}</code></div>`
+        : '';
+    const signals =
+      Array.isArray(tool.signals) && tool.signals.length ? tool.signals.join(', ') : 'No app signal detected';
+    return `<div class="mcp-config-summary">
+      <div class="mcp-config-status">${renderToolBadges(id, tool, available)}</div>
+      <p>${esc(toolSummary(id, tool, available))}</p>
+    </div>
+    <div class="mcp-config-meta">
+      <div class="mcp-config-row"><span>Host</span><strong>${esc(targetLabel(id))}</strong></div>
+      <div class="mcp-config-row"><span>Transport</span><strong>${tool.category === 'manual' ? 'Manual copy' : 'Project/global files'}</strong></div>
+      <div class="mcp-config-row"><span>Detection</span><strong>${esc(signals)}</strong></div>
+      ${generatedRow}
+      ${pathRow}
+    </div>
+    <div class="mcp-config-steps">
+      <div class="mcp-config-section-head">
+        <span class="compile-kicker">Setup</span>
+        <strong>Sync checklist</strong>
+      </div>
+      <ol class="mcp-host-steps">
+        <li class="mcp-step ${isToolDetected(id, tool) ? 'done' : 'pending'}"><span class="mcp-step-num">${isToolDetected(id, tool) ? 'OK' : '1'}</span><div class="mcp-step-text"><strong>Detect host</strong><span>Install or open the host app, then re-check hosts from this page.</span></div></li>
+        <li class="mcp-step ${available ? 'done' : 'pending'}"><span class="mcp-step-num">${available ? 'OK' : '2'}</span><div class="mcp-step-text"><strong>Enable sync path</strong><span>CE can sync through writable global files, registered workspaces, or manual copy depending on this host.</span></div></li>
+      </ol>
+    </div>`;
   }
 
-  /** @param {WorkspaceRecord[]} items */
-  function renderWorkspaces(items) {
-    if (!items.length)
-      return '<div class="db-empty">No workspaces registered. Add a project directory below.</div>';
-    return items
-      .map((ws) => {
-        const escapedPath = esc(ws.path.replace(/\\/g, '\\\\'));
-        return `<div class="compile-ws-row">
-        <div class="ws-info">
-          <span class="ws-label">${esc(ws.label)}</span>
-          <span class="ws-path">${esc(ws.path)}</span>
-          ${ws.lastCompiled ? `<span class="ws-compiled">Last compiled: ${ws.lastCompiled}</span>` : '<span class="ws-compiled">Never compiled</span>'}
-        </div>
-        <div class="ws-actions">
-          <button class="mem-btn save" onclick="CompileTab.compileToWorkspace('${escapedPath}')">Compile</button>
-          <button class="mem-btn danger" onclick="CompileTab.removeWorkspace('${escapedPath}')">Remove</button>
-        </div>
-      </div>`;
-      })
-      .join('');
-  }
-
-  /** @param {{ results?: Record<string, CompilePreviewResult>, context?: { activeSkills?: number, totalSkills?: number } }} data */
-  function renderSummary(data) {
-    const results = data.results || {};
-    const ctx = data.context || {};
-    return `<div class="compile-stat-row">
-      <span class="compile-stat">${ctx.activeSkills || 0}/${ctx.totalSkills || 0} skills</span>
-    </div>${Object.entries(results)
-      .map(
-        ([id, result]) => `<div class="compile-result-row">
-      ${targetLogo(id)}
-      <span class="compile-result-name">${targetLabel(id)}</span>
-      <span class="compile-result-file">${result.filename}</span>
-      <span class="compile-result-tokens">~${result.tokens.toLocaleString()} tokens</span>
-    </div>`,
-      )
-      .join('')}`;
-  }
-
-  /** @param {Record<string, CompilePreviewResult>} results @param {string | null} activeId */
-  function renderPreviewTabs(results, activeId) {
-    return Object.keys(results)
-      .map(
-        (id) => `<button class="compile-tab-btn ${activeId === id ? 'active' : ''}"
-      onclick="CompileTab.showPreview('${id}')">${targetLabel(id)}</button>`,
-      )
-      .join('');
+  /** @param {string} id @param {ToolRecord} tool */
+  function renderToolActions(id, tool) {
+    const available = isToolAvailable(id, tool);
+    const actions = [
+      '<button class="fb" onclick="SidePanel.close()">Close</button>',
+      '<button class="fb" onclick="CompileTab.refreshConnections()">Re-check hosts</button>',
+    ];
+    if (available && tool.outputFilename) {
+      actions.push(`<button class="fb" onclick="CompileTab.previewTarget('${id}')">Preview output</button>`);
+    }
+    actions.push(renderToolAction(id, tool, available).replace('mem-btn small', 'save-btn'));
+    return actions.filter(Boolean).join('');
   }
 
   return {
     availableTargets,
     isToolAvailable,
-    renderIndexStatus,
-    renderFallbackSummary,
     renderMcpHostActions,
     renderMcpHostConfig,
     renderMcpHosts,
-    renderPreviewTabs,
-    renderReadinessBanner,
-    renderSummary,
-    renderTools,
-    renderWorkspaces,
+    renderToolActions,
+    renderToolConfig,
     statusLabel,
     targetLabel,
   };

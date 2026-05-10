@@ -59,7 +59,6 @@
 
 .ct-installed,
 .ct-ready,
-.ct-global-active,
 .chip-ok,
 .badge-builtin,
 .maintenance-result.ok {
@@ -95,7 +94,12 @@
 }
 
 #skills-tab .toolbar {
-  border-bottom: 1px solid var(--line);
+  border-bottom: 0;
+}
+
+#modes-tab .modes-toolbar,
+#memory-tab .memory-toolbar {
+  border-bottom: 0;
 }
 
 .compile-tools-grid,
@@ -108,7 +112,7 @@
 }
 
 #skills-tab .skills-layout {
-  grid-template-columns: 200px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
 }
 
 #skills-tab .skills-sidebar {
@@ -436,8 +440,18 @@ body.side-panel-active #skills-tab .grid-mode .skills-container {
 }
 
 .side-panel {
-  background: var(--bg);
-  border-color: var(--line);
+  right: 0;
+  bottom: 0;
+  background: var(--bg-raised);
+  border: 0;
+  border-left: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+  transform: translateX(calc(100% + var(--s-6)));
+}
+
+.side-panel.open {
+  transform: translateX(0);
 }
 
 .sp-header,
@@ -445,6 +459,10 @@ body.side-panel-active #skills-tab .grid-mode .skills-container {
 .sp-card,
 .detail-section {
   border-color: var(--line);
+}
+
+.sp-header {
+  border-bottom: 0;
 }
 
 ::-webkit-scrollbar-thumb {
