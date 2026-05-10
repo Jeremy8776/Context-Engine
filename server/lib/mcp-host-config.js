@@ -6,6 +6,7 @@ const path = require('path');
 const { PORT, HOMEDIR } = require('./config');
 
 const SERVER_ID = 'context-engine';
+const CLAUDE_EXTENSION_ID = 'ant.dir.datacert.context-engine';
 const MARKER_START = '# Context Engine MCP start';
 const MARKER_END = '# Context Engine MCP end';
 
@@ -27,6 +28,7 @@ const MARKER_END = '# Context Engine MCP end';
  * @property {string} summary
  * @property {string} snippet
  * @property {string | null} note
+ * @property {{ transport: string, endpoint?: string, mcpUrl?: string, auth?: string, command?: string }=} connection
  *
  * @typedef {Object} InstallResult
  * @property {boolean} ok
@@ -81,14 +83,15 @@ function claudePath(env = {}) {
 }
 
 /** @param {HostEnv} env */
-function codexPath(env = {}) {
+function claudeExtensionPath(env = {}) {
   const e = normalizeEnv(env);
-  return path.join(e.homedir, '.codex', 'config.toml');
+  return path.join(e.appData, 'Claude', 'Claude Extensions', CLAUDE_EXTENSION_ID);
 }
 
 /** @param {HostEnv} env */
-function claudeSnippet(env = {}) {
-  return JSON.stringify({ mcpServers: { [SERVER_ID]: buildServerCommand(env) } }, null, 2);
+function codexPath(env = {}) {
+  const e = normalizeEnv(env);
+  return path.join(e.homedir, '.codex', 'config.toml');
 }
 
 /** @param {HostEnv} env */
@@ -140,6 +143,15 @@ function claudeDesktopAppDetected(env = {}) {
   return fs.existsSync(path.dirname(claudePath(e)));
 }
 
+/** @param {HostEnv} env */
+function claudeExtensionStatus(env = {}) {
+  const extensionPath = claudeExtensionPath(env);
+  if (!fs.existsSync(extensionPath)) return 'configurable';
+  if (!fs.existsSync(path.join(extensionPath, 'manifest.json'))) return 'invalid';
+  if (!fs.existsSync(path.join(extensionPath, 'server', 'index.mjs'))) return 'invalid';
+  return 'connected';
+}
+
 /**
  * @param {HostEnv} env
  * @returns {boolean}
@@ -162,6 +174,7 @@ function codexCliDetected(env = {}) {
  */
 function claudeSteps(env, status, appDetected) {
   const connected = status === 'connected';
+  const extensionPath = claudeExtensionPath(env);
   /** @type {HostStep[]} */
   const steps = [
     {
@@ -175,17 +188,23 @@ function claudeSteps(env, status, appDetected) {
     },
     {
       id: 'connect-mcp',
-      title: 'Connect Context Engine MCP',
+      title: 'Install Context Engine extension',
       body: connected
-        ? 'Claude Desktop is configured to spawn the Context Engine MCP bridge on launch.'
-        : 'Add the Context Engine entry to claude_desktop_config.json. CE only writes its own server entry; existing MCPs are preserved.',
+        ? 'The local Context Engine desktop extension is installed for Claude Desktop.'
+        : `Install the local desktop extension into ${extensionPath}. This is the right path for localhost and private machine context.`,
       done: connected,
       action: connected ? undefined : { type: 'install', hostId: 'claude-desktop' },
     },
     {
       id: 'restart-host',
-      title: 'Restart Claude Desktop',
-      body: 'Claude reads the config on launch, so quit fully (tray icon) and reopen after connecting.',
+      title: 'Restart or re-enable Claude Desktop',
+      body: 'If Claude says the extension server cannot connect, disable/re-enable the extension or fully restart Claude Desktop.',
+      done: false,
+    },
+    {
+      id: 'permissions',
+      title: 'Allow read-only tools in Claude',
+      body: 'In Claude tool permissions, set read-only Context Engine tools to Always allow or Needs approval. Blocked tools are connected but unusable in chat.',
       done: false,
     },
   ];
@@ -255,9 +274,10 @@ function chatgptSteps() {
 
 /** @param {HostEnv} env */
 function buildHostConfigs(env = {}) {
-  const cp = claudePath(env);
+  const e = normalizeEnv(env);
+  const cp = claudeExtensionPath(env);
   const xp = codexPath(env);
-  const claudeStatus = statusFor(cp, 'claude');
+  const claudeStatus = claudeExtensionStatus(env);
   const codexStatus = statusFor(xp, 'codex');
   const claudeApp = claudeDesktopAppDetected(env);
   const codexApp = codexCliDetected(env);
@@ -266,13 +286,15 @@ function buildHostConfigs(env = {}) {
       id: 'claude-desktop',
       label: 'Claude Desktop',
       supported: true,
-      mode: 'local-stdio',
+      mode: 'local-extension',
       status: claudeStatus,
       appDetected: claudeApp,
       path: cp,
-      summary: 'Local MCP stdio. Claude spawns the Context Engine bridge when the app starts.',
-      snippet: claudeSnippet(env),
-      note: null,
+      summary:
+        'Local Claude Desktop extension that exposes Context Engine tools inside desktop chat. Best for private machine context: files, memory search, localhost services, and anything that should never leave this computer.',
+      snippet: '',
+      note: 'This applies to Claude Desktop on this computer. Claude web and mobile require a remote HTTPS connector instead.',
+      connection: localConnection(e, 'Desktop extension', 'Claude starts the packaged MCPB server'),
       steps: claudeSteps(env, claudeStatus, claudeApp),
     },
     {
@@ -283,9 +305,11 @@ function buildHostConfigs(env = {}) {
       status: codexStatus,
       appDetected: codexApp,
       path: xp,
-      summary: 'Local MCP stdio via ~/.codex/config.toml.',
+      summary:
+        'Local stdio MCP connection for Codex CLI. Lets Codex call CE tools during terminal agent sessions instead of relying only on generated instruction files.',
       snippet: codexSnippet(env),
       note: null,
+      connection: localConnection(e, 'Local stdio', 'node mcp-server.mjs'),
       steps: codexSteps(env, codexStatus, codexApp),
     },
     {
@@ -296,12 +320,44 @@ function buildHostConfigs(env = {}) {
       status: 'remote-required',
       appDetected: false,
       path: null,
-      summary: 'Connects via Streamable HTTP behind HTTPS; local stdio cannot be installed here.',
+      summary:
+        'Remote MCP path for ChatGPT app and web. This needs an HTTPS-reachable connector with auth because ChatGPT cannot reach a private local stdio server directly.',
       snippet: '',
       note: 'Run npm run mcp:http behind a trusted tunnel or hosted endpoint, then register that HTTPS /mcp URL in ChatGPT developer mode.',
+      connection: remoteHttpConnection(),
       steps: chatgptSteps(),
     },
   ];
+}
+
+/** @param {ReturnType<typeof normalizeEnv>} env @param {string} transport @param {string} command */
+function localConnection(env, transport, command) {
+  const endpoint = `http://${env.ceHost}:${env.cePort}`;
+  return {
+    transport,
+    endpoint,
+    mcpUrl: endpoint,
+    auth: 'Local machine only',
+    command,
+  };
+}
+
+function remoteHttpConnection() {
+  const host = process.env.MCP_HTTP_HOST || '127.0.0.1';
+  const port = process.env.MCP_HTTP_PORT || '3850';
+  const publicUrl = (process.env.MCP_PUBLIC_URL || `http://${host}:${port}`).replace(/\/+$/, '');
+  const auth = process.env.MCP_OAUTH_PASSWORD
+    ? 'OAuth + PKCE'
+    : process.env.MCP_HTTP_TOKEN
+      ? 'Bearer token'
+      : 'Not configured';
+  return {
+    transport: 'Streamable HTTP',
+    endpoint: `http://${host}:${port}/mcp`,
+    mcpUrl: `${publicUrl}/mcp`,
+    auth,
+    command: 'npm run mcp:http',
+  };
 }
 
 /** @param {string} filePath */
@@ -315,27 +371,51 @@ function ensureParent(filePath) {
  * @returns {InstallResult}
  */
 function installHostConfig(hostId, env = {}) {
-  if (hostId === 'claude-desktop') return installClaude(env);
+  if (hostId === 'claude-desktop') return installClaudeExtension(env);
   if (hostId === 'codex-cli') return installCodex(env);
   return { ok: false, id: hostId, error: 'Host cannot be installed automatically.' };
 }
 
 /** @param {HostEnv} env */
-function installClaude(env = {}) {
-  const filePath = claudePath(env);
+function installClaudeExtension(env = {}) {
+  const e = normalizeEnv(env);
+  const source = path.join(e.appDir, 'mcpb', 'context-engine');
+  const schemasSource = path.join(e.appDir, 'mcp-schemas.json');
+  const filePath = claudeExtensionPath(e);
+  if (!fs.existsSync(source)) {
+    return {
+      ok: false,
+      id: 'claude-desktop',
+      path: filePath,
+      error: `Claude extension source was not found: ${source}`,
+    };
+  }
+  fs.rmSync(filePath, { recursive: true, force: true });
   ensureParent(filePath);
-  /** @type {{ mcpServers?: Record<string, unknown>, [key: string]: unknown }} */
-  let data = {};
-  if (fs.existsSync(filePath)) {
+  fs.cpSync(source, filePath, { recursive: true });
+  // The wrapper looks for server/schemas.json first; without it, it falls back
+  // to a path that exists only in the repo, which crashes the installed copy.
+  // Pack-mcpb.ps1 does this for distributable .mcpb bundles; mirror it here.
+  if (fs.existsSync(schemasSource)) {
+    fs.cpSync(schemasSource, path.join(filePath, 'server', 'schemas.json'));
+  }
+  // If a duplicate context-engine entry was previously written into
+  // claude_desktop_config.json (legacy admin-panel path), strip it so the
+  // host doesn't show two Context Engine servers.
+  const legacyPath = claudePath(e);
+  if (fs.existsSync(legacyPath)) {
     try {
-      data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      const parsed = JSON.parse(fs.readFileSync(legacyPath, 'utf8'));
+      if (parsed?.mcpServers && parsed.mcpServers[SERVER_ID]) {
+        delete parsed.mcpServers[SERVER_ID];
+        if (Object.keys(parsed.mcpServers).length === 0) delete parsed.mcpServers;
+        fs.writeFileSync(legacyPath, JSON.stringify(parsed, null, 2));
+      }
     } catch {
-      return { ok: false, id: 'claude-desktop', path: filePath, error: 'Claude config is not valid JSON.' };
+      // tolerate unreadable legacy config — extension install still proceeds
     }
   }
-  const next = { ...data, mcpServers: { ...(data.mcpServers || {}), [SERVER_ID]: buildServerCommand(env) } };
-  fs.writeFileSync(filePath, JSON.stringify(next, null, 2) + '\n', 'utf8');
-  return { ok: true, id: 'claude-desktop', path: filePath, status: statusFor(filePath, 'claude') };
+  return { ok: true, id: 'claude-desktop', path: filePath, status: claudeExtensionStatus(e) };
 }
 
 /** @param {HostEnv} env */

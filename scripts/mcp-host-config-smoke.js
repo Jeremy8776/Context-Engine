@@ -20,20 +20,25 @@ function env() {
 
 const hosts = buildHostConfigs(env());
 assert.strictEqual(hosts.length >= 3, true, 'expected local hosts plus ChatGPT note');
-assert.strictEqual(hosts.find((h) => h.id === 'claude-desktop')?.status, 'missing');
+assert.strictEqual(hosts.find((h) => h.id === 'claude-desktop')?.status, 'configurable');
 assert.strictEqual(hosts.find((h) => h.id === 'codex-cli')?.status, 'missing');
 assert.strictEqual(hosts.find((h) => h.id === 'chatgpt-app')?.supported, false);
 
-const claudePath = hosts.find((h) => h.id === 'claude-desktop')?.path;
-assert.ok(claudePath, 'claude path missing');
-fs.mkdirSync(path.dirname(claudePath), { recursive: true });
+const claudeExtensionPath = hosts.find((h) => h.id === 'claude-desktop')?.path;
+assert.ok(claudeExtensionPath, 'claude extension path missing');
+
+// Seed a legacy duplicate to confirm install strips it.
+const legacyConfigPath = path.join(appData, 'Claude', 'claude_desktop_config.json');
+fs.mkdirSync(path.dirname(legacyConfigPath), { recursive: true });
 fs.writeFileSync(
-  claudePath,
+  legacyConfigPath,
   JSON.stringify(
     {
       mcpServers: {
-        existing: { command: 'node', args: ['other-server.js'] },
+        'context-engine': { command: 'node', args: ['legacy.mjs'] },
+        keep: { command: 'keep' },
       },
+      preferences: { other: true },
     },
     null,
     2,
@@ -42,10 +47,22 @@ fs.writeFileSync(
 
 const claudeResult = installHostConfig('claude-desktop', env());
 assert.strictEqual(claudeResult.ok, true);
-const claudeConfig = JSON.parse(fs.readFileSync(claudePath, 'utf8'));
-assert.deepStrictEqual(claudeConfig.mcpServers.existing, { command: 'node', args: ['other-server.js'] });
-assert.strictEqual(claudeConfig.mcpServers['context-engine'].command, 'node');
-assert.ok(claudeConfig.mcpServers['context-engine'].args[0].endsWith('mcp-server.mjs'));
+assert.strictEqual(claudeResult.status, 'connected');
+assert.ok(fs.existsSync(path.join(claudeExtensionPath, 'manifest.json')));
+assert.ok(fs.existsSync(path.join(claudeExtensionPath, 'server', 'index.mjs')));
+assert.ok(
+  fs.existsSync(path.join(claudeExtensionPath, 'server', 'schemas.json')),
+  'schemas.json must be copied so the wrapper does not crash on startup',
+);
+
+const legacyAfter = JSON.parse(fs.readFileSync(legacyConfigPath, 'utf8'));
+assert.strictEqual(
+  legacyAfter?.mcpServers?.['context-engine'],
+  undefined,
+  'legacy mcpServers.context-engine entry must be stripped to avoid duplicate Context Engine in Claude Desktop',
+);
+assert.ok(legacyAfter?.mcpServers?.keep, 'unrelated mcpServers entries must be preserved');
+assert.ok(legacyAfter?.preferences?.other, 'unrelated preferences must be preserved');
 
 const codexPath = hosts.find((h) => h.id === 'codex-cli')?.path;
 assert.ok(codexPath, 'codex path missing');
