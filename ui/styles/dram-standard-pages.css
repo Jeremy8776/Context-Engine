@@ -69,12 +69,12 @@
 .compile-tool-card,
 .compile-ws-row,
 .rules-block,
-.rules-tool,
 .rules-save-bar,
 .rules-issue,
 .rules-empty,
 .rules-history-item,
-.rules-file-pill {
+.rules-file-pill,
+.rules-workbench {
   background: var(--dram-card-bg);
   border-color: var(--dram-card-border);
   border-radius: var(--r-3);
@@ -251,4 +251,16 @@
   color: var(--err);
   background: var(--err-bg);
   border-color: var(--err);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .side-panel,
+  .side-panel-overlay,
+  #skills-tab #skills-list,
+  #skills-tab .skills-container,
+  #modes-tab .modes-list,
+  #memory-tab .memory-list,
+  #memory-tab .memory-results-scroll {
+    transition: none;
+  }
 }

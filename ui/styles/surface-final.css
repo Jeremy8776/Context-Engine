@@ -175,7 +175,6 @@
 .stat-strip,
 .integration-primary,
 .integrations-layout > section,
-#memory-tab .memory-sidebar,
 #memory-tab .memory-detail,
 .compile-summary {
   border: 1px solid var(--soft-line);
@@ -183,6 +182,17 @@
   background: var(--bg-card);
   box-shadow: none;
   overflow: hidden;
+}
+/* Memory sidebar mirrors the Skills filter sidebar: transparent column with
+   a single 1px right border, square corners, no card fill. See
+   #skills-tab .skills-sidebar in dram-standard-controls.css. */
+#memory-tab .memory-sidebar {
+  background: transparent;
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
 }
 /* .memory-results intentionally NOT given a card border/bg here. The main
    area is a transparent column (matching Skills' .skills-main-area), so the
@@ -231,7 +241,6 @@
   gap: 14px;
 }
 
-#memory-tab .memory-sidebar,
 #memory-tab .memory-detail {
   border-bottom: 1px solid var(--soft-line);
 }
@@ -377,6 +386,7 @@
   min-height: 0;
   overflow: auto;
   padding: var(--s-3);
+  transition: padding-right var(--spring);
 }
 
 /* Drop the scroll container's right padding when the docked rail is open so

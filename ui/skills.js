@@ -7,6 +7,7 @@ const SkillsTab = (() => {
   let activeSource = null;
   let selectedSkillId = null;
   let sidePanelCloseBound = false;
+  let panelMode = null;
 
   const bc = (t) => (t === 'custom' ? 'badge-custom' : t === 'builtin' ? 'badge-builtin' : 'badge-external');
   const bl = (t) => (t === 'custom' ? 'custom' : t === 'builtin' ? 'built-in' : 'external');
@@ -36,23 +37,6 @@ const SkillsTab = (() => {
     return cat
       ? cat.label
       : (id || 'Uncategorized').replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-  }
-
-  function setSideSectionVisible(host, visible) {
-    const section = host?.closest('.skills-side-section');
-    if (!section) return;
-    section.hidden = !visible;
-  }
-
-  function updateSidebarVisibility() {
-    const sidebar = document.querySelector('#skills-tab .skills-sidebar');
-    const tab = document.getElementById('skills-tab');
-    if (!sidebar || !tab) return;
-    const hasVisibleSections = [...sidebar.querySelectorAll('.skills-side-section')].some(
-      (section) => !section.hidden,
-    );
-    sidebar.hidden = !hasVisibleSections;
-    tab.classList.toggle('skills-no-sidebar', !hasVisibleSections);
   }
 
   function renderStats() {
@@ -113,11 +97,11 @@ const SkillsTab = (() => {
     bar.querySelector('.bulk-count').textContent = `${selected.size} selected`;
   }
 
-  function setFilter(f, btn) {
+  function setFilter(f) {
     filter = f;
-    document.querySelectorAll('#skills-tab .filters .fb').forEach((b) => b.classList.remove('on'));
-    btn.classList.add('on');
+    updateFilterTrigger();
     render();
+    refreshFilterPanel();
   }
 
   function setView(v) {
@@ -127,9 +111,7 @@ const SkillsTab = (() => {
     render();
   }
 
-  function renderSources() {
-    const host = document.getElementById('skills-source-list');
-    if (!host) return;
+  function getSources() {
     const counts = new Map();
     SKILL_DATA.forEach((skill) => {
       const source = sourceFor(skill);
@@ -144,23 +126,11 @@ const SkillsTab = (() => {
       if (ap !== bp) return ap - bp;
       return a.label.localeCompare(b.label);
     });
-    if (sources.length <= 1) {
-      activeSource = null;
-      host.innerHTML = '';
-      setSideSectionVisible(host, false);
-      updateSidebarVisibility();
-      return;
-    }
-    setSideSectionVisible(host, true);
-    host.innerHTML =
-      sideFilterButton('source', null, 'All sources', SKILL_DATA.length, !activeSource) +
-      sources.map((s) => sideFilterButton('source', s.id, s.label, s.count, activeSource === s.id)).join('');
-    updateSidebarVisibility();
+    if (sources.length <= 1) activeSource = null;
+    return sources;
   }
 
-  function renderCategories() {
-    const host = document.getElementById('skills-category-list');
-    if (!host) return;
+  function getCategories() {
     const counts = new Map();
     SKILL_DATA.forEach((skill) => {
       if (activeSource && sourceFor(skill).id !== activeSource) return;
@@ -168,23 +138,8 @@ const SkillsTab = (() => {
       counts.set(id, (counts.get(id) || 0) + 1);
     });
     const cats = [...counts.entries()].sort((a, b) => categoryLabel(a[0]).localeCompare(categoryLabel(b[0])));
-    const total = cats.reduce((sum, [, count]) => sum + count, 0);
-    if (cats.length <= 1) {
-      activeCategory = null;
-      host.innerHTML = '';
-      setSideSectionVisible(host, false);
-      updateSidebarVisibility();
-      return;
-    }
-    setSideSectionVisible(host, true);
-    host.innerHTML =
-      sideFilterButton('category', null, 'All categories', total, !activeCategory) +
-      cats
-        .map(([id, count]) =>
-          sideFilterButton('category', id, categoryLabel(id), count, activeCategory === id),
-        )
-        .join('');
-    updateSidebarVisibility();
+    if (cats.length <= 1) activeCategory = null;
+    return cats;
   }
 
   function sideFilterButton(kind, id, label, count, active) {
@@ -194,18 +149,107 @@ const SkillsTab = (() => {
     return `<button class="skills-side-btn ${active ? 'active' : ''}" onclick="SkillsTab.${fn}(${arg})"><span>${esc(label)}</span><small>${count}</small></button>`;
   }
 
+  function statusFilterButton(value, label, count) {
+    const active = filter === value;
+    return `<button class="skills-side-btn ${active ? 'active' : ''}" onclick="SkillsTab.setFilter('${value}')"><span>${label}</span><small>${count}</small></button>`;
+  }
+
+  function activeFilterCount() {
+    return (filter !== 'all' ? 1 : 0) + (activeSource ? 1 : 0) + (activeCategory ? 1 : 0);
+  }
+
+  function updateFilterTrigger() {
+    const trigger = document.getElementById('skills-filter-trigger');
+    const countEl = document.getElementById('skills-filter-count');
+    const count = activeFilterCount();
+    trigger?.classList.toggle('on', count > 0);
+    if (trigger) trigger.setAttribute('aria-label', count ? `Open filters, ${count} active` : 'Open filters');
+    if (!countEl) return;
+    countEl.hidden = count === 0;
+    countEl.textContent = String(count);
+  }
+
+  function filterSection(title, body) {
+    if (!body) return '';
+    return `<div class="skills-side-section"><span class="skills-side-label">${title}</span><div class="skills-side-list">${body}</div></div>`;
+  }
+
+  function renderFilterPanel() {
+    const activeCount = SKILL_DATA.filter((s) => SS.active(s.id)).length;
+    const inactiveCount = SKILL_DATA.length - activeCount;
+    const sources = getSources();
+    const cats = getCategories();
+    const catTotal = cats.reduce((sum, [, count]) => sum + count, 0);
+    const reset = activeFilterCount()
+      ? '<button class="fb skills-filter-reset" onclick="SkillsTab.clearFilters()">Reset Filters</button>'
+      : '';
+
+    return `<div class="sp-detail skills-filter-panel">
+      ${reset}
+      ${filterSection(
+        'Status',
+        statusFilterButton('all', 'All skills', SKILL_DATA.length) +
+          statusFilterButton('active', 'Active', activeCount) +
+          statusFilterButton('inactive', 'Inactive', inactiveCount),
+      )}
+      ${filterSection(
+        'Sources',
+        sources.length > 1
+          ? sideFilterButton('source', null, 'All sources', SKILL_DATA.length, !activeSource) +
+              sources
+                .map((s) => sideFilterButton('source', s.id, s.label, s.count, activeSource === s.id))
+                .join('')
+          : '',
+      )}
+      ${filterSection(
+        'Categories',
+        cats.length > 1
+          ? sideFilterButton('category', null, 'All categories', catTotal, !activeCategory) +
+              cats
+                .map(([id, count]) =>
+                  sideFilterButton('category', id, categoryLabel(id), count, activeCategory === id),
+                )
+                .join('')
+          : '',
+      )}
+    </div>`;
+  }
+
+  function refreshFilterPanel() {
+    if (panelMode !== 'filters' || !SidePanel.isOpen()) return;
+    const body = document.getElementById('sp-body');
+    if (body) body.innerHTML = renderFilterPanel();
+  }
+
+  function openFilters() {
+    selectedSkillId = null;
+    panelMode = 'filters';
+    render();
+    SidePanel.open('Filters', renderFilterPanel());
+  }
+
   function setSource(sourceId) {
     activeSource = sourceId;
     activeCategory = null;
-    renderSources();
-    renderCategories();
+    updateFilterTrigger();
     render();
+    refreshFilterPanel();
   }
 
   function setCategory(catId) {
     activeCategory = catId;
-    renderCategories();
+    updateFilterTrigger();
     render();
+    refreshFilterPanel();
+  }
+
+  function clearFilters() {
+    filter = 'all';
+    activeSource = null;
+    activeCategory = null;
+    updateFilterTrigger();
+    render();
+    refreshFilterPanel();
   }
 
   function handleToggle(skillId, active, e) {
@@ -284,7 +328,7 @@ const SkillsTab = (() => {
       if (filter === 'active' && !SS.active(s.id)) return false;
       if (filter === 'inactive' && SS.active(s.id)) return false;
       if (activeSource && sourceFor(s).id !== activeSource) return false;
-      if (activeCategory && s.cat !== activeCategory) return false;
+      if (activeCategory && (s.cat || 'uncategorized') !== activeCategory) return false;
       if (q && !s.id.toLowerCase().includes(q) && !s.desc.toLowerCase().includes(q)) return false;
       return true;
     });
@@ -331,6 +375,7 @@ const SkillsTab = (() => {
   function openDetail(skillId) {
     const skill = SKILL_DATA.find((s) => s.id === skillId);
     if (!skill) return;
+    panelMode = 'detail';
     selectedSkillId = skillId;
     const isActive = SS.active(skill.id);
     const source = sourceFor(skill);
@@ -423,15 +468,15 @@ const SkillsTab = (() => {
   function init() {
     if (!sidePanelCloseBound) {
       document.addEventListener('sidepanel:close', () => {
-        if (!selectedSkillId) return;
+        const hadSelection = Boolean(selectedSkillId);
         selectedSkillId = null;
-        render();
+        panelMode = null;
+        if (hadSelection) render();
       });
       sidePanelCloseBound = true;
     }
     renderStats();
-    renderSources();
-    renderCategories();
+    updateFilterTrigger();
     initSearchSuggestions();
     render();
   }
@@ -439,8 +484,7 @@ const SkillsTab = (() => {
   // ---- INGEST ----
   async function refreshAfterIngest() {
     await loadSkillData();
-    renderSources();
-    renderCategories();
+    updateFilterTrigger();
     render();
     renderStats();
   }
@@ -509,9 +553,8 @@ const SkillsTab = (() => {
       return;
     }
     await loadSkillData();
-    renderSources();
-    renderCategories();
     renderStats();
+    updateFilterTrigger();
     render();
     const done = result.summary || {};
     Toast.success(
@@ -524,6 +567,8 @@ const SkillsTab = (() => {
     render,
     handleToggle,
     setFilter,
+    clearFilters,
+    openFilters,
     setView,
     setSource,
     setCategory,

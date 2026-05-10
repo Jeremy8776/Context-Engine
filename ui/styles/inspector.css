@@ -30,17 +30,19 @@
   width: min(var(--rail-w), calc(100vw - var(--rail-max-gutter)));
   max-width: calc(100vw - var(--rail-max-gutter));
   background: var(--bg-raised);
+  /* Single 1px left border, same token as the Skills filter sidebar's
+     right border (#skills-tab .skills-sidebar in dram-standard-controls.css).
+     No shadow on top of it — that previously created a doubled 2px edge
+     that read as fat/curved at the corner. */
   border: 0;
-  border-left: 1px solid var(--line-2);
+  border-left: 1px solid var(--line);
   border-radius: 0;
+  box-shadow: none;
   z-index: calc(var(--z-rail) + 1);
   display: flex;
   flex-direction: column;
   transform: translateX(100%);
   transition: transform var(--spring);
-  /* Subtle inward shadow only, so the boundary reads as a divider rather
-     than a floating card hovering over the grid. */
-  box-shadow: inset 1px 0 0 var(--alpha-black-60);
 }
 .side-panel.open {
   transform: translateX(0);

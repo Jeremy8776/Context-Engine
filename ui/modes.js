@@ -20,6 +20,11 @@ const ModesTab = (() => {
   let selectedModeId = null;
   let sidePanelCloseBound = false;
   let createShortcutBound = false;
+  let searchBound = false;
+  let query = '';
+  let statusFilter = 'all';
+  let compositionFilter = 'all';
+  let panelMode = null;
 
   async function init() {
     const data = await DS.getModes();
@@ -29,6 +34,7 @@ const ModesTab = (() => {
     }
     if (!sidePanelCloseBound) {
       document.addEventListener('sidepanel:close', () => {
+        panelMode = null;
         if (!selectedModeId) return;
         selectedModeId = null;
         render();
@@ -36,7 +42,110 @@ const ModesTab = (() => {
       sidePanelCloseBound = true;
     }
     bindCreateShortcut();
+    bindSearch();
     requestAnimationFrame(syncCreateShortcut);
+  }
+
+  function bindSearch() {
+    if (searchBound) return;
+    const input = document.getElementById('modes-search-input');
+    if (!input) return;
+    input.addEventListener('input', (e) => {
+      query = (e.target && /** @type {HTMLInputElement} */ (e.target).value) || '';
+      render();
+    });
+    searchBound = true;
+  }
+
+  /** @param {{ label?: string, desc?: string, skills?: string[] }} mode */
+  function modeMatchesQuery(mode) {
+    const q = query.trim().toLowerCase();
+    if (statusFilter === 'active' && mode.id !== activeMode) return false;
+    if (statusFilter === 'preset' && mode.id === activeMode) return false;
+    if (compositionFilter === 'with-skills' && !(mode.skills || []).length) return false;
+    if (compositionFilter === 'empty' && (mode.skills || []).length) return false;
+    if (!q) return true;
+    const haystack = [mode.label, mode.desc, ...(mode.skills || [])].filter(Boolean).join(' ').toLowerCase();
+    return haystack.includes(q);
+  }
+
+  function activeFilterCount() {
+    return (statusFilter !== 'all' ? 1 : 0) + (compositionFilter !== 'all' ? 1 : 0);
+  }
+
+  function updateFilterTrigger() {
+    const trigger = document.getElementById('modes-filter-trigger');
+    const countEl = document.getElementById('modes-filter-count');
+    const count = activeFilterCount();
+    trigger?.classList.toggle('on', count > 0);
+    if (trigger) trigger.setAttribute('aria-label', count ? `Open filters, ${count} active` : 'Open filters');
+    if (!countEl) return;
+    countEl.hidden = count === 0;
+    countEl.textContent = String(count);
+  }
+
+  function filterButton(kind, value, label, count) {
+    const current = kind === 'status' ? statusFilter : compositionFilter;
+    const active = current === value ? ' active' : '';
+    return `<button class="skills-side-btn${active}" onclick="ModesTab.setFilter('${kind}','${value}')"><span>${label}</span><small>${count}</small></button>`;
+  }
+
+  function renderFilterPanel() {
+    const active = modes.filter((mode) => mode.id === activeMode).length;
+    const presets = modes.length - active;
+    const withSkills = modes.filter((mode) => (mode.skills || []).length).length;
+    const empty = modes.length - withSkills;
+    const reset = activeFilterCount()
+      ? '<button class="fb skills-filter-reset" onclick="ModesTab.clearFilters()">Reset Filters</button>'
+      : '';
+    return `<div class="sp-detail skills-filter-panel">
+      ${reset}
+      <div class="skills-side-section">
+        <span class="skills-side-label">Status</span>
+        <div class="skills-side-list">
+          ${filterButton('status', 'all', 'All modes', modes.length)}
+          ${filterButton('status', 'active', 'Active mode', active)}
+          ${filterButton('status', 'preset', 'Presets', presets)}
+        </div>
+      </div>
+      <div class="skills-side-section">
+        <span class="skills-side-label">Composition</span>
+        <div class="skills-side-list">
+          ${filterButton('composition', 'all', 'Any composition', modes.length)}
+          ${filterButton('composition', 'with-skills', 'With skills', withSkills)}
+          ${filterButton('composition', 'empty', 'Empty', empty)}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function refreshFilterPanel() {
+    if (panelMode !== 'filters' || !SidePanel.isOpen()) return;
+    const body = document.getElementById('sp-body');
+    if (body) body.innerHTML = renderFilterPanel();
+  }
+
+  function openFilters() {
+    selectedModeId = null;
+    panelMode = 'filters';
+    render();
+    SidePanel.open('Filters', renderFilterPanel());
+  }
+
+  function setFilter(kind, value) {
+    if (kind === 'status') statusFilter = value;
+    if (kind === 'composition') compositionFilter = value;
+    updateFilterTrigger();
+    render();
+    refreshFilterPanel();
+  }
+
+  function clearFilters() {
+    statusFilter = 'all';
+    compositionFilter = 'all';
+    updateFilterTrigger();
+    render();
+    refreshFilterPanel();
   }
 
   function bindCreateShortcut() {
@@ -74,7 +183,8 @@ const ModesTab = (() => {
         <span class="mode-add-title">New mode</span>
         <span class="mode-add-copy">Create preset</span>
       </button>`;
-    const modeCards = modes
+    const visibleModes = modes.filter(modeMatchesQuery);
+    const modeCards = visibleModes
       .map((m) => {
         const svg = MODE_ICONS[m.icon] || MODE_ICONS['bolt'];
         const skills = m.skills || [];
@@ -107,6 +217,7 @@ const ModesTab = (() => {
       })
       .join('');
     container.innerHTML = modeCards + createCard;
+    updateFilterTrigger();
     bindCreateShortcut();
     requestAnimationFrame(syncCreateShortcut);
   }
@@ -158,12 +269,7 @@ const ModesTab = (() => {
   function openDetail(modeId) {
     const mode = modes.find((m) => m.id === modeId);
     if (!mode) return;
-    if (selectedModeId === mode.id && SidePanel.isOpen()) {
-      selectedModeId = null;
-      SidePanel.close();
-      render();
-      return;
-    }
+    panelMode = 'detail';
     selectedModeId = mode.id;
     render();
     const html = `
@@ -190,6 +296,7 @@ const ModesTab = (() => {
   function editMode(modeId) {
     const mode = modes.find((m) => m.id === modeId);
     if (!mode) return;
+    panelMode = 'detail';
     selectedModeId = mode.id;
     render();
 
@@ -410,6 +517,7 @@ const ModesTab = (() => {
       localStorage.setItem('cm_active_mode', modeId);
       if (r.states) SS.applyServerStates(r.states.states || r.states);
       render();
+      refreshFilterPanel();
       if (typeof SkillsTab !== 'undefined') SkillsTab.init();
       if (typeof DashboardTab !== 'undefined') {
         DashboardTab.refreshBudget();
@@ -425,6 +533,9 @@ const ModesTab = (() => {
     init,
     apply,
     openDetail,
+    openFilters,
+    setFilter,
+    clearFilters,
     editMode,
     saveEdit,
     deleteMode,

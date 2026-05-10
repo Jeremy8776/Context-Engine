@@ -6,18 +6,10 @@
 
 #skills-tab .skills-layout {
   display: grid;
-  grid-template-columns: 250px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
   height: 100%;
   min-height: 0;
-}
-
-#skills-tab.skills-no-sidebar .skills-layout {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-#skills-tab.skills-no-sidebar .skills-main-area {
-  grid-column: 1;
 }
 
 #skills-tab .skills-sidebar[hidden],
@@ -106,7 +98,7 @@
 }
 
 #skills-tab .skills-main-area {
-  grid-column: 2;
+  grid-column: 1;
   grid-row: 2;
 }
 
@@ -128,6 +120,8 @@
   border-color: var(--soft-line);
   background: var(--bg-solid);
   box-shadow: var(--shadow-toolbar);
+  grid-template-columns: minmax(0, 1fr) max-content;
+  gap: 14px;
 }
 
 #skills-tab .toolbar::before {
@@ -139,6 +133,42 @@
   z-index: 1;
 }
 
+#skills-tab .search-group {
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+#skills-tab .search-wrap {
+  min-width: 220px;
+}
+
+#skills-tab .view-toggle {
+  flex: 0 0 auto;
+}
+
+#skills-tab .skills-filter-trigger {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+#skills-tab .filter-count {
+  position: absolute;
+  right: -5px;
+  top: -5px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border: 1px solid var(--bg);
+  border-radius: var(--r-full);
+  background: var(--accent);
+  color: var(--text-on-accent);
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 14px;
+  text-align: center;
+}
+
 #skills-tab .category-bar {
   display: none;
 }
@@ -148,10 +178,12 @@
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
+  min-width: max-content;
+  flex-wrap: nowrap;
 }
 
 #skills-tab .skills-actions .save-btn {
-  min-height: 42px;
+  min-height: 38px;
 }
 
 #skills-tab .skills-install-btn {
@@ -168,6 +200,88 @@
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.skills-filter-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+.skills-filter-reset {
+  width: 100%;
+}
+
+.skills-filter-panel .skills-side-section + .skills-side-section {
+  margin-top: 0;
+}
+
+.skills-filter-panel .skills-side-label {
+  display: block;
+  margin: 0 0 var(--s-2);
+  color: var(--text-4);
+  font-family: var(--mono);
+  font-size: var(--fs-01);
+  font-weight: 700;
+  letter-spacing: var(--tr-wide);
+  text-transform: uppercase;
+}
+
+.skills-filter-panel .skills-side-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.skills-filter-panel .skills-side-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  width: 100%;
+  min-height: 34px;
+  padding: var(--s-2) var(--s-3) var(--s-2) calc(var(--s-4) + 10px);
+  border: 0;
+  border-radius: var(--r-1);
+  color: var(--text-2);
+  font-size: var(--fs-03);
+  font-weight: 700;
+  text-align: left;
+}
+
+.skills-filter-panel .skills-side-btn::before {
+  content: '';
+  position: absolute;
+  left: var(--s-2);
+  top: 50%;
+  width: 3px;
+  height: 12px;
+  border-radius: var(--r-full);
+  transform: translateY(-50%);
+}
+
+.skills-filter-panel .skills-side-btn:hover,
+.skills-filter-panel .skills-side-btn.active {
+  background: var(--dram-hover-fade);
+  color: var(--text);
+}
+
+.skills-filter-panel .skills-side-btn.active::before {
+  background: var(--accent);
+}
+
+.skills-filter-panel .skills-side-btn span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.skills-filter-panel .skills-side-btn small {
+  color: var(--text-4);
+  font-family: var(--mono);
+  font-size: var(--fs-01);
 }
 
 .skills-maintenance-modal {
@@ -319,18 +433,20 @@
 
 #skills-tab #skills-list {
   height: auto;
+  transition: padding-right var(--spring);
 }
 
 body.side-panel-active #skills-tab #skills-list {
   /* Match the docked-panel width so the rightmost card sits flush with the
      panel divider — no overlap, no halo gap. See inspector.css .side-panel. */
-  padding-right: min(var(--rail-w), calc(100vw - var(--rail-max-gutter)));
+  padding-right: calc(min(var(--rail-w), calc(100vw - var(--rail-max-gutter))) + var(--s-4));
 }
 
 #skills-tab .skills-container {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 14px;
+  transition: grid-template-columns var(--spring);
 }
 
 #skills-tab .skill-group-header {

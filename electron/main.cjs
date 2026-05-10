@@ -9,10 +9,10 @@
 //   ui/assets/brand/icon.ico          — taskbar icon set on BrowserWindow + setIcon
 //   package.json (build.appId)        — must match app.setAppUserModelId below
 
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
 const fs = require('fs');
 const path = require('path');
-const { PORT, UI_DIR } = require('../server/lib/config');
+const { PORT, ROOT, UI_DIR } = require('../server/lib/config');
 const { startServer } = require('../server/server');
 const { startAutoUpdate } = require('./updater.cjs');
 
@@ -20,8 +20,16 @@ let mainWindow = null;
 let server = null;
 const smokeMode = process.env.CE_ELECTRON_SMOKE === '1';
 const hotReload = process.env.CE_HOT_RELOAD === '1';
+const newUserProfile =
+  process.env.CE_NEW_USER_PROFILE === '1' || process.argv.some((arg) => arg === '--ce-new-user');
 const windowBackground = '#000000';
 const appIconPath = path.join(__dirname, '..', 'ui', 'assets', 'brand', 'icon.ico');
+
+if (smokeMode) {
+  app.disableHardwareAcceleration();
+  app.commandLine.appendSwitch('disable-gpu');
+  app.commandLine.appendSwitch('disable-gpu-compositing');
+}
 
 // Verify the icon file is reachable; surface a clear log if not so the
 // taskbar-icon symptom maps to a real diagnostic.
@@ -36,6 +44,13 @@ if (!fs.existsSync(appIconPath)) {
 // icon. Must be set before any window is created.
 if (process.platform === 'win32') {
   app.setAppUserModelId('com.datacert.context-engine');
+}
+
+if (newUserProfile) {
+  const userDataPath = path.join(ROOT, '.electron-user-data');
+  fs.mkdirSync(userDataPath, { recursive: true });
+  app.setPath('userData', userDataPath);
+  console.log(`[ce-electron] isolated userData: ${userDataPath}`);
 }
 
 function createWindow() {
@@ -130,7 +145,7 @@ function reloadRenderer() {
 }
 
 function relaunchApp() {
-  app.relaunch();
+  app.relaunch({ args: process.argv.slice(1) });
   app.exit(0);
 }
 
@@ -174,6 +189,16 @@ function setupHotReload() {
 
 void app.whenReady().then(() => {
   server = startServer({ port: PORT, refresh: true });
+  server.on('error', (error) => {
+    const msg = error instanceof Error ? error.message : String(error);
+    const detail =
+      error && typeof error === 'object' && 'code' in error && error.code === 'EADDRINUSE'
+        ? `Context Engine is already running on 127.0.0.1:${PORT}. Close the other Context Engine window or start this profile with a different port.`
+        : msg;
+    console.error('[ce-electron] server failed:', detail);
+    dialog.showErrorBox('Context Engine could not start', detail);
+    app.exit(1);
+  });
   createWindow();
   setupHotReload();
   if (mainWindow) startAutoUpdate(mainWindow);

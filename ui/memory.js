@@ -7,6 +7,7 @@ const MemoryTab = (() => {
   let query = '';
   let selected = 0;
   let view = 'grid'; // 'grid' | 'list' — mirrors Skills tab pattern
+  let panelMode = null;
 
   const categoryLabels = {
     profile: 'Profile',
@@ -95,7 +96,7 @@ const MemoryTab = (() => {
     return !q || `${item.title} ${item.text}`.toLowerCase().includes(q);
   }
 
-  function categories() {
+  function categoryCounts() {
     const q = query.trim().toLowerCase();
     const allItems = entries.map(normalizeEntry);
     const queryItems = allItems.filter((item) => matchesQuery(item, q));
@@ -104,26 +105,61 @@ const MemoryTab = (() => {
     allItems.forEach((item) => counts.set(item.category, (counts.get(item.category) || 0) + 1));
     queryItems.forEach((item) => queryCounts.set(item.category, (queryCounts.get(item.category) || 0) + 1));
     const cats = [...counts.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-    const buttons = [['all', entries.length], ...cats]
-      .map(([id, count]) => {
-        const active = filter === id ? ' active' : '';
-        const label = id === 'all' ? 'All' : categoryLabels[id] || sentenceCase(id);
-        const visible = id === 'all' ? queryItems.length : queryCounts.get(id) || 0;
-        const metric = q ? `${visible}/${count}` : count;
-        return `
-        <button class="memory-filter${active}" onclick="MemoryTab.setFilter('${esc(id)}')">
-          <span>${esc(label)}</span>
-          <small>${metric}</small>
-        </button>`;
-      })
-      .join('');
-    // Wrap in a labeled section to mirror the Skills sidebar pattern
-    // (.skills-side-section + .skills-side-label + .skills-side-list).
+    return { cats, queryItems, queryCounts };
+  }
+
+  function activeFilterCount() {
+    return filter !== 'all' ? 1 : 0;
+  }
+
+  function updateFilterTrigger() {
+    const trigger = document.getElementById('memory-filter-trigger');
+    const countEl = document.getElementById('memory-filter-count');
+    const count = activeFilterCount();
+    trigger?.classList.toggle('on', count > 0);
+    if (trigger) trigger.setAttribute('aria-label', count ? `Open filters, ${count} active` : 'Open filters');
+    if (!countEl) return;
+    countEl.hidden = count === 0;
+    countEl.textContent = String(count);
+  }
+
+  function categoryFilterButton(id, count, visible) {
+    const active = filter === id ? ' active' : '';
+    const label = id === 'all' ? 'All categories' : categoryLabels[id] || sentenceCase(id);
+    const metric = query.trim() ? `${visible}/${count}` : count;
     return `
-      <div class="memory-side-section">
-        <span class="memory-side-label">Categories</span>
-        <div class="memory-side-list">${buttons}</div>
-      </div>`;
+      <button class="skills-side-btn${active}" onclick="MemoryTab.setFilter('${esc(id)}')">
+        <span>${esc(label)}</span>
+        <small>${metric}</small>
+      </button>`;
+  }
+
+  function renderFilterPanel() {
+    const { cats, queryItems, queryCounts } = categoryCounts();
+    const reset = activeFilterCount()
+      ? '<button class="fb skills-filter-reset" onclick="MemoryTab.clearFilters()">Reset Filters</button>'
+      : '';
+    const buttons =
+      categoryFilterButton('all', entries.length, queryItems.length) +
+      cats.map(([id, count]) => categoryFilterButton(id, count, queryCounts.get(id) || 0)).join('');
+    return `<div class="sp-detail skills-filter-panel">
+      ${reset}
+      <div class="skills-side-section">
+        <span class="skills-side-label">Categories</span>
+        <div class="skills-side-list">${buttons}</div>
+      </div>
+    </div>`;
+  }
+
+  function refreshFilterPanel() {
+    if (panelMode !== 'filters' || !SidePanel.isOpen()) return;
+    const body = document.getElementById('sp-body');
+    if (body) body.innerHTML = renderFilterPanel();
+  }
+
+  function openFilters() {
+    panelMode = 'filters';
+    SidePanel.open('Filters', renderFilterPanel());
   }
 
   function renderStats(items) {
@@ -144,7 +180,6 @@ const MemoryTab = (() => {
     if (!items.length) {
       container.innerHTML = `
         <div class="memory-workbench no-detail">
-          <aside class="memory-sidebar">${categories()}</aside>
           <section class="memory-results"><div class="db-empty">No memory entries match this view.</div></section>
         </div>`;
       return;
@@ -157,7 +192,6 @@ const MemoryTab = (() => {
     // Skills tab pattern.
     container.innerHTML = `
       <div class="memory-workbench no-detail">
-        <aside class="memory-sidebar">${categories()}</aside>
         <section class="memory-results">
           <div class="memory-results-scroll${gridClass}">
             ${items.map(renderRow).join('')}
@@ -196,6 +230,7 @@ const MemoryTab = (() => {
   }
 
   function openDetail(i) {
+    panelMode = 'detail';
     const item = normalizeEntry(entries[i], i);
     const html = `
       <div class="sp-detail">
@@ -223,6 +258,7 @@ const MemoryTab = (() => {
   function select(i) {
     selected = i;
     const item = normalizeEntry(entries[i], i);
+    panelMode = 'detail';
     render();
     SidePanel.open(item.title, renderDetail(item));
   }
@@ -237,7 +273,17 @@ const MemoryTab = (() => {
   function setFilter(next) {
     filter = next;
     selected = 0;
+    updateFilterTrigger();
     render();
+    refreshFilterPanel();
+  }
+
+  function clearFilters() {
+    filter = 'all';
+    selected = 0;
+    updateFilterTrigger();
+    render();
+    refreshFilterPanel();
   }
 
   function startEdit(i) {
@@ -320,12 +366,14 @@ const MemoryTab = (() => {
 
   function init() {
     load();
+    updateFilterTrigger();
     render();
     const searchInput = document.getElementById('memory-search-input');
     searchInput?.addEventListener('input', (e) => {
       query = e.target.value || '';
       selected = 0;
       render();
+      refreshFilterPanel();
     });
     document.getElementById('memory-modal-input')?.addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -343,6 +391,8 @@ const MemoryTab = (() => {
     render,
     select,
     setFilter,
+    clearFilters,
+    openFilters,
     setView,
     startEdit,
     saveEdit,

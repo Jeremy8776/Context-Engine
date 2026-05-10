@@ -42,16 +42,21 @@ const RulesLab = (() => {
         ${ruleEditor('general', 'General Rules', 7)}
         ${ruleEditor('soul', 'Soul', 8, true)}
       </div>
-      <div class="rules-workbench">
-        <div class="rules-tabs">
-          ${panelTab('preview', 'Preview', true)}
-          ${panelTab('diff', 'Diff')}
-          ${panelTab('history', 'History')}
-          ${panelTab('memory', 'Memory')}
-          ${panelTab('profiles', 'Profiles')}
+      <section class="rules-workbench">
+        <div class="rules-workbench-head">
+          <div class="rules-workbench-title">
+            <span>Review &amp; publish</span>
+            <small>Preview output, check changes, and manage supporting rule sets.</small>
+          </div>
+          <div class="rules-tabs">
+            ${panelTab('preview', 'Preview', true)}
+            ${panelTab('changes', 'Changes')}
+            ${panelTab('memory', 'Checks')}
+            ${panelTab('profiles', 'Profiles')}
+          </div>
         </div>
         <div class="rules-panel-stack">
-        <section class="rules-tool rules-profile-tool" data-rule-panel="profiles" hidden>
+        <section class="rules-panel rules-profile-tool" data-rule-panel="profiles" hidden>
           <div class="rules-tool-head"><span>Profiles</span><small>Preset rule sets</small></div>
           <div class="rules-profile-row">
             <select class="add-input" id="rules-profile-select"></select>
@@ -60,7 +65,7 @@ const RulesLab = (() => {
           </div>
           <input class="add-input" id="rules-profile-name" type="text" placeholder="Profile name">
         </section>
-        <section class="rules-tool rules-preview-tool" data-rule-panel="preview">
+        <section class="rules-panel rules-preview-tool" data-rule-panel="preview">
           <div class="rules-tool-head">
             <span>Compile Preview</span>
             <select class="add-input" id="rules-preview-target" onchange="RulesLab.refresh()">
@@ -71,20 +76,34 @@ const RulesLab = (() => {
           </div>
           <pre class="rules-preview" id="rules-preview"></pre>
         </section>
-        <section class="rules-tool rules-diff-tool" data-rule-panel="diff" hidden>
-          <div class="rules-tool-head"><span>Diff Before Save</span><small id="rules-diff-summary">No changes</small></div>
-          <pre class="rules-diff" id="rules-diff"></pre>
+        <section class="rules-panel rules-changes-panel" data-rule-panel="changes" hidden>
+          <div class="rules-tool-head">
+            <span>Changes</span>
+            <small id="rules-changes-summary">No changes</small>
+          </div>
+          <div class="rules-changes-grid">
+            <div class="rules-change-column">
+              <div class="rules-change-column-head">
+                <span>Draft diff</span>
+                <small id="rules-diff-summary">No changes</small>
+              </div>
+              <pre class="rules-diff" id="rules-diff"></pre>
+            </div>
+            <div class="rules-change-column">
+              <div class="rules-change-column-head">
+                <span>Snapshots</span>
+                <small id="rules-history-summary">No snapshots</small>
+              </div>
+              <div class="rules-history-list" id="rules-history-list"></div>
+            </div>
+          </div>
         </section>
-        <section class="rules-tool" data-rule-panel="history" hidden>
-          <div class="rules-tool-head"><span>Version History</span><small id="rules-history-summary">No snapshots</small></div>
-          <div class="rules-history-list" id="rules-history-list"></div>
-        </section>
-        <section class="rules-tool" data-rule-panel="memory" hidden>
-          <div class="rules-tool-head"><span>Memory Alignment</span><small id="rules-memory-summary">Checking</small></div>
+        <section class="rules-panel" data-rule-panel="memory" hidden>
+          <div class="rules-tool-head"><span>Context Checks</span><small id="rules-memory-summary">Checking</small></div>
           <div class="rules-issue-list" id="rules-memory-list"></div>
         </section>
         </div>
-      </div>
+      </section>
       `;
   }
 
@@ -337,11 +356,18 @@ const RulesLab = (() => {
   function renderDiff() {
     const host = document.getElementById('rules-diff');
     const summary = document.getElementById('rules-diff-summary');
+    const combined = document.getElementById('rules-changes-summary');
     if (!host || !summary) return;
     const before = flattenRules(meta.lastSaved || {});
     const after = flattenRules(draft());
     const diff = simpleDiff(before, after);
     summary.textContent = diff.changed ? `${diff.added} added / ${diff.removed} removed` : 'No changes';
+    if (combined) {
+      const snapshots = meta.history.length ? `${meta.history.length} snapshots` : 'no snapshots';
+      combined.textContent = diff.changed
+        ? `${diff.added} added / ${diff.removed} removed / ${snapshots}`
+        : `No draft changes / ${snapshots}`;
+    }
     host.textContent = diff.lines.join('\n') || 'No changes since last save.';
   }
 
@@ -407,7 +433,7 @@ const RulesLab = (() => {
     summary.textContent = notes.length ? `${notes.length} notes` : 'Aligned';
     host.innerHTML = notes.length
       ? notes.map(renderIssue).join('')
-      : '<div class="rules-empty">No obvious memory conflicts found.</div>';
+      : '<div class="rules-empty">No obvious context conflicts found.</div>';
   }
 
   function memoryAlignmentNotes() {

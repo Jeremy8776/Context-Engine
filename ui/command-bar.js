@@ -25,8 +25,8 @@ const CommandBar = (() => {
     },
     {
       id: 'compile',
-      label: 'Go to Outputs',
-      keys: ['outputs', 'compile', 'deploy', 'export'],
+      label: 'Go to Connections',
+      keys: ['connections', 'outputs', 'compile', 'deploy', 'export', 'sync'],
       run: () => switchTabById('compile'),
     },
     {

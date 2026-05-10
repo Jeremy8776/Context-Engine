@@ -251,7 +251,11 @@ body.side-panel-active #memory-tab .simple-page {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 8px;
+  /* Skills-parity: vertical-only padding, flush-left content. The previous
+     8px all-sides padding pushed the CATEGORIES label and filter buttons
+     in from the left edge, breaking the alignment with the toolbar's
+     bottom border. */
+  padding: 14px 0;
 }
 
 .memory-filter {

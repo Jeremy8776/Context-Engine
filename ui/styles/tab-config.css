@@ -201,14 +201,45 @@
 .rules-workbench {
   display: flex;
   flex-direction: column;
-  gap: var(--s-3);
   margin-top: var(--s-4);
+  overflow: hidden;
+  border: 1px solid var(--dram-card-border);
+  border-radius: var(--r-3);
+  background: var(--dram-card-bg);
+}
+
+.rules-workbench-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.rules-workbench-title {
+  display: grid;
+  gap: var(--s-1);
+  min-width: 0;
+}
+
+.rules-workbench-title span {
+  color: var(--text);
+  font-size: var(--fs-04);
+  font-weight: 750;
+}
+
+.rules-workbench-title small {
+  color: var(--text-3);
+  font-size: var(--fs-02);
+  line-height: 1.45;
 }
 
 .rules-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--s-2);
+  gap: var(--s-1);
+  justify-content: flex-end;
 }
 
 .rules-tab {
@@ -236,19 +267,16 @@
   min-width: 0;
 }
 
-.rules-tool {
+.rules-panel {
   display: flex;
   min-width: 0;
   flex-direction: column;
   gap: var(--s-3);
   padding: var(--s-4);
-  border: 1px solid var(--line);
-  border-radius: var(--r-2);
-  background: var(--bg-sunken);
 }
 
 .rules-preview-tool,
-.rules-diff-tool {
+.rules-changes-panel {
   min-height: 0;
 }
 
@@ -284,6 +312,45 @@
   align-items: center;
 }
 
+.rules-changes-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+  gap: var(--s-4);
+  min-height: 0;
+}
+
+.rules-change-column {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.rules-change-column-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.rules-change-column-head span {
+  color: var(--text-2);
+  font-family: var(--mono);
+  font-size: var(--fs-01);
+  font-weight: 700;
+  letter-spacing: var(--tr-wide);
+  text-transform: uppercase;
+}
+
+.rules-change-column-head small {
+  color: var(--text-4);
+  font-family: var(--mono);
+  font-size: var(--fs-01);
+  letter-spacing: var(--tr-wide);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
 .rules-preview,
 .rules-diff {
   min-height: var(--rules-preview-h);
@@ -306,6 +373,11 @@
   display: flex;
   flex-direction: column;
   gap: var(--s-2);
+}
+
+.rules-changes-panel .rules-history-list {
+  max-height: var(--rules-preview-h);
+  overflow: auto;
 }
 
 .rules-issue,
@@ -442,6 +514,7 @@
   }
 
   .rules-profile-row,
+  .rules-changes-grid,
   .rules-block-controls {
     grid-template-columns: 1fr;
   }

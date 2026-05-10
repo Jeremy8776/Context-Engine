@@ -199,12 +199,13 @@
 .mode-row,
 .memory-item,
 .compile-ws-row,
-.side-panel,
 .cmd-shell {
   border-color: var(--soft-line);
   border-radius: var(--r-3);
   background: var(--bg-card);
 }
+/* `.side-panel` intentionally omitted — see inspector.css for the docked-rail
+   rule. The previous grouping forced r-3 rounding back onto the panel. */
 
 .hero-stat,
 .workflow-card,

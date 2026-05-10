@@ -52,10 +52,9 @@
   background: transparent;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  /* Was `pointer-events: none` — that broke click-outside-to-close globally
-     because panel.js listens for clicks on this element. Re-enabling pointer
-     events makes the X button, ESC, and overlay-click all close the panel. */
-  pointer-events: auto;
+  /* The inspector is persistent: body content must remain scrollable and
+     clickable while the rail is open. Close via the X button or Escape. */
+  pointer-events: none;
 }
 
 .side-panel-overlay.open {
@@ -73,11 +72,14 @@
   width: min(var(--rail-w), calc(100vw - var(--rail-max-gutter)));
   max-width: calc(100vw - var(--rail-max-gutter));
   border: 0;
-  border-left: 1px solid var(--soft-line);
+  /* Match the Skills filter sidebar's right-border exactly: same `--line`
+     token, single 1px line, no shadow. See inspector.css for the canonical
+     rule. */
+  border-left: 1px solid var(--line);
   border-radius: 0;
   /* Fully opaque so the cards behind the panel are not visible through it. */
   background: var(--dram-card-bg);
-  box-shadow: inset 1px 0 0 var(--alpha-black-52);
+  box-shadow: none;
   overflow: hidden;
   pointer-events: auto;
 }
@@ -213,9 +215,9 @@
 }
 
 #modes-tab .simple-page {
-  /* Tightened from 22px top → 8px so the section header sits flush under the
-     title bar; bottom dropped from 32 → 16 since the modes list scrolls. */
-  padding: 8px 32px 16px;
+  /* Same edge-to-edge divider model as Memory — vertical padding only,
+     horizontal padding moves into the toolbar and modes-list. */
+  padding: 8px 0 16px;
 }
 
 /* Drop wrapper's right padding when the docked rail is open so the modes
@@ -228,6 +230,59 @@ body.side-panel-active #modes-tab .simple-page {
 #modes-tab .simple-inner {
   max-width: none;
   width: 100%;
+}
+
+/* Modes conforms to the Skills tab visual density: drop the big "Modes"
+   heading + description (the left-nav already names the tab), and let the
+   toolbar + grid sit at the top of the content area. */
+#modes-tab .section-hdr {
+  display: none;
+}
+
+/* Modes toolbar mirrors the Memory toolbar: search on the left, action
+   buttons on the right. The content panel below owns the separator. */
+#modes-tab .modes-toolbar {
+  display: grid;
+  grid-template-columns: minmax(260px, 520px) auto;
+  gap: 16px;
+  align-items: center;
+  margin: 0;
+  padding: 0 24px 8px;
+  border-bottom: 0;
+  flex-shrink: 0;
+  justify-content: initial;
+}
+
+#modes-tab .modes-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+#modes-tab .modes-search .search {
+  min-width: 0;
+}
+
+#modes-tab .modes-search .filter-trigger {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+#modes-tab .modes-toolbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* Modes list gets internal horizontal padding (matches the toolbar's
+   inner padding) so cards breathe in from the layout edges. */
+#modes-tab .modes-list {
+  margin-top: 0;
+  padding: 24px 24px 0;
+  transition: padding-right var(--spring);
 }
 
 .modes-toolbar {
@@ -413,9 +468,12 @@ body.side-panel-active #modes-tab .simple-page {
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  /* Was 22 → 12 → 6. Electron already provides its own 32px title-bar row,
-     so the tab wrapper doesn't need a tall headroom buffer of its own. */
-  padding: 6px 32px 16px;
+  /* Vertical padding only. Horizontal padding moves into the elements that
+     own it (toolbar inner padding, results-scroll padding). With 0
+     horizontal padding here the toolbar's bottom border and the sidebar's
+     right border can run edge-to-edge of the tab content area, matching
+     the Skills layout's connected-divider grid. */
+  padding: 6px 0 16px;
 }
 
 #memory-tab .simple-inner {
@@ -428,8 +486,11 @@ body.side-panel-active #modes-tab .simple-page {
 #memory-tab .memory-toolbar {
   grid-template-columns: minmax(260px, 520px) auto;
   flex-shrink: 0;
-  margin-bottom: 8px;
-  padding-top: 0;
+  margin: 0;
+  /* Vertical padding inside the toolbar; horizontal padding pushes content
+     in from the layout edge so the search input and Add button breathe. */
+  padding: 0 24px 8px;
+  border-bottom: 0;
 }
 
 .memory-toolbar-actions {
@@ -466,6 +527,7 @@ body.side-panel-active #modes-tab .simple-page {
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  transition: padding-right var(--spring);
 }
 
 #memory-tab .memory-workbench {
@@ -498,10 +560,7 @@ body.side-panel-active #modes-tab .simple-page {
    pop-out via SidePanel. The .no-detail class keys this off, so any future
    3-col layout can co-exist without rewriting this rule. */
 #memory-tab .memory-workbench.no-detail {
-  /* Match the Skills tab's 250px sidebar width so both surfaces share the
-     same column rhythm. The Memory cards keep their own styling, but the
-     enclosing layout reads as a sibling of Skills, not a different shape. */
-  grid-template-columns: 250px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
 }
 
@@ -592,11 +651,13 @@ body.side-panel-active #modes-tab .simple-page {
   align-items: center;
 }
 
-/* Side-panel reflow — pad by the FULL panel width (no inner-gutter subtraction).
-   The panel is docked flush with the viewport edge, so the padding has to match
-   it exactly: anything less and the rightmost cards slip under the panel,
-   anything more and a dead-space gap appears between content and the divider. */
-body.side-panel-active #memory-tab .memory-results,
+/* Side-panel reflow. Keep the visible card-to-rail gutter equal to each
+   tab's own left content gutter instead of adding the panel's inner padding
+   on top of the body padding. */
+body.side-panel-active #memory-tab #memory-list {
+  padding-right: calc(min(var(--rail-w), calc(100vw - var(--rail-max-gutter))) + var(--s-6));
+}
+
 body.side-panel-active #modes-tab .modes-list {
-  padding-right: min(var(--rail-w), calc(100vw - var(--rail-max-gutter)));
+  padding-right: calc(min(var(--rail-w), calc(100vw - var(--rail-max-gutter))) + var(--s-6) + var(--s-4));
 }

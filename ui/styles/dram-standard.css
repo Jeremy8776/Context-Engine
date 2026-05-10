@@ -259,7 +259,6 @@ html[data-runtime='electron'] .desktop-titlebar-actions button {
 .maintenance-review-group,
 .maintenance-review-choice,
 .package-breakdown div,
-.side-panel,
 .memory-modal,
 .app-dialog,
 .toast {
@@ -268,6 +267,9 @@ html[data-runtime='electron'] .desktop-titlebar-actions button {
   border-radius: var(--r-3);
   box-shadow: none;
 }
+/* `.side-panel` intentionally omitted — the docked rail uses square corners
+   and a single left-border, see inspector.css. Adding it here was overriding
+   that with a 4-side border + r-3 radius. */
 
 .skills-sidebar,
 .memory-sidebar {
