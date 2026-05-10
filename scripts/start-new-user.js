@@ -2,21 +2,23 @@
 // @ts-check
 
 const fs = require('fs');
+const net = require('net');
 const path = require('path');
 const { spawn } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
+const ELECTRON_EXE = path.join(
+  ROOT,
+  'node_modules',
+  'electron',
+  'dist',
+  process.platform === 'win32' ? 'electron.exe' : 'electron',
+);
 const PROFILE_ROOT = path.join(ROOT, '.tmp', 'new-user-profile');
 const PROFILE_DATA = path.join(PROFILE_ROOT, 'data');
 const PROFILE_SKILLS = path.join(PROFILE_ROOT, 'skills');
 const SOURCE_DATA = path.join(ROOT, 'data');
 const SOURCE_SKILLS = path.join(ROOT, 'skills');
-const ELECTRON_BIN = path.join(
-  ROOT,
-  'node_modules',
-  '.bin',
-  process.platform === 'win32' ? 'electron.cmd' : 'electron',
-);
 
 /** @param {string} dir */
 function resetDir(dir) {
@@ -39,17 +41,37 @@ function seedProfile() {
   copyDir(SOURCE_SKILLS, PROFILE_SKILLS);
 }
 
-function startNewUserProfile() {
+/** @param {number} port */
+function canUsePort(port) {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.once('error', () => resolve(false));
+    server.once('listening', () => {
+      server.close(() => resolve(true));
+    });
+    server.listen(port, '127.0.0.1');
+  });
+}
+
+/** @param {number} preferred */
+async function findPort(preferred) {
+  for (let port = preferred; port < preferred + 20; port += 1) {
+    if (await canUsePort(port)) return port;
+  }
+  throw new Error(`No free Context Engine dev port found from ${preferred} to ${preferred + 19}`);
+}
+
+async function startNewUserProfile() {
   seedProfile();
 
-  const command = process.platform === 'win32' ? process.env.ComSpec || 'cmd.exe' : ELECTRON_BIN;
-  const args = process.platform === 'win32' ? ['/d', '/c', ELECTRON_BIN, '.'] : ['.'];
-  const port = process.env.CE_NEW_USER_PORT || '3869';
+  const preferredPort = Number(process.env.CE_NEW_USER_PORT || 3869);
+  const port = String(await findPort(preferredPort));
+  const electronArgs = ['.', `--ce-root=${PROFILE_ROOT}`, `--ce-port=${port}`, '--ce-new-user'];
 
   console.log(`[start:new] CE_ROOT=${PROFILE_ROOT}`);
   console.log(`[start:new] CE_PORT=${port}`);
 
-  const child = spawn(command, args, {
+  const child = spawn(ELECTRON_EXE, electronArgs, {
     cwd: ROOT,
     stdio: 'inherit',
     env: {
@@ -66,6 +88,11 @@ function startNewUserProfile() {
   });
 }
 
-if (require.main === module) startNewUserProfile();
+if (require.main === module) {
+  startNewUserProfile().catch((error) => {
+    console.error(error instanceof Error ? error.message : error);
+    process.exit(1);
+  });
+}
 
 module.exports = { startNewUserProfile };

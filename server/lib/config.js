@@ -5,8 +5,15 @@
 const path = require('path');
 const os = require('os');
 
-const PORT = parseInt(process.env.CE_PORT || process.env.PORT || '3847', 10) || 3847;
-const ROOT = process.env.CE_ROOT || path.join(__dirname, '..', '..', '..');
+/** @param {string} name */
+function argValue(name) {
+  const prefix = `--${name}=`;
+  const match = process.argv.find((arg) => arg.startsWith(prefix));
+  return match ? match.slice(prefix.length) : '';
+}
+
+const PORT = parseInt(process.env.CE_PORT || process.env.PORT || argValue('ce-port') || '3847', 10) || 3847;
+const ROOT = process.env.CE_ROOT || argValue('ce-root') || path.join(__dirname, '..', '..', '..');
 const DATA_DIR = path.join(ROOT, 'data');
 const UI_DIR = path.join(__dirname, '..', '..', 'ui');
 const CONTEXT_MD = path.join(ROOT, 'CONTEXT.md');

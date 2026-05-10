@@ -86,6 +86,8 @@ function baseTool(id, reg, homedir, adapter) {
   return {
     id,
     label: reg.label,
+    description: reg.description,
+    outputFilename: adapter?.filename || null,
     installed: false,
     /** @type {string[]} */
     signals: [],

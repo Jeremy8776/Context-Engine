@@ -3,7 +3,7 @@
 // @ts-check
 
 const Onboarding = (() => {
-  /** @type {{ shouldShow?: boolean, hosts?: McpHostRecord[], context?: any } | null} */
+  /** @type {{ shouldShow?: boolean, hosts?: McpHostRecord[], tools?: any[], context?: any } | null} */
   let summary = null;
   /** @type {'discover' | 'connect' | 'health'} */
   let step = 'discover';
@@ -98,6 +98,7 @@ const Onboarding = (() => {
     const status = CompileView.statusLabel(host.status);
     return `<label class="onboarding-host ${checked ? 'selected' : ''} ${disabled ? 'disabled' : ''}">
       <input type="checkbox" ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''} onchange="Onboarding.toggleHost('${host.id}', this.checked)" />
+      <span class="onboarding-host-icon">${esc(host.label.slice(0, 1))}</span>
       <span class="onboarding-host-body">
         <span class="onboarding-host-top">
           <strong>${esc(host.label)}</strong>
@@ -108,17 +109,68 @@ const Onboarding = (() => {
     </label>`;
   }
 
+  /** @param {any} tool */
+  function surfaceCard(tool) {
+    const tone = tool.detected ? 'detected' : tool.available ? 'available' : 'quiet';
+    const badge = tool.detected
+      ? 'Detected'
+      : tool.fileStandard
+        ? 'File standard'
+        : tool.available
+          ? 'Available'
+          : 'Not found';
+    const detail = tool.signals?.length
+      ? tool.signals.join(', ')
+      : tool.globalReady
+        ? 'Global fallback writable'
+        : tool.projectReady
+          ? 'Project fallback available'
+          : 'Can be configured later';
+    return `<article class="onboarding-surface ${tone}">
+      <div class="onboarding-surface-icon">${esc(String(tool.label || tool.id).slice(0, 1))}</div>
+      <div>
+        <div class="onboarding-surface-top">
+          <strong>${esc(tool.label || tool.id)}</strong>
+          <span>${esc(badge)}</span>
+        </div>
+        <p>${esc(detail)}</p>
+      </div>
+    </article>`;
+  }
+
+  function renderDetectedSurfaces() {
+    const tools = summary?.tools || [];
+    const visible = tools.filter((tool) => tool.detected || tool.available || tool.fileStandard).slice(0, 8);
+    if (!visible.length) {
+      return `<div class="onboarding-empty-scan">
+        <strong>No IDE surfaces detected yet</strong>
+        <span>CE can still create AGENTS.md and other project files once you add a workspace.</span>
+      </div>`;
+    }
+    return `<div class="onboarding-surface-grid">${visible.map(surfaceCard).join('')}</div>`;
+  }
+
   function renderDiscover() {
     const activeNames = summary?.context?.activeSkillNames || [];
     return `<div class="onboarding-panel">
       <span class="compile-kicker">Welcome</span>
       <h1>Context Engine found your working setup</h1>
       <p class="onboarding-lede">It can connect to the AI apps you already use and serve your selected skills, memory, and indexed context when those apps ask for help.</p>
+      <div class="onboarding-hero-band">
+        <div>
+          <span>Scan result</span>
+          <strong>${esc((summary?.hosts || []).filter((host) => host.appDetected || host.status === 'connected').length)} host signals / ${esc((summary?.tools || []).filter((tool) => tool.detected || tool.available).length)} app surfaces</strong>
+        </div>
+        <div>
+          <span>Best next step</span>
+          <strong>Connect one runtime host, then verify search health.</strong>
+        </div>
+      </div>
       <div class="onboarding-split">
         <section>
           <div class="onboarding-section-head">
-            <strong>Detected apps</strong>
-            <span>Confirm where CE should appear.</span>
+            <strong>Runtime hosts</strong>
+            <span>Apps that can call CE live through MCP.</span>
           </div>
           <div class="onboarding-host-list">${(summary?.hosts || []).map(hostCard).join('')}</div>
         </section>
@@ -134,6 +186,13 @@ const Onboarding = (() => {
           </div>
         </section>
       </div>
+      <section class="onboarding-surfaces-section">
+        <div class="onboarding-section-head">
+          <strong>IDE and file-output surfaces</strong>
+          <span>These are fallback targets CE can write for tools that do not call MCP live.</span>
+        </div>
+        ${renderDetectedSurfaces()}
+      </section>
       <div class="onboarding-actions">
         <button class="fb" onclick="Onboarding.skip()">Skip for now</button>
         <button class="save-btn" onclick="Onboarding.go('connect')">Connect selected apps</button>

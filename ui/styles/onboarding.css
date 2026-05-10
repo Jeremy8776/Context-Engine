@@ -87,6 +87,15 @@
   width: min(1040px, 100%);
 }
 
+.onboarding-panel::before {
+  display: block;
+  width: 72px;
+  height: 3px;
+  margin-bottom: 22px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+  content: '';
+}
+
 .onboarding-panel h1 {
   margin: 8px 0 10px;
   font-size: 34px;
@@ -99,6 +108,28 @@
   margin: 0 0 22px;
   color: var(--muted);
   line-height: 1.55;
+}
+
+.onboarding-hero-band {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.onboarding-hero-band > div {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.onboarding-hero-band span {
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
 }
 
 .onboarding-split {
@@ -147,6 +178,22 @@
   border-radius: 8px;
   background: var(--bg);
   cursor: pointer;
+}
+
+.onboarding-host-icon,
+.onboarding-surface-icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  font-weight: 700;
+}
+
+.onboarding-host-icon {
+  width: 32px;
+  height: 32px;
 }
 
 .onboarding-host.selected {
@@ -216,6 +263,73 @@
   padding: 12px;
 }
 
+.onboarding-surfaces-section {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-card);
+}
+
+.onboarding-surface-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.onboarding-surface {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.onboarding-surface.detected {
+  border-color: var(--line-strong);
+  background: var(--surface);
+}
+
+.onboarding-surface.available {
+  background: var(--bg-card);
+}
+
+.onboarding-surface-icon {
+  width: 34px;
+  height: 34px;
+}
+
+.onboarding-surface-top {
+  display: grid;
+  gap: 4px;
+}
+
+.onboarding-surface-top span,
+.onboarding-surface p,
+.onboarding-empty-scan span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.onboarding-surface p {
+  margin: 6px 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.onboarding-empty-scan {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
 .onboarding-connect-card {
   display: grid;
   grid-template-columns: 1fr auto auto;
@@ -277,7 +391,9 @@
   .onboarding-shell,
   .onboarding-split,
   .onboarding-connect-card,
-  .onboarding-health-grid {
+  .onboarding-health-grid,
+  .onboarding-hero-band,
+  .onboarding-surface-grid {
     grid-template-columns: 1fr;
   }
 

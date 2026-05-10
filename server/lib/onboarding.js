@@ -69,14 +69,42 @@ function getContextSummary() {
   };
 }
 
-function getOnboardingSummary() {
+/** @param {Record<string, any>} tools */
+function summarizeToolSurfaces(tools = {}) {
+  return Object.values(tools)
+    .filter((tool) => tool && tool.id)
+    .map((tool) => ({
+      id: tool.id,
+      label: tool.label || tool.id,
+      detected: !!tool.detected,
+      available: !!tool.available,
+      outputReady: !!tool.outputReady,
+      projectReady: !!tool.projectReady,
+      globalReady: !!tool.globalReady,
+      fileStandard: !!tool.fileStandard,
+      status: tool.status || 'unknown',
+      category: tool.category || 'auto',
+      signals: Array.isArray(tool.signals) ? tool.signals.slice(0, 3) : [],
+    }))
+    .sort((a, b) => {
+      const rankA = a.detected ? 0 : a.available ? 1 : 2;
+      const rankB = b.detected ? 0 : b.available ? 1 : 2;
+      if (rankA !== rankB) return rankA - rankB;
+      return a.label.localeCompare(b.label);
+    });
+}
+
+/** @param {{ tools?: Record<string, any> }} [options] */
+function getOnboardingSummary(options = {}) {
   const state = readOnboarding();
   const hosts = buildHostConfigs();
+  const tools = summarizeToolSurfaces(options.tools || {});
   return {
     shouldShow: shouldShowOnboarding(state),
     state: state || { version: 1, completedAt: null },
     context: getContextSummary(),
     hosts,
+    tools,
   };
 }
 
