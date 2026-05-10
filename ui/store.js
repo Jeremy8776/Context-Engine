@@ -467,6 +467,18 @@ const DS = {
   async searchIndex(query, limit = 10) {
     return await apiFetch('/search', 'POST', { query, limit }, { returnErrors: true });
   },
+  /** @param {boolean} [refresh] */
+  async getDedupReport(refresh = false) {
+    return await apiFetch(`/dedup${refresh ? '?refresh=1' : ''}`, 'GET', null, { returnErrors: true });
+  },
+  /** @param {{ clusterId: string, action: string, keepSkillId?: string, note?: string }} input */
+  async resolveDedupCluster(input) {
+    return await apiFetch('/dedup/resolve', 'POST', input, { returnErrors: true });
+  },
+  /** @param {{ task: string, targets?: string[], maxTokens?: number, projectPath?: string }} input */
+  async smartCompile(input) {
+    return await apiFetch('/compile/smart', 'POST', input, { returnErrors: true });
+  },
   async getMcpHosts() {
     return await apiFetch('/mcp/hosts');
   },

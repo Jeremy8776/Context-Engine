@@ -38,19 +38,11 @@ const {
   TOOL_REGISTRY,
 } = require('./compiler');
 const { detectTools } = require('./lib/tool-detection');
-const { chunkSkill } = require('./lib/chunker');
-const { embedTexts, DEFAULT_EMBED_MODEL } = require('./lib/embeddings');
-const {
-  loadVectorStore,
-  saveVectorStore,
-  upsertVectors,
-  replaceVectors,
-  searchVectors,
-} = require('./lib/vectorstore');
 const { getAppVersion } = require('./lib/app-version');
 const { buildHostConfigs, installHostConfig } = require('./lib/mcp-host-config');
 const { getOnboardingSummary, completeOnboarding, resetOnboarding } = require('./lib/onboarding');
 const { checkSafeWritePath } = require('./lib/security');
+const { handleIntelligenceRequest, intelligenceRouteDocs } = require('./lib/intelligence-routes');
 
 const ALLOWED_INGEST_HOSTS = new Set(['github.com', 'gitlab.com', 'codeberg.org', 'bitbucket.org']);
 
@@ -167,7 +159,15 @@ async function handleRequest(req, res, url) {
 
   // ---- ONBOARDING ----
   if (p === '/api/onboarding' && req.method === 'GET') {
-    return json(res, { ok: true, ...getOnboardingSummary() });
+    const tools = detectTools(HOMEDIR, {
+      dataDir: DATA_DIR,
+      skillsDir: SKILLS_DIR,
+      scanSkills,
+      adapters: ADAPTERS,
+      buildContext,
+      estimateTokens,
+    });
+    return json(res, { ok: true, ...getOnboardingSummary({ tools }) });
   }
 
   if (p === '/api/onboarding/complete' && req.method === 'POST') {
@@ -191,84 +191,8 @@ async function handleRequest(req, res, url) {
     return json(res, result, result.ok ? 200 : 409);
   }
 
-  // ---- VECTOR INDEX ----
-  if (p === '/api/index/status' && req.method === 'GET') {
-    const store = loadVectorStore();
-    const skillIds = new Set(store.records.map((record) => record.skillId));
-    return json(res, {
-      ok: true,
-      chunks: store.records.length,
-      skills: skillIds.size,
-      model: store.model,
-      updatedAt: store.updatedAt,
-    });
-  }
-
-  if (p === '/api/index' && req.method === 'POST') {
-    const skills = Object.values(scanSkills());
-    const chunks = skills.flatMap((skill) => chunkSkill(skill));
-    const embedded = await embedTexts(chunks.map((chunk) => chunk.text));
-    if (!embedded.ok) {
-      return json(
-        res,
-        { ok: false, error: embedded.error, chunks: chunks.length, model: embedded.model },
-        503,
-      );
-    }
-    const records = chunks.map((chunk, index) => ({ ...chunk, vector: embedded.vectors[index] }));
-    const store = replaceVectors(records, embedded.model || DEFAULT_EMBED_MODEL);
-    saveVectorStore(store);
-    return json(res, {
-      ok: true,
-      chunks: store.records.length,
-      skills: skills.length,
-      model: store.model,
-      updatedAt: store.updatedAt,
-    });
-  }
-
-  if (p.startsWith('/api/index/skill/') && req.method === 'POST') {
-    const skillId = decodeURIComponent(p.replace('/api/index/skill/', ''));
-    const skill = scanSkills()[skillId];
-    if (!skill) return json(res, { ok: false, error: 'Unknown skill: ' + skillId }, 404);
-    const chunks = chunkSkill(skill);
-    const embedded = await embedTexts(chunks.map((chunk) => chunk.text));
-    if (!embedded.ok) {
-      return json(
-        res,
-        { ok: false, error: embedded.error, chunks: chunks.length, model: embedded.model },
-        503,
-      );
-    }
-    const records = chunks.map((chunk, index) => ({ ...chunk, vector: embedded.vectors[index] }));
-    const store = upsertVectors(loadVectorStore(), records, embedded.model || DEFAULT_EMBED_MODEL);
-    saveVectorStore(store);
-    return json(res, {
-      ok: true,
-      skillId,
-      chunks: records.length,
-      model: store.model,
-      updatedAt: store.updatedAt,
-    });
-  }
-
-  if (p === '/api/search' && req.method === 'POST') {
-    const data = await body(req);
-    const query = String(data?.query || '').trim();
-    const limit = Number(data?.limit || 10);
-    if (!query) return json(res, { ok: false, error: 'query is required' }, 400);
-    const store = loadVectorStore();
-    if (!store.records.length)
-      return json(res, { ok: false, error: 'Index is empty. Run /api/index first.' }, 400);
-    const embedded = await embedTexts([query], { model: store.model || DEFAULT_EMBED_MODEL });
-    if (!embedded.ok) return json(res, { ok: false, error: embedded.error, model: embedded.model }, 503);
-    return json(res, {
-      ok: true,
-      query,
-      results: searchVectors(store, embedded.vectors[0], { limit }),
-      model: embedded.model,
-    });
-  }
+  const intelligenceResult = await handleIntelligenceRequest(req, res, url, { scanSkills });
+  if (intelligenceResult !== null) return intelligenceResult;
 
   // ---- SKILL INGEST (GitHub clone) ----
   if (p === '/api/skills/ingest' && req.method === 'POST') {
@@ -411,7 +335,13 @@ async function handleRequest(req, res, url) {
         writeData('skill-states.json', backup);
         try {
           regenerateCONTEXTmd();
-        } catch {}
+        } catch (rollbackErr) {
+          // Rollback regen failure is rare but observable matters: the on-disk
+          // states were restored, but CONTEXT.md may now be out of sync with
+          // them until the next manual rebuild.
+          const rollbackMsg = rollbackErr instanceof Error ? rollbackErr.message : String(rollbackErr);
+          console.error('[router] skill-state rollback CONTEXT.md regen failed:', rollbackMsg);
+        }
       }
       return json(res, { ok: false, error: 'State update failed: ' + e.message }, 500);
     }
@@ -517,14 +447,7 @@ async function handleRequest(req, res, url) {
         { method: 'GET', path: '/api/session-log', description: 'Get activity log' },
         { method: 'GET', path: '/api/modes', description: 'List mode presets' },
         { method: 'POST', path: '/api/modes/apply', description: 'Apply mode preset (transactional)' },
-        { method: 'POST', path: '/api/index', description: 'Index all skill chunks into the vector store' },
-        {
-          method: 'POST',
-          path: '/api/index/skill/:id',
-          description: 'Index one skill into the vector store',
-        },
-        { method: 'POST', path: '/api/search', description: 'Search indexed skill chunks' },
-        { method: 'GET', path: '/api/index/status', description: 'Get vector index status' },
+        ...intelligenceRouteDocs(),
         { method: 'GET', path: '/api/mcp/hosts', description: 'List MCP host config status and snippets' },
         {
           method: 'POST',
