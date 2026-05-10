@@ -34,6 +34,7 @@
     "test:chunker": "node scripts/chunker-smoke.js",
     "test:embeddings": "node scripts/embeddings-smoke.js",
     "test:vectorstore": "node scripts/vectorstore-smoke.js",
+    "test:dedup": "node scripts/dedup-smoke.js",
     "test:mcp-hosts": "node scripts/mcp-host-config-smoke.js",
     "mcp": "node mcp-server.mjs",
     "mcp:http": "node mcp-http-server.mjs",

@@ -116,6 +116,10 @@
             <input type="checkbox" class="styled-check" id="maintain-review" checked />
             <span><strong>Review overlapping skills</strong><small>Use the configured LLM to flag skills that appear to do the same job. No skill files are edited.</small></span>
           </label>
+          <label class="maintenance-option">
+            <input type="checkbox" class="styled-check" id="maintain-dedup" checked />
+            <span><strong>Quality audit</strong><small>Use the vector index to flag duplicate clusters and low-specificity filler. Review markers are reversible.</small></span>
+          </label>
           <div class="maintenance-llm">
             <select class="add-input" id="maintain-provider" onchange="SkillsMaintenance.updateProvider()">
               <option value="anthropic">Anthropic</option>

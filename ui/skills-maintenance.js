@@ -4,6 +4,7 @@ const SkillsMaintenance = (() => {
     tidy: 'maintain-tidy',
     metadata: 'maintain-metadata',
     review: 'maintain-review',
+    dedup: 'maintain-dedup',
     provider: 'maintain-provider',
     apiKey: 'maintain-api-key',
     localModel: 'maintain-local-model',
@@ -13,6 +14,7 @@ const SkillsMaintenance = (() => {
   };
   let localModelsLoaded = false;
   let reviewGroups = [];
+  let dedupReport = null;
 
   function el(id) {
     return document.getElementById(id);
@@ -133,6 +135,80 @@ const SkillsMaintenance = (() => {
     );
   }
 
+  /** @param {any} report */
+  function renderQualityAudit(report) {
+    const results = el(ids.results);
+    if (!results) return;
+    dedupReport = report;
+    const clusters = (report?.clusters || []).slice(0, 8);
+    const filler = (report?.lowSpecificity || []).slice(0, 6);
+    if (!clusters.length && !filler.length) {
+      addResult('Quality audit', 'No duplicate clusters or filler-like chunks found', 'ok');
+      return;
+    }
+    const clusterRows = clusters.map(renderDedupCluster).join('');
+    const fillerRows = filler
+      .map(
+        (item) => `
+        <div class="maintenance-review-group compact">
+          <div class="maintenance-review-head">
+            <strong>${esc(item.skillId)}</strong>
+            <span>${Math.round((item.rank?.specificity || 0) * 100)}%</span>
+          </div>
+          <span>${esc(item.section)} / ${esc(item.type)}</span>
+          <small>${esc(item.text)}</small>
+        </div>`,
+      )
+      .join('');
+    results.insertAdjacentHTML(
+      'beforeend',
+      `
+      <div class="maintenance-review">
+        <div class="maintenance-result warn">
+          <strong>Quality audit</strong>
+          <span>${clusters.length} cluster(s), ${filler.length} low-specificity chunk(s). Resolution only updates the audit report.</span>
+        </div>
+        ${clusterRows}
+        ${
+          fillerRows
+            ? `<div class="maintenance-result"><strong>Low-specificity filler</strong><span>Useful prompts should say something concrete. These chunks may be too generic.</span></div>${fillerRows}`
+            : ''
+        }
+      </div>`,
+    );
+  }
+
+  /** @param {any} cluster */
+  function renderDedupCluster(cluster) {
+    const items = (cluster.items || [])
+      .slice(0, 4)
+      .map((item) => {
+        const suggested = item.skillId === cluster.suggestedKeepSkillId ? ' suggested' : '';
+        return `
+        <label class="maintenance-review-choice${suggested}">
+          <input type="radio" name="dedup-keep-${esc(cluster.id)}" value="${esc(item.skillId)}" ${suggested ? 'checked' : ''}>
+          <span>
+            <strong>${esc(item.skillId)}</strong>
+            <small>${esc(item.section)} / ${esc(item.text)}</small>
+          </span>
+        </label>`;
+      })
+      .join('');
+    const status = cluster.status && cluster.status !== 'open' ? ` / ${cluster.status}` : '';
+    return `
+      <div class="maintenance-review-group" data-dedup-id="${esc(cluster.id)}">
+        <div class="maintenance-review-head">
+          <strong>${esc(cluster.kind)}${status}</strong>
+          <span>${Math.round((cluster.score || 0) * 100)}%</span>
+        </div>
+        <span>${esc((cluster.items || []).map((item) => item.skillId).join(' + '))}</span>
+        <div class="maintenance-review-choices">${items}</div>
+        <button class="fb maintenance-apply-btn" type="button" onclick="SkillsMaintenance.resolveDedup('${esc(cluster.id)}', 'keep-skill')">Mark reviewed</button>
+        <button class="fb maintenance-apply-btn" type="button" onclick="SkillsMaintenance.resolveDedup('${esc(cluster.id)}', 'ignore')">Ignore</button>
+        ${cluster.status !== 'open' ? `<button class="fb maintenance-apply-btn" type="button" onclick="SkillsMaintenance.resolveDedup('${esc(cluster.id)}', 'reopen')">Reopen</button>` : ''}
+      </div>`;
+  }
+
   function selectedReviewChoices() {
     return reviewGroups
       .map((group, index) => {
@@ -249,6 +325,39 @@ const SkillsMaintenance = (() => {
     renderReview(groups);
   }
 
+  async function runQualityAudit() {
+    const res = await DS.getDedupReport(true);
+    if (!res?.ok) throw new Error(res?.error || 'Quality audit failed. Build the vector index first.');
+    const report = res.report || {};
+    const stats = report.stats || {};
+    addResult(
+      'Quality audit',
+      `${stats.clusters || 0} cluster(s), ${stats.lowSpecificity || 0} low-specificity chunk(s), ${stats.similarityPairs || 0} vector pair(s)`,
+      stats.clusters || stats.lowSpecificity ? 'warn' : 'ok',
+    );
+    renderQualityAudit(report);
+  }
+
+  /** @param {string} clusterId @param {string} action */
+  async function resolveDedup(clusterId, action) {
+    const container = document.querySelector(`[data-dedup-id="${CSS.escape(clusterId)}"]`);
+    const keepSkillId = container?.querySelector('input[type="radio"]:checked')?.value;
+    const result = await DS.resolveDedupCluster({ clusterId, action, keepSkillId });
+    if (!result?.ok) {
+      Toast.error(result?.error || 'Audit update failed');
+      return;
+    }
+    dedupReport = result.report;
+    if (container) {
+      container.classList.toggle('applied', action !== 'reopen');
+      const buttons = container.querySelectorAll('button');
+      buttons.forEach((button) => {
+        if (action !== 'reopen') button.disabled = true;
+      });
+    }
+    Toast.success(action === 'reopen' ? 'Cluster reopened' : 'Audit marker saved');
+  }
+
   async function refreshSkills() {
     await loadSkillData();
     if (typeof SkillsTab !== 'undefined') SkillsTab.init();
@@ -259,7 +368,8 @@ const SkillsMaintenance = (() => {
     const useTidy = el(ids.tidy)?.checked;
     const useMetadata = el(ids.metadata)?.checked;
     const useReview = el(ids.review)?.checked;
-    if (!useTidy && !useMetadata && !useReview) {
+    const useDedup = el(ids.dedup)?.checked;
+    if (!useTidy && !useMetadata && !useReview && !useDedup) {
       Toast.warn('Choose at least one cleanup action');
       return;
     }
@@ -269,6 +379,7 @@ const SkillsMaintenance = (() => {
       if (useTidy) await runTidy();
       if (useMetadata) await runMetadata();
       if (useReview) await runReview();
+      if (useDedup) await runQualityAudit();
       await refreshSkills();
       Toast.success('Skill cleanup complete');
     } catch (error) {
@@ -279,5 +390,5 @@ const SkillsMaintenance = (() => {
     }
   }
 
-  return { open, close, run, updateProvider, applyReview, applyAllReviews };
+  return { open, close, run, updateProvider, applyReview, applyAllReviews, resolveDedup };
 })();
