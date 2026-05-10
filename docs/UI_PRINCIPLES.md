@@ -32,7 +32,7 @@ Top-level sections map to the ecosystem model:
 - Modes: saved context profiles and workflow chains.
 - Memory: persistent knowledge used in generated context.
 - Rules: behaviour, coding, and system rules.
-- Outputs: host app connections, MCP bridge setup, and compiled file fallbacks.
+- Connections: host app connections, MCP bridge setup, and project-file sync surfaces.
 - Registry: detected tools, MCP servers, and installable ecosystem packs.
 
 ## Layout Rules

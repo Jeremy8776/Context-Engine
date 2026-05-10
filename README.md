@@ -296,38 +296,38 @@ The core server stays vanilla Node.js HTTP. Runtime dependencies are kept narrow
 
 The server exposes a REST API on port 3847. The full live list is at `GET /api/docs`; the most-used routes:
 
-| Method | Path                            | Description                                                |
-| ------ | ------------------------------- | ---------------------------------------------------------- |
-| GET    | `/api/skills`                   | List all discovered skills                                 |
-| GET    | `/api/skills/:id`               | Skill record + body, optional `?section=` for one slice    |
-| POST   | `/api/skills/ingest`            | Clone a skill repo (allowlisted hosts only)                |
-| POST   | `/api/skills/parse`             | LLM-parse skill descriptions                               |
-| GET    | `/api/memory`                   | Get memory entries                                         |
-| POST   | `/api/memory`                   | Save memory entries                                        |
-| GET    | `/api/rules`                    | Get rules and soul                                         |
-| POST   | `/api/rules`                    | Save rules and soul                                        |
-| GET    | `/api/states`                   | Get skill active/inactive states                           |
-| POST   | `/api/states`                   | Save skill states                                          |
-| GET    | `/api/modes`                    | Get saved modes                                            |
-| POST   | `/api/modes/apply`              | Apply a mode                                               |
-| POST   | `/api/index`                    | Build the vector index for all active skills               |
-| GET    | `/api/index/status`             | Index health: chunk count, model, last-built timestamp     |
-| POST   | `/api/search`                   | Vector search across indexed chunks                        |
-| GET    | `/api/mcp/hosts`                | Detected MCP hosts + setup status + snippets               |
-| POST   | `/api/mcp/hosts/install`        | Safely install CE's MCP entry into a supported host config |
-| GET    | `/api/onboarding`               | First-run discovery summary                                |
-| POST   | `/api/onboarding/complete`      | Mark onboarding as done                                    |
-| GET    | `/api/health`                   | Skill health check + context budget                        |
-| POST   | `/api/compile/preview`          | Preview compiled output for selected targets               |
-| POST   | `/api/compile`                  | Compile + write to a workspace directory                   |
-| POST   | `/api/tools/install-global`     | Compile to global/home paths                               |
-| GET    | `/api/tools/detect`             | Detect installed AI tools                                  |
-| GET    | `/api/workspaces`               | List registered project workspaces                         |
-| POST   | `/api/workspaces`               | Add or remove a workspace                                  |
-| POST   | `/api/workspaces/compile`       | Compile to one or all registered workspaces                |
-| GET    | `/api/keys/status`              | Check if API keys are configured                           |
-| POST   | `/api/keys`                     | Save an encrypted API key                                  |
-| DELETE | `/api/keys`                     | Remove an API key                                          |
+| Method | Path                        | Description                                                |
+| ------ | --------------------------- | ---------------------------------------------------------- |
+| GET    | `/api/skills`               | List all discovered skills                                 |
+| GET    | `/api/skills/:id`           | Skill record + body, optional `?section=` for one slice    |
+| POST   | `/api/skills/ingest`        | Clone a skill repo (allowlisted hosts only)                |
+| POST   | `/api/skills/parse`         | LLM-parse skill descriptions                               |
+| GET    | `/api/memory`               | Get memory entries                                         |
+| POST   | `/api/memory`               | Save memory entries                                        |
+| GET    | `/api/rules`                | Get rules and soul                                         |
+| POST   | `/api/rules`                | Save rules and soul                                        |
+| GET    | `/api/states`               | Get skill active/inactive states                           |
+| POST   | `/api/states`               | Save skill states                                          |
+| GET    | `/api/modes`                | Get saved modes                                            |
+| POST   | `/api/modes/apply`          | Apply a mode                                               |
+| POST   | `/api/index`                | Build the vector index for all active skills               |
+| GET    | `/api/index/status`         | Index health: chunk count, model, last-built timestamp     |
+| POST   | `/api/search`               | Vector search across indexed chunks                        |
+| GET    | `/api/mcp/hosts`            | Detected MCP hosts + setup status + snippets               |
+| POST   | `/api/mcp/hosts/install`    | Safely install CE's MCP entry into a supported host config |
+| GET    | `/api/onboarding`           | First-run discovery summary                                |
+| POST   | `/api/onboarding/complete`  | Mark onboarding as done                                    |
+| GET    | `/api/health`               | Skill health check + context budget                        |
+| POST   | `/api/compile/preview`      | Preview compiled output for selected targets               |
+| POST   | `/api/compile`              | Compile + write to a workspace directory                   |
+| POST   | `/api/tools/install-global` | Compile to global/home paths                               |
+| GET    | `/api/tools/detect`         | Detect installed AI tools                                  |
+| GET    | `/api/workspaces`           | List registered project workspaces                         |
+| POST   | `/api/workspaces`           | Add or remove a workspace                                  |
+| POST   | `/api/workspaces/compile`   | Compile to one or all registered workspaces                |
+| GET    | `/api/keys/status`          | Check if API keys are configured                           |
+| POST   | `/api/keys`                 | Save an encrypted API key                                  |
+| DELETE | `/api/keys`                 | Remove an API key                                          |
 
 ---
 

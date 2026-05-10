@@ -171,7 +171,7 @@ cloudflared tunnel --url http://127.0.0.1:3850
 
 - ChatGPT shows "Couldn't connect" → check that `MCP_PUBLIC_URL` exactly matches the tunnel URL and the adapter was restarted after setting it.
 - OAuth approval succeeds but tools never appear → ChatGPT cached an old discovery doc; remove the connector and re-add it after restarting the adapter.
-- Tools list is empty / `context_engine_status` returns `ready: false` → the index isn't built. Open the CE desktop app, go to Outputs → Vector index → "Build / rebuild," wait for the indeterminate bar to finish, then retry the chat.
+- Tools list is empty / `context_engine_status` returns `ready: false` → the index isn't built. Open the CE desktop app, go to Connections → Vector index → "Build / rebuild," wait for the indeterminate bar to finish, then retry the chat.
 - `cloudflared` prints "tunnel not found" → leftover state from a prior session; close all `cloudflared` processes and retry.
 
 **Production deployment.** For anything beyond developer testing, swap `cloudflared tunnel --url ...` for a named Cloudflare Tunnel bound to your own domain, or host the adapter behind your own HTTPS reverse proxy. Either way, keep `MCP_OAUTH_PASSWORD` set and the bind address loopback.

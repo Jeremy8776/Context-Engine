@@ -19,8 +19,8 @@ Use this before committing or pushing Context Engine changes.
 ## App Checks
 
 - Confirm `http://127.0.0.1:3847/` loads.
-- Confirm Dashboard, Skills, Modes, Memory, Rules, and Outputs tabs load.
-- Confirm Outputs detection separates available targets from unavailable targets.
+- Confirm Dashboard, Skills, Modes, Memory, Rules, and Connections tabs load.
+- Confirm Connections detection separates detected hosts from unavailable targets.
 - Confirm Update Available only writes to available global or registered workspace targets.
 
 ## Desktop Checks

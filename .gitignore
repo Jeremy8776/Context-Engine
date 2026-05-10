@@ -15,6 +15,9 @@ data/modes.json
 Thumbs.db
 .env
 
+# Per-contributor Claude Code config (preview launcher, etc.)
+.claude/
+
 # Personal-state working docs.
 # These are kept out of the public repo because they hold session logs,
 # strategic context, and per-contributor work tracking. Each contributor

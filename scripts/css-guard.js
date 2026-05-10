@@ -11,8 +11,12 @@ const BANNED_PATTERNS = [
     regex: /!important\b/g,
   },
   {
+    // Catches #hex, rgb(), rgba(), hsl(), hsla() — every literal color form CSS
+    // accepts. Named colors (e.g. `red`) are intentionally NOT matched: too
+    // many false positives in property names like `border-color: var(--red)`
+    // and there are no current named-color literals in the tree.
     label: 'Raw CSS color literals belong in ui/styles/tokens.css',
-    regex: /#[0-9a-fA-F]{3,8}\b|rgba\([^)]*\)/g,
+    regex: /#[0-9a-fA-F]{3,8}\b|rgba?\([^)]*\)|hsla?\([^)]*\)/g,
     allowTokens: true,
   },
 ];

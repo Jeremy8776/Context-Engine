@@ -18,12 +18,14 @@ type ToolRecord = {
   available?: boolean;
   category?: string;
   compileError?: string;
+  description?: string;
   fileStandard?: boolean;
   globalInstalled?: boolean;
   globalPath?: string;
   globalReady?: boolean;
   globalWritable?: boolean;
   installed?: boolean;
+  outputFilename?: string | null;
   projectReady?: boolean;
   status?: string;
   [key: string]: unknown;
@@ -66,6 +68,13 @@ type McpHostRecord = {
   summary: string;
   snippet: string;
   note: string | null;
+  connection?: {
+    transport: string;
+    endpoint?: string;
+    mcpUrl?: string;
+    auth?: string;
+    command?: string;
+  };
   steps?: McpHostStep[];
 };
 
@@ -91,6 +100,19 @@ type DataStoreApi = {
   getIndexStatus(): Promise<any>;
   indexSkills(): Promise<any>;
   searchIndex(query: string, limit?: number): Promise<any>;
+  getDedupReport(refresh?: boolean): Promise<any>;
+  resolveDedupCluster(input: {
+    clusterId: string;
+    action: string;
+    keepSkillId?: string;
+    note?: string;
+  }): Promise<any>;
+  smartCompile(input: {
+    task: string;
+    targets?: string[];
+    maxTokens?: number;
+    projectPath?: string;
+  }): Promise<any>;
   getMcpHosts(): Promise<{ hosts?: McpHostRecord[] } | null>;
   installMcpHost(hostId: string): Promise<any>;
   getCompileTargets(): Promise<any>;
@@ -122,11 +144,46 @@ declare const RS: {
   loadFromServer(): Promise<unknown>;
 };
 declare const DashboardTab: {
+  init(): Promise<void> | void;
+  backup(): Promise<void>;
+  restore(): Promise<void>;
+  regenCONTEXTmd(): Promise<void>;
+  discover(): Promise<void>;
+  indexSkills(): Promise<void>;
+  refreshIndexStatus(): Promise<void>;
+  smartCompile(): Promise<void>;
   refreshBudget(): Promise<void>;
+  loadSessionLog(): Promise<void>;
+  applyMode(id: string): Promise<void>;
+  deployAvailable(): Promise<void>;
+  installGlobals(): Promise<void>;
+  openTab(name: string): void;
+  loadOutputTokens(): Promise<void>;
 };
 declare const SkillsTab: {
-  refresh?: () => Promise<void> | void;
   init?: () => void;
+  refresh?: () => Promise<void> | void;
+  render?: () => void;
+  handleToggle?: (id: string, enabled: boolean) => Promise<void> | void;
+  setFilter?: (key: string, value: string) => void;
+  clearFilters?: () => void;
+  openFilters?: () => void;
+  setView?: (view: string) => void;
+  setSource?: (source: string) => void;
+  setCategory?: (category: string) => void;
+  ingest?: () => Promise<void>;
+  quickAdd?: () => Promise<void>;
+  toggleSelect?: (id: string) => void;
+  selectAll?: () => void;
+  selectNone?: () => void;
+  bulkEnable?: () => Promise<void>;
+  bulkDisable?: () => Promise<void>;
+  openDetail?: (id: string) => void;
+  applySuggestion?: (id: string) => Promise<void>;
+  parseDescriptions?: () => Promise<void>;
+  organiseLibrary?: () => Promise<void>;
+  openConnectModal?: () => void;
+  closeConnectModal?: () => void;
 };
 declare const AppDialog: {
   confirm(options?: {
@@ -149,43 +206,112 @@ declare const CESelect: {
   enhance(select: HTMLSelectElement): void;
   enhanceAll(root?: ParentNode): void;
 };
+declare const SidePanel: {
+  open(title: string, contentHTML: string): void;
+  close(): void;
+  isOpen(): boolean;
+};
 declare const CompileView: {
   availableTargets(tools: Record<string, ToolRecord>, readiness: TargetReadiness): string[];
   isToolAvailable(id: string, tool?: ToolRecord | null): boolean;
-  renderFallbackSummary(tools: Record<string, ToolRecord>, workspaces: WorkspaceRecord[]): string;
-  renderIndexStatus(status: IndexStatusView, building?: boolean): string;
   renderMcpHostActions(host: McpHostRecord): string;
   renderMcpHostConfig(host: McpHostRecord): string;
-  renderMcpHosts(hosts: McpHostRecord[]): string;
-  renderPreviewTabs(results: Record<string, CompilePreviewResult>, activeId: string | null): string;
-  renderReadinessBanner(status: IndexStatusView, ctx: { hosts: McpHostRecord[] }): string;
-  renderSummary(data: {
-    results?: Record<string, CompilePreviewResult>;
-    context?: { activeSkills?: number; totalSkills?: number };
-  }): string;
-  renderTools(tools: Record<string, ToolRecord>): string;
-  renderWorkspaces(items: WorkspaceRecord[]): string;
+  renderMcpHosts(hosts: McpHostRecord[], tools?: Record<string, ToolRecord>): string;
+  renderToolActions(id: string, tool: ToolRecord): string;
+  renderToolConfig(id: string, tool: ToolRecord): string;
   statusLabel(status: string): string;
   targetLabel(id: string): string;
 };
+declare const CompileConnectionView: {
+  renderLogo(host: McpHostRecord): string;
+  renderPageStatus(status: IndexStatusView, ctx: { hosts: McpHostRecord[] }): string;
+  renderRows(host: McpHostRecord): string;
+};
 declare function loadSkillData(): Promise<void>;
 declare const ModesTab: {
+  init(): void;
   apply(id: string): Promise<void>;
+  openDetail(id: string): void;
+  openFilters(): void;
+  setFilter(key: string, value: string): void;
+  clearFilters(): void;
+  editMode(id: string): void;
+  saveEdit(id: string): Promise<void>;
+  deleteMode(id: string): Promise<void>;
+  createNew(): void;
+  openCreateModal(): void;
+  closeCreateModal(): void;
+  createFromModal(): Promise<void>;
+  syncCreateShortcut(): void;
+  renderCreateSkills(): void;
+  filterCreateSkills(value: string): void;
+  updateCreateSkillCount(): void;
 };
 declare const MemoryTab: {
   init(): void;
+  render(): void;
+  select(id: string): void;
+  setFilter(key: string, value: string): void;
+  clearFilters(): void;
+  openFilters(): void;
+  setView(view: string): void;
+  startEdit(id: string): void;
+  saveEdit(id: string): Promise<void>;
+  remove(id: string): Promise<void>;
+  addEntry(): void;
+  openAddModal(): void;
+  closeAddModal(): void;
+  createFromModal(): Promise<void>;
 };
 declare const ConfigTab: {
   init(): void;
 };
 declare const CompileTab: {
+  init(): Promise<void> | void;
+  installGlobal(targets: string[]): Promise<void>;
   installAllDetected(): Promise<void>;
+  deployTarget(targetId: string): Promise<void>;
   deployAllAvailable(): Promise<void>;
-  compileAllWorkspaces(): Promise<void>;
-  preview(): Promise<void>;
+  copyOutput(targetId: string): Promise<void>;
+  renderMcpHosts(): Promise<void>;
   refreshMcpHosts(): Promise<void>;
+  refreshConnections(): Promise<void>;
   openHostConfig(hostId: string): void;
+  openToolConfig(targetId: string): void;
   closeHostConfig(event?: MouseEvent): void;
+  handleCardKey(event: KeyboardEvent, kind: 'host' | 'tool', id: string): void;
+  installMcpHost(hostId: string): Promise<void>;
+  copyMcpSnippet(hostId: string): Promise<void>;
+  previewTarget(targetId: string): Promise<void>;
+  compileAllWorkspaces(): Promise<void>;
+};
+declare const RulesLab: {
+  mount(target?: HTMLElement | string): void;
+  init(): Promise<void> | void;
+  refresh(): void;
+  beforeSave(): void;
+  saveProfile(): Promise<void>;
+  applyProfile(): Promise<void>;
+  restoreHistory(index: number): void;
+  switchPanel(id: string, button?: HTMLElement): void;
+};
+declare const SkillsMaintenance: {
+  open(): void;
+  close(): void;
+  run(): Promise<void>;
+  updateProvider(provider: string): void;
+  applyReview(index: number): Promise<void>;
+  applyAllReviews(): Promise<void>;
+  resolveDedup(clusterId: string, action: string): Promise<void>;
+};
+declare const Onboarding: {
+  init(): Promise<void> | void;
+  go(stepId: string): void;
+  toggleHost(hostId: string, selected: boolean): void;
+  connectHost(hostId: string): Promise<void>;
+  buildIndex(): Promise<void>;
+  finish(): Promise<void>;
+  skip(): Promise<void>;
 };
 declare function animateCount(element: HTMLElement, value: number): void;
 declare function esc(value: unknown): string;
