@@ -1,6 +1,6 @@
 {
   "name": "context-engine",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Local, offline-first dashboard for orchestrating AI agent contexts, skills, and memory.",
   "main": "electron/main.cjs",
   "bin": {
@@ -140,7 +140,9 @@
         "zip"
       ],
       "icon": "ui/assets/brand/icon.icns",
-      "category": "public.app-category.developer-tools"
+      "category": "public.app-category.developer-tools",
+      "identity": null,
+      "notarize": false
     },
     "linux": {
       "target": [
