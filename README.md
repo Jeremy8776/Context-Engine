@@ -24,6 +24,26 @@ No cloud. No accounts. No API keys required. Runs entirely on your machine.
 
 ---
 
+## Download
+
+Pre-built installers for the current release, **v0.2.3**. Installed builds auto-update from this channel — the desktop app checks GitHub Releases 8 seconds after launch, then every 6 hours, and shows a toast when a new build is ready.
+
+| Platform                  | Installer                                                                                                                       | Notes                              |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| **Windows** (x64)         | [Setup .exe](https://github.com/Jeremy8776/Context-Engine/releases/download/v0.2.3/Context-Engine-0.2.3-setup-x64.exe)          | NSIS installer with auto-update    |
+| **Windows** (portable)    | [Portable .exe](https://github.com/Jeremy8776/Context-Engine/releases/download/v0.2.3/Context-Engine-0.2.3-portable-x64.exe)    | Single-file, no install            |
+| **macOS** (Apple Silicon) | [.dmg](https://github.com/Jeremy8776/Context-Engine/releases/download/v0.2.3/Context-Engine-0.2.3-arm64.dmg)                    | Unsigned — see note below          |
+| **Linux** (AppImage)      | [.AppImage](https://github.com/Jeremy8776/Context-Engine/releases/download/v0.2.3/Context-Engine-0.2.3.AppImage)                | Universal, `chmod +x` then run     |
+| **Linux** (Debian/Ubuntu) | [.deb](https://github.com/Jeremy8776/Context-Engine/releases/download/v0.2.3/context-engine_0.2.3_amd64.deb)                    | `sudo apt install ./<file>.deb`    |
+
+Browse all releases at [github.com/Jeremy8776/Context-Engine/releases](https://github.com/Jeremy8776/Context-Engine/releases).
+
+**Architecture gaps**: Intel Mac (x64) and Windows-on-ARM are not yet built. Run from source (below) on those machines.
+
+**Code signing**: builds are currently unsigned. Windows SmartScreen warns on first launch — choose "More info → Run anyway". macOS Gatekeeper blocks unsigned apps — right-click the app → "Open", then confirm.
+
+---
+
 ## Part of the DataCert AI Ecosystem
 
 Context Engine is one part of a three-repo local AI stack:
@@ -174,7 +194,7 @@ Open [http://localhost:3847](http://localhost:3847) in your browser. This is the
 
 ### Desktop app
 
-A packaged Electron build is also available. It runs the same local broker inside a native admin window with auto-update support via GitHub releases.
+A packaged Electron build is also available. Most users should grab a pre-built installer from [Download](#download); the commands below build from source.
 
 ```bash
 npm run desktop          # run from source
