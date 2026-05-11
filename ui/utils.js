@@ -1,8 +1,11 @@
+// @ts-check
+
 // utils.js — Shared UI utilities
 
 /**
  * Escape HTML entities to prevent XSS in innerHTML assignments.
  * Use this for ALL user/dynamic data rendered via innerHTML.
+ * @param {unknown} s
  */
 function esc(s) {
   return String(s)

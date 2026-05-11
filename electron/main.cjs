@@ -1,3 +1,5 @@
+// @ts-nocheck — Path-A backlog: file in tsconfig include, opt out until incremental typing is done. See docs/llm-handoff.md.
+
 // Electron main process. Owns the BrowserWindow, the embedded HTTP server
 // lifecycle, the auto-updater wiring, and the IPC handlers the preload
 // bridge speaks to.

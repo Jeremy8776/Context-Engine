@@ -1,3 +1,5 @@
+// @ts-nocheck — Path-A backlog: file in tsconfig include, opt out until incremental typing is done. See docs/llm-handoff.md.
+
 // Renderer ↔ main IPC bridge. Anything exposed here is the only surface
 // area the renderer can touch the main process through.
 //

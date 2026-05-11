@@ -1,3 +1,5 @@
+// @ts-check
+
 // onboarding.js -- First-run discovery and setup state.
 
 const fs = require('fs');
@@ -18,6 +20,10 @@ function readStatesMap() {
   return data?.states || data || {};
 }
 
+/**
+ * @param {Array<{ id: string, type?: string }>} skills
+ * @param {Record<string, boolean>} states
+ */
 function countActiveSkills(skills, states) {
   return skills.filter((skill) => {
     if (Object.prototype.hasOwnProperty.call(states, skill.id)) return !!states[skill.id];
@@ -34,6 +40,7 @@ function hasSessionHistory() {
   }
 }
 
+/** @param {{ completedAt?: string, dismissedAt?: string, show?: boolean } | null | undefined} state */
 function shouldShowOnboarding(state) {
   if (state?.completedAt) return false;
   if (state?.dismissedAt) return false;

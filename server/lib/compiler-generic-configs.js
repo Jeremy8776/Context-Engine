@@ -1,3 +1,14 @@
+// @ts-check
+
+/**
+ * @typedef {Object} GenericConfig
+ * @property {string} [preface]
+ * @property {Record<string, any>} rules
+ * @property {string} [memoryHeader]
+ * @property {Record<string, any>} skills
+ */
+
+/** @type {Record<string, GenericConfig | undefined>} */
 const GENERIC_CONFIGS = {
   antigravity: {
     preface: `# Project Rules\n> Compiled by Context Engine\n`,

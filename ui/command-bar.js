@@ -1,3 +1,5 @@
+// @ts-nocheck — Path-A backlog: file in tsconfig include, opt out until incremental typing is done. See docs/llm-handoff.md.
+
 // command-bar.js — ⌘K palette. Minimal, keyboard-first navigation.
 // Hooks into existing switchTab / DashboardTab actions. No external deps.
 

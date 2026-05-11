@@ -1,3 +1,5 @@
+// @ts-nocheck — Path-A backlog: file in tsconfig include, opt out until incremental typing is done. See docs/llm-handoff.md.
+
 // Auto-update wiring backed by electron-updater + the GitHub releases channel
 // configured in package.json `build.publish`. The renderer receives lifecycle
 // events via `contextEngineDesktop.onUpdateEvent` and can trigger install via

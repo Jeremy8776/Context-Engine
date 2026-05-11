@@ -1,3 +1,5 @@
+// @ts-nocheck — Path-A backlog: file in tsconfig include, opt out until incremental typing is done. See docs/llm-handoff.md.
+
 // skills.js — skills tab v4 (rows, search suggestions, categories, side panel)
 const SkillsTab = (() => {
   let filter = 'all';

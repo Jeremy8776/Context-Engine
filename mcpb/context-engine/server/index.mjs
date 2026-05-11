@@ -1,3 +1,5 @@
+// @ts-nocheck — Path-A backlog: file in tsconfig include, opt out until incremental typing is done. See docs/llm-handoff.md.
+
 import readline from 'node:readline';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';

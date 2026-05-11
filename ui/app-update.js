@@ -1,3 +1,5 @@
+// @ts-check
+
 // Update lifecycle wiring for both runtimes:
 //
 //   Browser/server mode:
@@ -21,9 +23,11 @@
 
 const AppUpdate = (() => {
   const POLL_MS = 30000;
+  /** @type {string | null} */
   let currentVersion = null;
   let pollToastShown = false;
   let downloadedToastShown = false;
+  /** @type {HTMLElement | null} */
   let progressToastEl = null;
 
   // ===== Browser/server polling path =====
@@ -47,6 +51,7 @@ const AppUpdate = (() => {
 
   // ===== Electron desktop updater path =====
 
+  /** @param {number} percent */
   function showProgress(percent) {
     if (!progressToastEl) {
       const container = document.querySelector('.toast-container');
@@ -69,6 +74,7 @@ const AppUpdate = (() => {
     }
   }
 
+  /** @param {{ event?: string, version?: string, percent?: number, [key: string]: unknown }} payload */
   function handleDesktopEvent(payload) {
     if (!payload?.event) return;
     switch (payload.event) {

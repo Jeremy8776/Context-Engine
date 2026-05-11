@@ -16,20 +16,19 @@
     "noImplicitReturns": true
   },
   "include": [
-    "server/server.js",
-    "server/lib/config.js",
-    "server/lib/chunker.js",
-    "server/lib/embeddings.js",
-    "server/lib/http.js",
-    "server/lib/tool-registry.js",
-    "server/lib/tool-detection.js",
-    "server/lib/vectorstore.js",
+    "server/**/*.js",
+    "ui/**/*.js",
     "ui/types.d.ts",
-    "ui/store.js",
-    "ui/compile.js",
-    "ui/dashboard.js",
+    "cli/**/*.js",
     "electron/**/*.cjs",
-    "scripts/**/*.js"
+    "scripts/**/*.js",
+    "scripts/**/*.cjs",
+    "scripts/**/*.mjs",
+    "mcp-server.mjs",
+    "mcp-http-server.mjs",
+    "mcp-tools.mjs",
+    "mcp-oauth.mjs",
+    "mcpb/context-engine/server/**/*.mjs"
   ],
-  "exclude": ["node_modules", "data", "skills"]
+  "exclude": ["node_modules", "data", "skills", "dist", "out", ".tmp"]
 }

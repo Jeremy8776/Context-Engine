@@ -316,3 +316,47 @@ declare const Onboarding: {
 declare function animateCount(element: HTMLElement, value: number): void;
 declare function esc(value: unknown): string;
 declare function switchTabByName(name: string): void;
+
+// API helper exposed by ui/store.js — every UI module calls into it directly
+// instead of going through DS for ad-hoc requests.
+declare function apiFetch<T = any>(
+  path: string,
+  method?: string,
+  body?: unknown,
+  options?: { returnErrors?: boolean },
+): Promise<T>;
+
+// Lightweight stateful UI helpers loaded from sibling UI modules.
+declare const ServerStatus: {
+  init?: () => void;
+  refresh?: () => Promise<void> | void;
+  set?: (state: 'online' | 'offline' | 'connecting') => void;
+};
+
+declare const ContextFlow: {
+  init?: () => void;
+  refresh?: () => Promise<void> | void;
+  setActive?: (id: string) => void;
+};
+
+// Map of toolId → ToolRecord; surfaced by /api/tools/detect.
+type ToolMap = Record<string, ToolRecord>;
+
+// Electron preload exposes a small bridge on window.contextEngineDesktop.
+interface Window {
+  contextEngineDesktop?: {
+    onUpdateEvent: (
+      cb: (payload: {
+        type: string;
+        message?: string;
+        version?: string;
+        percent?: number;
+        [key: string]: unknown;
+      }) => void,
+    ) => void;
+    installUpdate: () => void;
+    appVersion?: string;
+    runtime?: 'electron' | 'browser' | string;
+  };
+  CESelect?: typeof CESelect;
+}

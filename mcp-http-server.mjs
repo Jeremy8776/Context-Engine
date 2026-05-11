@@ -1,3 +1,5 @@
+// @ts-check
+
 // mcp-http-server.mjs — Context Engine Streamable HTTP MCP bridge.
 //
 // This is the remote-ready adapter for hosts that cannot spawn local stdio
@@ -38,6 +40,12 @@ const CORS_HEADERS = {
   'access-control-allow-methods': 'GET, POST, DELETE, OPTIONS',
 };
 
+/**
+ * @param {import('http').ServerResponse} res
+ * @param {number} status
+ * @param {unknown} payload
+ * @param {Record<string, string>} [extraHeaders]
+ */
 function writeJson(res, status, payload, extraHeaders = {}) {
   res.writeHead(status, {
     'content-type': 'application/json',
@@ -47,17 +55,23 @@ function writeJson(res, status, payload, extraHeaders = {}) {
   res.end(JSON.stringify(payload));
 }
 
+/** @param {import('http').ServerResponse} res */
 function writeNoContent(res) {
   res.writeHead(204, CORS_HEADERS);
   res.end();
 }
 
+/** @param {import('http').IncomingMessage} req */
 function isAuthorized(req) {
   if (oauth) return oauth.validate(req);
   if (!TOKEN) return true;
   return req.headers.authorization === `Bearer ${TOKEN}`;
 }
 
+/**
+ * @param {import('http').IncomingMessage} req
+ * @param {import('http').ServerResponse} res
+ */
 function rejectUnauthorized(req, res) {
   if (oauth) {
     oauth.challenge(req, res);
@@ -66,6 +80,10 @@ function rejectUnauthorized(req, res) {
   writeJson(res, 401, { ok: false, error: 'Missing or invalid bearer token.' });
 }
 
+/**
+ * @param {import('http').IncomingMessage} req
+ * @param {import('http').ServerResponse} res
+ */
 async function handleMcp(req, res) {
   if (!isAuthorized(req)) {
     rejectUnauthorized(req, res);
@@ -91,6 +109,10 @@ async function handleMcp(req, res) {
   }
 }
 
+/**
+ * @param {import('http').IncomingMessage} req
+ * @param {import('http').ServerResponse} res
+ */
 async function route(req, res) {
   const url = new URL(req.url || '/', `http://${HOST}:${PORT}`);
   if (req.method === 'OPTIONS') {

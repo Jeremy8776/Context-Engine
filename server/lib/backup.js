@@ -1,9 +1,12 @@
+// @ts-check
+
 // backup.js — Backup, restore, and session logging
 
 const fs = require('fs');
 const path = require('path');
 const { DATA_DIR, BACKUPS_DIR, CONTEXT_MD, SESSION_LOG } = require('./config');
 
+/** @param {string} f */
 function readData(f) {
   try {
     return JSON.parse(fs.readFileSync(path.join(DATA_DIR, f), 'utf8'));
@@ -11,6 +14,10 @@ function readData(f) {
     return null;
   }
 }
+/**
+ * @param {string} f
+ * @param {unknown} d
+ */
 function writeData(f, d) {
   fs.writeFileSync(path.join(DATA_DIR, f), JSON.stringify(d, null, 2), 'utf8');
 }
@@ -38,6 +45,7 @@ function listBackups() {
     .map((ts) => ({ timestamp: ts }));
 }
 
+/** @param {string} ts */
 function restoreBackup(ts) {
   const dir = path.join(BACKUPS_DIR, ts);
   if (!fs.existsSync(dir)) return false;
@@ -58,6 +66,7 @@ function getSessionLog() {
   }
 }
 
+/** @param {Record<string, unknown>} entry */
 function appendSession(entry) {
   const log = getSessionLog();
   log.sessions.unshift({ ...entry, ts: new Date().toISOString() });

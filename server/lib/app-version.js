@@ -1,3 +1,5 @@
+// @ts-check
+
 const fs = require('fs');
 const path = require('path');
 
@@ -5,6 +7,7 @@ const APP_ROOT = path.resolve(__dirname, '..', '..');
 const WATCH_DIRS = ['ui', 'server'];
 const WATCH_EXTS = new Set(['.css', '.html', '.js', '.json']);
 
+/** @param {string} dir */
 function latestCodeMtime(dir) {
   let latest = 0;
   for (const item of fs.readdirSync(dir, { withFileTypes: true })) {

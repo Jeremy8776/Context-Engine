@@ -83,6 +83,11 @@ const Onboarding = (() => {
     </div>`;
   }
 
+  /**
+   * @param {string} label
+   * @param {string | number} value
+   * @param {string} [detail]
+   */
   function metric(label, value, detail = '') {
     return `<div class="onboarding-metric">
       <span>${esc(label)}</span>
@@ -258,6 +263,11 @@ const Onboarding = (() => {
     </div>`;
   }
 
+  /**
+   * @param {string} label
+   * @param {string | number} value
+   * @param {string | undefined} detail
+   */
   function healthItem(label, value, detail) {
     return `<div class="onboarding-health-card">
       <span>${esc(label)}</span>

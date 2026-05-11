@@ -1,3 +1,5 @@
+// @ts-check
+
 // ce-select.js — progressive enhancement that replaces native <select>
 // dropdowns with a CSS-controllable listbox. Chromium renders the native
 // option popup as an OS menu where :hover doesn't fire, so we can't theme
@@ -190,6 +192,7 @@
     syncFromSelect();
   }
 
+  /** @param {ParentNode} [root] */
   function enhanceAll(root) {
     const scope = root || document;
     scope.querySelectorAll('select.add-input:not(.ce-select-native)').forEach((el) => {
@@ -204,7 +207,8 @@
       for (const m of mutations) {
         m.addedNodes.forEach((node) => {
           if (node instanceof HTMLElement) {
-            if (node.matches?.('select.add-input')) enhance(node);
+            if (node.matches?.('select.add-input') && node instanceof HTMLSelectElement)
+              enhance(node);
             enhanceAll(node);
           }
         });

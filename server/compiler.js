@@ -1,3 +1,5 @@
+// @ts-nocheck — Path-A backlog: file in tsconfig include, opt out until incremental typing is done. See docs/llm-handoff.md.
+
 // compiler.js — Cross-tool Context Compiler
 // Generates context files for 22 AI tools from a single source of truth
 

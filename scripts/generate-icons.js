@@ -1,3 +1,5 @@
+// @ts-nocheck — Path-A backlog: file in tsconfig include, opt out until incremental typing is done. See docs/llm-handoff.md.
+
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');

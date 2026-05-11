@@ -1,10 +1,13 @@
+// @ts-check
+
 // panel.js — shared slide-in side panel component
 
 const SidePanel = (() => {
-  const overlay = () => document.getElementById('side-panel-overlay');
-  const panel = () => document.getElementById('side-panel');
-  const titleEl = () => document.getElementById('sp-title');
-  const body = () => document.getElementById('sp-body');
+  const overlay = () => /** @type {HTMLElement} */ (document.getElementById('side-panel-overlay'));
+  const panel = () => /** @type {HTMLElement} */ (document.getElementById('side-panel'));
+  const titleEl = () => /** @type {HTMLElement} */ (document.getElementById('sp-title'));
+  const body = () => /** @type {HTMLElement} */ (document.getElementById('sp-body'));
+  /** @type {ReturnType<typeof setTimeout> | null} */
   let closeTimer = null;
 
   function measurePanelTop() {
@@ -23,6 +26,10 @@ const SidePanel = (() => {
     return 0;
   }
 
+  /**
+   * @param {string} title
+   * @param {string} contentHTML
+   */
   function open(title, contentHTML) {
     if (closeTimer) {
       clearTimeout(closeTimer);

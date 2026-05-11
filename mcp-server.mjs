@@ -1,3 +1,5 @@
+// @ts-check
+
 // mcp-server.mjs — Context Engine local stdio MCP bridge.
 //
 // Spawned by local host apps (Claude Desktop, Codex CLI, compatible IDE MCP

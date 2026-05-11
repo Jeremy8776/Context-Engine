@@ -1,3 +1,5 @@
+// @ts-nocheck — Path-A backlog: file in tsconfig include, opt out until incremental typing is done. See docs/llm-handoff.md.
+
 // mcp-http-smoke.mjs — validates the remote-ready Streamable HTTP MCP adapter.
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';

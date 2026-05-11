@@ -1,5 +1,8 @@
+// @ts-check
+
 // validation.js — Request body validators for data endpoints
 
+/** @param {any} data */
 function validateMemory(data) {
   if (!data || typeof data !== 'object') return { valid: false, error: 'Must be a JSON object' };
   if (data._parseError) return { valid: false, error: 'Invalid JSON in request body' };
@@ -13,6 +16,7 @@ function validateMemory(data) {
   return { valid: true, error: null };
 }
 
+/** @param {any} data */
 function validateRules(data) {
   if (!data || typeof data !== 'object') return { valid: false, error: 'Must be a JSON object' };
   if (data._parseError) return { valid: false, error: 'Invalid JSON in request body' };
@@ -22,6 +26,7 @@ function validateRules(data) {
   return { valid: true, error: null };
 }
 
+/** @param {any} data */
 function validateStates(data) {
   if (!data || typeof data !== 'object') return { valid: false, error: 'Must be a JSON object' };
   if (data._parseError) return { valid: false, error: 'Invalid JSON in request body' };

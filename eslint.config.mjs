@@ -65,6 +65,18 @@ export default [
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/no-misused-promises': 'error',
       '@typescript-eslint/only-throw-error': 'error',
+      // Path-A TS backlog: files newly pulled into tsconfig.include opt out via
+      // `@ts-nocheck — Path-A backlog: …` until incremental typing lands.
+      // Require a description so the opt-out is documented, not silent.
+      '@typescript-eslint/ban-ts-comment': [
+        'error',
+        {
+          'ts-expect-error': 'allow-with-description',
+          'ts-ignore': true,
+          'ts-nocheck': 'allow-with-description',
+          'ts-check': false,
+        },
+      ],
       // The recommended-type-checked set is opinionated about safety, but
       // this codebase mixes JS-with-JSDoc and bridges to dynamic globals
       // (DS, Toast, AppDialog). Relax the rules that punish that pattern

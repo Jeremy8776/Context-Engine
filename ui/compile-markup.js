@@ -1,3 +1,5 @@
+// @ts-check
+
 // compile-markup.js -- Connections tab markup. CE is a background broker; this
 // page shows where its shared skills, memory, and rules can sync.
 

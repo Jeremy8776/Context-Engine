@@ -1,3 +1,5 @@
+// @ts-check
+
 const { checkOllamaEmbeddings, DEFAULT_EMBED_MODEL } = require('../server/lib/embeddings');
 
 checkOllamaEmbeddings({ timeoutMs: 1000 })

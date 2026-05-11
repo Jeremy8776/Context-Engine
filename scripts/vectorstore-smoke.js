@@ -1,3 +1,5 @@
+// @ts-check
+
 const assert = require('assert');
 const fs = require('fs');
 const os = require('os');
@@ -44,7 +46,7 @@ try {
   const results = searchVectors(reloaded, [1, 0, 0], { limit: 1 });
 
   assert.strictEqual(reloaded.records.length, 2);
-  assert.strictEqual(results[0].skillId, 'skill-a');
+  assert.strictEqual(results[0]?.skillId, 'skill-a');
   assert.strictEqual(cosineSimilarity([1, 0], [1, 0]), 1);
   console.log('vectorstore smoke ok');
 } finally {

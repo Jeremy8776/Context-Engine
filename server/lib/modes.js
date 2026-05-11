@@ -1,3 +1,5 @@
+// @ts-check
+
 // modes.js — Mode presets, CONTEXT.md generation, and budget estimation
 
 const fs = require('fs');
@@ -47,25 +49,28 @@ function regenerateCONTEXTmd() {
   return { activeCount: ctx.activeSkills.length, total: ctx.totalSkills };
 }
 
+/** @param {string} modeId */
 function applyMode(modeId) {
   const SKILL_MAP = scanSkills();
   const modesData = getModes();
-  const mode = modesData.modes.find((m) => m.id === modeId);
+  /** @type {{ id: string, skills: string[] } | undefined} */
+  const mode = modesData.modes.find((/** @type {{ id: string }} */ m) => m.id === modeId);
   if (!mode) return null;
   const backup = readData('skill-states.json');
   const states = backup || {};
+  /** @type {Record<string, boolean>} */
   const stateMap = { ...(states.states || {}) };
 
-  Object.keys(SKILL_MAP).forEach((id) => {
+  Object.keys(SKILL_MAP).forEach((/** @type {string} */ id) => {
     stateMap[id] = false;
   });
 
   if (mode.id === 'all') {
-    Object.keys(SKILL_MAP).forEach((id) => {
+    Object.keys(SKILL_MAP).forEach((/** @type {string} */ id) => {
       stateMap[id] = true;
     });
   } else {
-    mode.skills.forEach((id) => {
+    mode.skills.forEach((/** @type {string} */ id) => {
       if (SKILL_MAP[id]) stateMap[id] = true;
     });
   }
@@ -120,7 +125,7 @@ function estimateContextBudget() {
       },
     };
   } catch (e) {
-    return { error: e.message };
+    return { error: e instanceof Error ? e.message : String(e) };
   }
 }
 

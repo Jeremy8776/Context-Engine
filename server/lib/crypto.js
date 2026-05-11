@@ -1,3 +1,5 @@
+// @ts-check
+
 // crypto.js — Obfuscated API key store.
 // AES-256-GCM with a key derived from hostname + homedir + username. This is
 // at-rest obfuscation, not real encryption: anyone with code execution on this
@@ -13,6 +15,12 @@ function deriveKey() {
   return crypto.createHash('sha256').update(material).digest();
 }
 
+/**
+ * @typedef {{ iv: string, tag: string, data: string }} KeyEnvelope
+ * @typedef {Record<string, KeyEnvelope>} KeyStore
+ */
+
+/** @param {string} plaintext */
 function encryptValue(plaintext) {
   const key = deriveKey();
   const iv = crypto.randomBytes(12);
@@ -22,6 +30,7 @@ function encryptValue(plaintext) {
   return { iv: iv.toString('hex'), tag: tag.toString('hex'), data: encrypted.toString('hex') };
 }
 
+/** @param {KeyEnvelope} envelope */
 function decryptValue(envelope) {
   const key = deriveKey();
   const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(envelope.iv, 'hex'));
@@ -29,6 +38,7 @@ function decryptValue(envelope) {
   return decipher.update(envelope.data, 'hex', 'utf8') + decipher.final('utf8');
 }
 
+/** @returns {KeyStore} */
 function loadKeys() {
   try {
     return JSON.parse(fs.readFileSync(KEYS_FILE, 'utf8'));
@@ -36,6 +46,7 @@ function loadKeys() {
     return {};
   }
 }
+/** @param {KeyStore} keys */
 function saveKeys(keys) {
   // mode 0o600 — owner read/write only. Honored on POSIX; Windows ignores
   // this and relies on the user-profile ACL, which is sufficient there.
@@ -47,6 +58,7 @@ function saveKeys(keys) {
   }
 }
 
+/** @param {string} name */
 function getApiKey(name) {
   const envKey = process.env[name];
   if (envKey) return envKey;
@@ -61,12 +73,17 @@ function getApiKey(name) {
   return null;
 }
 
+/**
+ * @param {string} name
+ * @param {string} value
+ */
 function setApiKey(name, value) {
   const keys = loadKeys();
   keys[name] = encryptValue(value);
   saveKeys(keys);
 }
 
+/** @param {string} name */
 function removeApiKey(name) {
   const keys = loadKeys();
   delete keys[name];

@@ -1,6 +1,7 @@
 // @ts-check
 
 const CompileView = (() => {
+  /** @type {Record<string, { label: string, logo?: string }>} */
   const TARGET_META = {
     claude: { label: 'Claude Code', logo: 'https://cdn.jsdelivr.net/npm/simple-icons/icons/claude.svg' },
     cursor: { label: 'Cursor', logo: 'https://cdn.jsdelivr.net/npm/simple-icons/icons/cursor.svg' },
@@ -106,6 +107,7 @@ const CompileView = (() => {
       .map(([id]) => id);
   }
 
+  /** @type {Record<string, string>} */
   const STATUS_LABEL = {
     connected: 'Connected',
     configurable: 'Not configured',
@@ -158,7 +160,7 @@ const CompileView = (() => {
       (a, b) => a.rank - b.rank || a.label.localeCompare(b.label),
     );
     const html = cards
-      .map((card) => {
+      .map((/** @type {any} */ card) => {
         if (card.kind === 'tool') return renderToolCard(card.id, card.tool);
         const host = card.host;
         const statusClass = `mcp-status-${targetClass(host.status)}`;
@@ -185,6 +187,7 @@ const CompileView = (() => {
     return html || '<div class="db-empty">No host metadata available.</div>';
   }
 
+  /** @param {McpHostRecord} host */
   function hostRank(host) {
     if (host.status === 'connected') return 0;
     if (host.appDetected) return 1;
@@ -270,6 +273,10 @@ const CompileView = (() => {
     return actions.join('');
   }
 
+  /**
+   * @param {string} id
+   * @param {ToolRecord | undefined | null} tool
+   */
   function toolRank(id, tool) {
     if (!tool) return 8;
     if (tool.globalInstalled) return 5;

@@ -1,6 +1,7 @@
 // @ts-check
 
 const CompileConnectionView = (() => {
+  /** @type {Record<string, { logo: string }>} */
   const HOST_META = {
     'claude-desktop': {
       logo: 'https://cdn.jsdelivr.net/npm/simple-icons/icons/claude.svg',

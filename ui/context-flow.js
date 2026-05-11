@@ -1,3 +1,5 @@
+// @ts-nocheck — Path-A backlog: file in tsconfig include, opt out until incremental typing is done. See docs/llm-handoff.md.
+
 // context-flow.js -- live dashboard visualization for skills/memory/rules -> tools.
 
 const ContextFlow = (() => {
