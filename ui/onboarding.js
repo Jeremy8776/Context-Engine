@@ -1,21 +1,28 @@
-// onboarding.js -- First-run discovery, connection, and health flow.
-
+// onboarding.js — First-run setup wizard, modal-based.
+// Spec: docs/specs/onboarding-redesign.md
 // @ts-check
 
 const Onboarding = (() => {
+  const STEPS = [
+    { num: 1, label: 'Connect' },
+    { num: 2, label: 'Context' },
+    { num: 3, label: 'IDE' },
+    { num: 4, label: 'Health' },
+  ];
+
   /** @type {{ shouldShow?: boolean, hosts?: McpHostRecord[], tools?: any[], context?: any } | null} */
   let summary = null;
-  /** @type {'discover' | 'connect' | 'health'} */
-  let step = 'discover';
+  /** @type {1 | 2 | 3 | 4} */
+  let step = 1;
   /** @type {Set<string>} */
   let selectedHosts = new Set();
+  let mounted = false;
 
   function root() {
     let el = document.getElementById('onboarding-root');
     if (el) return el;
     el = document.createElement('div');
     el.id = 'onboarding-root';
-    el.className = 'onboarding-root';
     document.body.appendChild(el);
     return el;
   }
@@ -31,69 +38,54 @@ const Onboarding = (() => {
     if (!selectedHosts.size) {
       (summary.hosts || []).filter((host) => host.supported).forEach((host) => selectedHosts.add(host.id));
     }
-    render();
-    document.body.classList.add('onboarding-active');
+    step = 1;
+    mount();
     return true;
   }
 
+  function mount() {
+    if (!mounted) {
+      document.addEventListener('keydown', onKey);
+      mounted = true;
+    }
+    render();
+  }
+
   function close() {
-    document.body.classList.remove('onboarding-active');
+    if (mounted) {
+      document.removeEventListener('keydown', onKey);
+      mounted = false;
+    }
     const el = document.getElementById('onboarding-root');
     if (el) el.remove();
   }
 
-  function steps() {
-    return [
-      { id: 'discover', label: 'Discover' },
-      { id: 'connect', label: 'Connect' },
-      { id: 'health', label: 'Health' },
-    ];
+  /** @param {KeyboardEvent} e */
+  function onKey(e) {
+    if (e.key === 'Escape') skip();
   }
 
-  function progress() {
-    return `<aside class="onboarding-rail">
-      <div class="onboarding-brand">
-        <span class="onboarding-mark">CE</span>
-        <strong>Context Engine</strong>
-      </div>
-      <div class="onboarding-steps">
-        ${steps()
-          .map(
-            (
-              item,
-              index,
-            ) => `<button class="onboarding-step ${item.id === step ? 'active' : ''}" onclick="Onboarding.go('${item.id}')">
-              <span>${index + 1}</span>
-              <strong>${item.label}</strong>
-            </button>`,
-          )
-          .join('')}
-      </div>
-    </aside>`;
+  /** @param {MouseEvent} e */
+  function onBackdrop(e) {
+    if (e.target === e.currentTarget) skip();
   }
 
-  function contextCards() {
-    const ctx = summary?.context || {};
-    const index = ctx.index || {};
-    return `<div class="onboarding-context-grid">
-      ${metric('Skills found', ctx.totalSkills || 0)}
-      ${metric('Active skills', ctx.activeSkills || 0)}
-      ${metric('Memory entries', ctx.memoryEntries || 0)}
-      ${metric('Vector index', index.ready ? 'Ready' : 'Empty', index.ready ? `${index.chunks || 0} chunks` : 'Build on Health')}
-    </div>`;
-  }
-
-  /**
-   * @param {string} label
-   * @param {string | number} value
-   * @param {string} [detail]
-   */
-  function metric(label, value, detail = '') {
-    return `<div class="onboarding-metric">
-      <span>${esc(label)}</span>
-      <strong>${esc(value)}</strong>
-      ${detail ? `<small>${esc(detail)}</small>` : ''}
-    </div>`;
+  function renderProgress() {
+    const items = STEPS.map((s, idx) => {
+      const state = s.num < step ? 'done' : s.num === step ? 'current' : 'upcoming';
+      const connector =
+        idx < STEPS.length - 1
+          ? `<span class="onboarding-progress-bar ${s.num < step ? 'done' : ''}" aria-hidden="true"></span>`
+          : '';
+      return `
+        <div class="onboarding-progress-step ${state}" aria-current="${state === 'current' ? 'step' : 'false'}">
+          <span class="onboarding-progress-circle">${s.num}</span>
+          <span class="onboarding-progress-label">${esc(s.label)}</span>
+        </div>
+        ${connector}
+      `;
+    }).join('');
+    return `<nav class="onboarding-progress" aria-label="Setup progress">${items}</nav>`;
   }
 
   /** @param {McpHostRecord} host */
@@ -102,21 +94,75 @@ const Onboarding = (() => {
     const disabled = !host.supported;
     const status = CompileView.statusLabel(host.status);
     return `<label class="onboarding-host ${checked ? 'selected' : ''} ${disabled ? 'disabled' : ''}">
-      <input type="checkbox" ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''} onchange="Onboarding.toggleHost('${host.id}', this.checked)" />
-      <span class="onboarding-host-icon">${esc(host.label.slice(0, 1))}</span>
+      <input type="checkbox" class="onboarding-host-input" ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''} onchange="Onboarding.toggleHost('${host.id}', this.checked)" />
+      <span class="onboarding-host-icon" aria-hidden="true">${esc(host.label.slice(0, 1))}</span>
       <span class="onboarding-host-body">
         <span class="onboarding-host-top">
-          <strong>${esc(host.label)}</strong>
+          <strong class="onboarding-card-name">${esc(host.label)}</strong>
           <span class="ct-badge mcp-status-${host.status}">${esc(status)}</span>
         </span>
-        <span>${esc(host.summary)}</span>
+        <span class="onboarding-card-desc">${esc(host.summary)}</span>
       </span>
     </label>`;
   }
 
+  function renderConnect() {
+    const hosts = summary?.hosts || [];
+    return `<section class="onboarding-step-body" data-step="1">
+      <header class="onboarding-step-head">
+        <h3>Connect your AI hosts</h3>
+        <p>Pick the apps that should call Context Engine live. Selected hosts will be wired up in the next step. You can change this any time from Connections.</p>
+      </header>
+      <div class="onboarding-host-list">
+        ${hosts.length ? hosts.map(hostCard).join('') : '<p class="onboarding-empty">No supported hosts detected on this machine yet.</p>'}
+      </div>
+    </section>`;
+  }
+
+  /**
+   * @param {string} label
+   * @param {string | number} value
+   * @param {string} [hint]
+   */
+  function statCard(label, value, hint = '') {
+    return `<article class="onboarding-stat">
+      <span class="onboarding-card-name">${esc(label)}</span>
+      <strong class="onboarding-stat-value">${esc(value)}</strong>
+      ${hint ? `<span class="onboarding-card-desc">${esc(hint)}</span>` : ''}
+    </article>`;
+  }
+
+  function renderContext() {
+    const ctx = summary?.context || {};
+    const index = ctx.index || {};
+    const activeNames = ctx.activeSkillNames || [];
+    const indexReady = !!index.ready;
+    return `<section class="onboarding-step-body" data-step="2">
+      <header class="onboarding-step-head">
+        <h3>Available context</h3>
+        <p>This is what host apps will be able to query through Context Engine. Build the vector index to enable semantic search.</p>
+      </header>
+      <div class="onboarding-stat-grid">
+        ${statCard('Skills found', ctx.totalSkills || 0)}
+        ${statCard('Active skills', ctx.activeSkills || 0)}
+        ${statCard('Memory entries', ctx.memoryEntries || 0)}
+        ${statCard('Vector index', indexReady ? 'Ready' : 'Empty', indexReady ? `${index.chunks || 0} chunks` : 'Build to enable search')}
+      </div>
+      <div class="onboarding-active-skills">
+        <span class="onboarding-card-name">Active now</span>
+        <span class="onboarding-card-desc">${esc(activeNames.length ? activeNames.join(', ') : 'No active skills yet')}</span>
+      </div>
+      ${
+        indexReady
+          ? ''
+          : `<button class="fb onboarding-inline-action" type="button" onclick="Onboarding.buildIndex()">Build vector index</button>`
+      }
+    </section>`;
+  }
+
   /** @param {any} tool */
   function surfaceCard(tool) {
-    const tone = tool.detected ? 'detected' : tool.available ? 'available' : 'quiet';
+    const tone = tool.detected ? 'detected' : tool.fileStandard ? 'file-standard' : 'available';
     const badge = tool.detected
       ? 'Detected'
       : tool.fileStandard
@@ -132,163 +178,117 @@ const Onboarding = (() => {
           ? 'Project fallback available'
           : 'Can be configured later';
     return `<article class="onboarding-surface ${tone}">
-      <div class="onboarding-surface-icon">${esc(String(tool.label || tool.id).slice(0, 1))}</div>
-      <div>
-        <div class="onboarding-surface-top">
-          <strong>${esc(tool.label || tool.id)}</strong>
-          <span>${esc(badge)}</span>
-        </div>
-        <p>${esc(detail)}</p>
-      </div>
+      <span class="onboarding-surface-icon" aria-hidden="true">${esc(String(tool.label || tool.id).slice(0, 1))}</span>
+      <span class="onboarding-surface-body">
+        <span class="onboarding-surface-top">
+          <strong class="onboarding-card-name">${esc(tool.label || tool.id)}</strong>
+          <span class="ct-badge">${esc(badge)}</span>
+        </span>
+        <span class="onboarding-card-desc onboarding-surface-detail">${esc(detail)}</span>
+      </span>
     </article>`;
   }
 
-  function renderDetectedSurfaces() {
+  function renderIde() {
     const tools = summary?.tools || [];
     const visible = tools.filter((tool) => tool.detected || tool.available || tool.fileStandard).slice(0, 8);
-    if (!visible.length) {
-      return `<div class="onboarding-empty-scan">
-        <strong>No IDE surfaces detected yet</strong>
-        <span>CE can still create AGENTS.md and other project files once you add a workspace.</span>
-      </div>`;
-    }
-    return `<div class="onboarding-surface-grid">${visible.map(surfaceCard).join('')}</div>`;
+    return `<section class="onboarding-step-body" data-step="3">
+      <header class="onboarding-step-head">
+        <h3>IDE and file-output surfaces</h3>
+        <p>Tools that don't call Context Engine through MCP can still receive compiled instruction files. CE can write to these as a fallback.</p>
+      </header>
+      ${
+        visible.length
+          ? `<div class="onboarding-surface-grid">${visible.map(surfaceCard).join('')}</div>`
+          : `<div class="onboarding-empty">
+              <strong class="onboarding-card-name">No IDE surfaces detected yet</strong>
+              <span class="onboarding-card-desc">Context Engine can still create AGENTS.md and other project files once you add a workspace.</span>
+            </div>`
+      }
+    </section>`;
   }
 
-  function renderDiscover() {
-    const activeNames = summary?.context?.activeSkillNames || [];
-    return `<div class="onboarding-panel">
-      <span class="compile-kicker">Welcome</span>
-      <h1>Context Engine found your working setup</h1>
-      <p class="onboarding-lede">It can connect to the AI apps you already use and serve your selected skills, memory, and indexed context when those apps ask for help.</p>
-      <div class="onboarding-hero-band">
-        <div>
-          <span>Scan result</span>
-          <strong>${esc((summary?.hosts || []).filter((host) => host.appDetected || host.status === 'connected').length)} host signals / ${esc((summary?.tools || []).filter((tool) => tool.detected || tool.available).length)} app surfaces</strong>
-        </div>
-        <div>
-          <span>Best next step</span>
-          <strong>Connect one runtime host, then verify search health.</strong>
-        </div>
-      </div>
-      <div class="onboarding-split">
-        <section>
-          <div class="onboarding-section-head">
-            <strong>Runtime hosts</strong>
-            <span>Apps that can call CE live through MCP.</span>
-          </div>
-          <div class="onboarding-host-list">${(summary?.hosts || []).map(hostCard).join('')}</div>
-        </section>
-        <section>
-          <div class="onboarding-section-head">
-            <strong>Available context</strong>
-            <span>What host apps can query.</span>
-          </div>
-          ${contextCards()}
-          <div class="onboarding-active-skills">
-            <span>Active now</span>
-            <strong>${esc(activeNames.length ? activeNames.join(', ') : 'No active skills yet')}</strong>
-          </div>
-        </section>
-      </div>
-      <section class="onboarding-surfaces-section">
-        <div class="onboarding-section-head">
-          <strong>IDE and file-output surfaces</strong>
-          <span>These are fallback targets CE can write for tools that do not call MCP live.</span>
-        </div>
-        ${renderDetectedSurfaces()}
-      </section>
-      <div class="onboarding-actions">
-        <button class="fb" onclick="Onboarding.skip()">Skip for now</button>
-        <button class="save-btn" onclick="Onboarding.go('connect')">Connect selected apps</button>
-      </div>
-    </div>`;
-  }
-
-  /** @param {McpHostRecord} host */
-  function connectCard(host) {
-    const connected = host.status === 'connected';
-    const selected = selectedHosts.has(host.id);
-    return `<article class="onboarding-connect-card ${selected ? '' : 'muted'}">
-      <div>
-        <span class="compile-kicker">${esc(host.mode === 'remote-http' ? 'Remote connector' : 'Local MCP')}</span>
-        <h3>${esc(host.label)}</h3>
-        <p>${esc(host.note || host.summary)}</p>
-      </div>
-      <div class="onboarding-connect-status">
-        <span class="ct-badge mcp-status-${host.status}">${esc(CompileView.statusLabel(host.status))}</span>
-        ${connected ? '<span class="onboarding-ok">Config present</span>' : ''}
-      </div>
-      <div class="onboarding-connect-actions">
-        ${
-          host.supported
-            ? `<button class="save-btn small" ${selected ? '' : 'disabled'} onclick="Onboarding.connectHost('${host.id}')">${connected ? 'Re-apply' : 'Connect'}</button>`
-            : `<button class="fb small" onclick="switchTabByName('compile')">Open setup later</button>`
-        }
-      </div>
+  /**
+   * @param {string} label
+   * @param {boolean} ready
+   * @param {string} detail
+   */
+  function healthCard(label, ready, detail) {
+    return `<article class="onboarding-health ${ready ? 'ready' : 'pending'}">
+      <span class="onboarding-card-name">${esc(label)}</span>
+      <strong class="onboarding-health-value">${esc(ready ? 'Ready' : 'Needs setup')}</strong>
+      <span class="onboarding-card-desc">${esc(detail)}</span>
     </article>`;
-  }
-
-  function renderConnect() {
-    return `<div class="onboarding-panel">
-      <span class="compile-kicker">Connect</span>
-      <h1>Wire CE into the selected hosts</h1>
-      <p class="onboarding-lede">Context Engine only writes its own MCP block and keeps existing host configuration intact.</p>
-      <div class="onboarding-connect-grid">${(summary?.hosts || []).map(connectCard).join('')}</div>
-      <div class="onboarding-actions">
-        <button class="fb" onclick="Onboarding.go('discover')">Back</button>
-        <button class="save-btn" onclick="Onboarding.go('health')">Continue to health</button>
-      </div>
-    </div>`;
   }
 
   function renderHealth() {
     const ctx = summary?.context || {};
     const index = ctx.index || {};
     const connected = (summary?.hosts || []).filter((host) => host.status === 'connected').length;
-    return `<div class="onboarding-panel">
-      <span class="compile-kicker">Health</span>
-      <h1>Prove the bridge has useful context</h1>
-      <p class="onboarding-lede">This is the final check before you start using CE from Claude, Codex, or another host app.</p>
+    const indexReady = !!index.ready;
+    return `<section class="onboarding-step-body" data-step="4">
+      <header class="onboarding-step-head">
+        <h3>Final health check</h3>
+        <p>Confirm Context Engine has something useful to serve before you start using it from a host app.</p>
+      </header>
       <div class="onboarding-health-grid">
-        ${healthItem('Host connections', connected ? 'Ready' : 'Needs setup', `${connected} connected`)}
-        ${healthItem('Active skills', ctx.activeSkills > 0 ? 'Ready' : 'Needs skills', `${ctx.activeSkills || 0} active`)}
-        ${healthItem('Vector search', index.ready ? 'Ready' : 'Empty', index.ready ? `${index.chunks || 0} chunks` : 'Build recommended')}
+        ${healthCard('Host connections', connected > 0, connected > 0 ? `${connected} connected` : 'Connect at least one host')}
+        ${healthCard('Active skills', (ctx.activeSkills || 0) > 0, `${ctx.activeSkills || 0} active`)}
+        ${healthCard('Vector search', indexReady, indexReady ? `${index.chunks || 0} chunks` : 'Build recommended')}
       </div>
-      <div class="onboarding-actions">
-        <button class="fb" onclick="Onboarding.go('connect')">Back</button>
-        <button class="fb" onclick="Onboarding.buildIndex()">Build index</button>
-        <button class="save-btn" onclick="Onboarding.finish()">Finish setup</button>
-      </div>
-    </div>`;
+      ${
+        indexReady
+          ? ''
+          : `<button class="fb onboarding-inline-action" type="button" onclick="Onboarding.buildIndex()">Build vector index</button>`
+      }
+    </section>`;
   }
 
-  /**
-   * @param {string} label
-   * @param {string | number} value
-   * @param {string | undefined} detail
-   */
-  function healthItem(label, value, detail) {
-    return `<div class="onboarding-health-card">
-      <span>${esc(label)}</span>
-      <strong>${esc(value)}</strong>
-      <small>${esc(detail)}</small>
-    </div>`;
+  function renderBody() {
+    if (step === 1) return renderConnect();
+    if (step === 2) return renderContext();
+    if (step === 3) return renderIde();
+    return renderHealth();
+  }
+
+  function renderFooter() {
+    const isFirst = step === 1;
+    const isLast = step === 4;
+    const next = isLast ? 'Finish setup' : 'Continue';
+    const nextAction = isLast ? 'finish' : `go(${step + 1})`;
+    return `<footer class="onboarding-footer">
+      <button class="fb" type="button" onclick="Onboarding.skip()">Skip for now</button>
+      <div class="onboarding-footer-end">
+        ${isFirst ? '' : `<button class="fb" type="button" onclick="Onboarding.go(${step - 1})">Back</button>`}
+        <button class="save-btn" type="button" onclick="Onboarding.${nextAction}">${esc(next)}</button>
+      </div>
+    </footer>`;
   }
 
   function render() {
-    root().innerHTML = `<div class="onboarding-shell">
-      ${progress()}
-      <main class="onboarding-main">
-        ${step === 'discover' ? renderDiscover() : step === 'connect' ? renderConnect() : renderHealth()}
-      </main>
+    root().innerHTML = `<div class="onboarding-overlay" onclick="Onboarding._backdrop(event)" role="presentation">
+      <div class="onboarding-dialog app-dialog" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
+        <header class="onboarding-header">
+          <img class="onboarding-brand-icon" src="assets/brand/icon-simple.svg" alt="" width="28" height="28" />
+          <div class="onboarding-header-text">
+            <h2 id="onboarding-title">Welcome to Context Engine</h2>
+            <p>One-time setup. Everything is changeable later.</p>
+          </div>
+          <button class="onboarding-close" type="button" aria-label="Close setup" onclick="Onboarding.skip()">×</button>
+        </header>
+        ${renderProgress()}
+        <main class="onboarding-body">${renderBody()}</main>
+        ${renderFooter()}
+      </div>
     </div>`;
   }
 
-  /** @param {'discover' | 'connect' | 'health'} next */
+  /** @param {1 | 2 | 3 | 4} next */
   function go(next) {
     step = next;
     render();
+    const dialog = document.querySelector('.onboarding-dialog');
+    if (dialog instanceof HTMLElement) dialog.scrollTo(0, 0);
   }
 
   /** @param {string} hostId @param {boolean} selected */
@@ -317,6 +317,18 @@ const Onboarding = (() => {
   }
 
   async function finish() {
+    // Apply pending host connections that the user selected but hasn't manually
+    // wired. Best-effort — failures surface as toasts, but don't block finish.
+    const pending = (summary?.hosts || []).filter(
+      (host) => host.supported && selectedHosts.has(host.id) && host.status !== 'connected',
+    );
+    for (const host of pending) {
+      try {
+        await DS.installMcpHost(host.id);
+      } catch (err) {
+        console.error('onboarding: install host failed', host.id, err);
+      }
+    }
     const result = await apiFetch('/onboarding/complete', 'POST', {});
     if (result?.ok) {
       close();
@@ -326,7 +338,8 @@ const Onboarding = (() => {
   }
 
   async function skip() {
-    await finish();
+    const result = await apiFetch('/onboarding/complete', 'POST', {});
+    if (result?.ok) close();
   }
 
   return {
@@ -337,5 +350,6 @@ const Onboarding = (() => {
     buildIndex,
     finish,
     skip,
+    _backdrop: onBackdrop,
   };
 })();
