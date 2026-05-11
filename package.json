@@ -109,7 +109,8 @@
       {
         "provider": "github",
         "owner": "Jeremy8776",
-        "repo": "context-engine"
+        "repo": "Context-Engine",
+        "releaseType": "release"
       }
     ],
     "win": {
