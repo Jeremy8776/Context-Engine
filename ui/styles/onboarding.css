@@ -449,6 +449,24 @@
   color: var(--warn);
 }
 
+.onboarding-diff-group[data-kind='local'] .onboarding-diff-label {
+  color: var(--warn);
+}
+
+.onboarding-diff-group[data-kind='conflict'] .onboarding-diff-label {
+  color: var(--err);
+}
+
+.onboarding-diff-warning {
+  padding: var(--s-2) var(--s-3);
+  background: var(--err-bg);
+  border-left: 2px solid var(--err);
+  border-radius: var(--r-1);
+  color: var(--text);
+  font-size: var(--fs-02);
+  line-height: 1.5;
+}
+
 .onboarding-diff-files {
   display: grid;
   gap: 2px;

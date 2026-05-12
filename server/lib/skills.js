@@ -299,9 +299,14 @@ function scanSkills(forceRefresh = false) {
       if (!stat.isDirectory()) return;
       const skillFile = path.join(fullPath, 'SKILL.md');
       if (fs.existsSync(skillFile)) {
-        const id = item;
-        // First-source-wins. Internal is scanned first; later sources don't
-        // overwrite an id that's already mapped.
+        const bareId = item;
+        // Internal source keeps bare ids so existing skill-states.json and
+        // modes.json continue to work without migration. External sources
+        // prefix their ids as `<sourceId>:<bareId>` so cross-source
+        // collisions stay visible — Phase 1 first-source-wins silently
+        // dropped them. Intra-source duplicates (two folders named the same
+        // under one source) still take the first occurrence.
+        const id = sourceId === 'internal' ? bareId : `${sourceId}:${bareId}`;
         if (map[id]) return;
         let content;
         try {
@@ -310,7 +315,7 @@ function scanSkills(forceRefresh = false) {
           return;
         }
         const fm = parseSkillFrontmatter(content);
-        const cached = cache[id];
+        const cached = cache[id] || cache[bareId];
         let desc = cached?.description || fm.description || '';
         if (!desc) {
           const headingMatch = content.match(/^#\s+.+\r?\n\r?\n(.+)/m);
@@ -319,7 +324,8 @@ function scanSkills(forceRefresh = false) {
         const triggers = cached?.triggers || extractTriggers(content, desc);
         map[id] = {
           id,
-          name: fm.name || id,
+          bareId,
+          name: fm.name || bareId,
           cat,
           type: 'custom',
           path: skillFile,

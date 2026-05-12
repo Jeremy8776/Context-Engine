@@ -280,6 +280,35 @@ Vector index doesn't auto-rebuild on source mutation — that would be a 15-60s 
 
 ### Open considerations (Phase 2)
 
-- **Concurrency lock during import** — process-memory mutex per sourceId is enough. Don't use lock files (stale-lock recovery is a tax we don't need).
-- **Source path moved/deleted between import and sync** — sync returns a clear error and leaves the imported tree intact. Don't auto-unlink (destructive).
-- **User edits an imported SKILL.md directly in CE** — overwrite will silently clobber those edits. v1 documents this in the Overwrite prompt copy ("Local edits will be discarded"). If users hit this in practice we'll add a content-diff prompt.
+- **Concurrency lock during import** — process-memory mutex per sourceId is enough. Don't use lock files (stale-lock recovery is a tax we don't need). Resolved by `withMutex()` in `skill-import.js`.
+- **Source path moved/deleted between import and sync** — sync returns a clear error and leaves the imported tree intact. Don't auto-unlink (destructive). Resolved — `computeSyncDiff` returns `"Source path no longer exists on this machine"` when the source has disappeared.
+- **User edits an imported SKILL.md directly in CE** — resolved (see below).
+
+## Phase 2 follow-ups (2026-05-12)
+
+### Skill-id collision handling — resolved
+
+Phase 1 used first-source-wins, which silently hid external skills whose folder name collided with an internal skill. Now resolved by ID prefixing for external sources only.
+
+- Internal source's skills keep bare ids (`react`, `python-debug`). `data/skill-states.json` and `data/modes.json` need no migration.
+- External source's skills are stored under `<sourceId>:<bareId>` (e.g., `claude-global:react`). Both the internal and external versions of the same bare skill are visible in `/api/skills`.
+- Per-skill record carries `id` (prefixed for external), `bareId` (the folder name), `name` (frontmatter or bare id), and `sourceId` / `sourceLabel`. UI uses `name` for display so collision-pair entries don't render two `srcA:react`/`internal:react` rows.
+- Vector index records use the prefixed id as their `skillId`, so dedup/ranking/search all key consistently.
+- Existing skill-states.json keys for non-collision external skills from Phase 1 (rare — feature only just shipped) become orphaned after this change. Toggling those skills active again rewrites them under the prefixed key. Migration is not performed because the surface area is near-zero in practice and a graceful read-side fallback would carry permanent debt.
+
+Verification (direct node script): linking a fixture with both an `app-launcher` SKILL.md (collides with CE's internal `app-launcher`) and a `totally-new-skill` SKILL.md confirms both internal `app-launcher` and external `<id>:app-launcher` appear in `scanSkills()` simultaneously.
+
+### Local edits in the imported tree — resolved
+
+`computeSyncDiff` now detects when a file inside `<CE_ROOT>/skills/imported/<id>/` has drifted from the manifest's recorded size+mtime (only meaningful for `copy`-strategy files — hard-linked files share an inode so they can't drift independently). The diff response gains two new arrays:
+
+- `localEdits`: dest diverged from manifest, source unchanged. Overwrite reverts to source.
+- `conflicts`: dest AND source both diverged. Overwrite discards the local edit.
+
+Apply behaviour:
+- `append` ignores both.
+- `overwrite` re-places `modified` + `localEdits` + `conflicts` (excluding conflicts whose source file no longer exists; those flow through `removed`).
+
+UI (both onboarding step 2 and the Connections-tab Sources panel) renders the two new groups with warn/err coloured labels and adds a clobber-count warning band above the action buttons. The Overwrite button label switches to "Overwrite (discards N local edits)" when conflicts or local edits exist.
+
+Verification (direct node script): import → manually mark a file as `copy` strategy in the manifest → edit the dest file → diff classifies it as `localEdits`; subsequently edit the source file → diff classifies the same entry as `conflicts`; overwrite apply re-places the file with source content, discarding the local edit.

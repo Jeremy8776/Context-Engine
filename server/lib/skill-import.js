@@ -278,11 +278,19 @@ async function importSource(sourceId) {
 }
 
 /**
- * Compute the diff between the source's current state and the manifest.
- * Read-only — does not touch the imported tree.
+ * Compute the diff between the source's current state and the manifest, also
+ * detecting drift inside the imported tree (local edits applied to copied
+ * files since import). Read-only — does not touch the imported tree.
  *
  * @param {string} sourceId
- * @returns {{ ok: true, diff: { added: ImportFileEntry[], removed: Array<{rel: string}>, modified: ImportFileEntry[] }, manifest: ImportManifest } | { ok: false, error: string }}
+ * @returns {{ ok: true, diff: SyncDiff, manifest: ImportManifest } | { ok: false, error: string }}
+ *
+ * @typedef {Object} SyncDiff
+ * @property {ImportFileEntry[]} added       New in source, not in manifest.
+ * @property {Array<{rel: string}>} removed  In manifest, not in source.
+ * @property {ImportFileEntry[]} modified    Source changed AND imported copy unchanged (safe to overwrite).
+ * @property {ImportFileEntry[]} localEdits  Imported copy diverged from manifest, source unchanged (overwrite reverts to source).
+ * @property {ImportFileEntry[]} conflicts   Both source AND imported copy diverged from manifest (overwrite discards local edits).
  */
 function computeSyncDiff(sourceId) {
   const manifest = readManifest(sourceId);
@@ -309,7 +317,12 @@ function computeSyncDiff(sourceId) {
   const removed = [];
   /** @type {ImportFileEntry[]} */
   const modified = [];
+  /** @type {ImportFileEntry[]} */
+  const localEdits = [];
+  /** @type {ImportFileEntry[]} */
+  const conflicts = [];
 
+  // Pass 1: source-side iteration finds added + flags candidate-modified.
   for (const [rel, cur] of currentByRel.entries()) {
     const prev = manifestByRel.get(rel);
     if (!prev) {
@@ -317,17 +330,68 @@ function computeSyncDiff(sourceId) {
       continue;
     }
     // Hard-linked files share an inode with the source so they can't drift
-    // in content. Only flag modified for copy-strategy entries.
-    if (prev.strategy === 'copy' && (prev.size !== cur.size || prev.mtimeMs !== cur.mtimeMs)) {
+    // in content independently. Source-side mtime changes also propagate to
+    // the imported view automatically, so we don't flag those either.
+    if (prev.strategy !== 'copy') continue;
+
+    const sourceChanged = prev.size !== cur.size || prev.mtimeMs !== cur.mtimeMs;
+    const localChanged = importedCopyDiverged(manifest, prev);
+
+    if (sourceChanged && localChanged) {
+      conflicts.push({ rel, size: cur.size, mtimeMs: cur.mtimeMs, strategy: 'copy' });
+    } else if (sourceChanged) {
       modified.push({ rel, size: cur.size, mtimeMs: cur.mtimeMs, strategy: 'copy' });
+    } else if (localChanged) {
+      localEdits.push({ rel, size: cur.size, mtimeMs: cur.mtimeMs, strategy: 'copy' });
     }
   }
 
-  for (const rel of manifestByRel.keys()) {
-    if (!currentByRel.has(rel)) removed.push({ rel });
+  // Pass 2: manifest-side iteration finds removed (in manifest, not in source).
+  // Also catch a local edit on a file whose source has been deleted — overwrite
+  // would remove that file from the imported tree, losing the local edit.
+  for (const [rel, prev] of manifestByRel.entries()) {
+    if (currentByRel.has(rel)) continue;
+    removed.push({ rel });
+    if (prev.strategy === 'copy' && importedCopyDiverged(manifest, prev)) {
+      conflicts.push({ rel, size: prev.size, mtimeMs: prev.mtimeMs, strategy: 'copy' });
+    }
   }
 
-  return { ok: true, diff: { added, removed, modified }, manifest };
+  return { ok: true, diff: { added, removed, modified, localEdits, conflicts }, manifest };
+}
+
+/**
+ * Returns true if the imported copy of the given file diverges from the size
+ * + mtime recorded in the manifest. Tolerant of missing files (treated as
+ * diverged so the user is told the imported file is gone).
+ *
+ * @param {ImportManifest} manifest
+ * @param {ImportFileEntry} entry
+ */
+function importedCopyDiverged(manifest, entry) {
+  const target = path.join(manifest.destPath, entry.rel);
+  let destStat;
+  try {
+    destStat = fs.statSync(target);
+  } catch {
+    return true;
+  }
+  return destStat.size !== entry.size || destStat.mtimeMs !== entry.mtimeMs;
+}
+
+/**
+ * @param {string} sourcePath
+ * @param {string} rel
+ * @returns {boolean} True when the source still has this file (so re-placement
+ *   makes sense). Used to skip already-deleted source files in the conflict
+ *   re-placement pass.
+ */
+function currentByRelForReplace(sourcePath, rel) {
+  try {
+    return fs.statSync(path.join(sourcePath, rel)).isFile();
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -393,7 +457,8 @@ async function applySyncDiff(sourceId, mode) {
     }
 
     if (mode === 'overwrite') {
-      // 2. Remove deleted files.
+      // 2. Remove deleted files. (Caller has been warned via the diff if any
+      //    of these were locally edited — that case lives in `conflicts`.)
       for (const entry of diff.removed) {
         const tgt = path.join(dest, entry.rel);
         try {
@@ -405,9 +470,19 @@ async function applySyncDiff(sourceId, mode) {
         removedCount++;
       }
 
-      // 3. Re-place modified files. Drop the old link/copy first; the new one
-      //    may use a different strategy if conditions changed.
-      for (const entry of diff.modified) {
+      // 3. Re-place files where the dest needs to be reset to mirror the
+      //    source. Three categories all flow through the same placement:
+      //    `modified` (source changed, dest clean → safe),
+      //    `conflicts` (source changed AND dest changed → discards local),
+      //    `localEdits` (source clean, dest drifted → reverts to source).
+      //    Skip conflicts whose source file has been deleted — they're
+      //    already handled by the removed pass above.
+      const toReplace = [
+        ...diff.modified,
+        ...diff.conflicts.filter((entry) => currentByRelForReplace(sourcePath, entry.rel)),
+        ...diff.localEdits,
+      ];
+      for (const entry of toReplace) {
         const src = path.join(sourcePath, entry.rel);
         const tgt = path.join(dest, entry.rel);
         try {

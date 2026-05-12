@@ -26,7 +26,7 @@ const Onboarding = (() => {
   let sourceMessage = '';
   /** @type {string | null} */
   let expandedSourceId = null;
-  /** @type {Map<string, {added: Array<{rel: string}>, removed: Array<{rel: string}>, modified: Array<{rel: string}>}>} */
+  /** @type {Map<string, {added: Array<{rel: string}>, removed: Array<{rel: string}>, modified: Array<{rel: string}>, localEdits: Array<{rel: string}>, conflicts: Array<{rel: string}>}>} */
   const pendingDiffs = new Map();
   /** @type {Map<string, 'import' | 'sync' | 'apply'>} */
   const pendingOp = new Map();
@@ -286,10 +286,12 @@ const Onboarding = (() => {
     </div>`;
   }
 
-  /** @param {string} sourceId @param {{added: Array<{rel: string}>, removed: Array<{rel: string}>, modified: Array<{rel: string}>}} diff */
+  /** @param {string} sourceId @param {{added: Array<{rel: string}>, removed: Array<{rel: string}>, modified: Array<{rel: string}>, localEdits: Array<{rel: string}>, conflicts: Array<{rel: string}>}} diff */
   function renderDiffPanel(sourceId, diff) {
     const inFlight = pendingOp.get(sourceId);
-    const total = diff.added.length + diff.removed.length + diff.modified.length;
+    const localEdits = diff.localEdits || [];
+    const conflicts = diff.conflicts || [];
+    const total = diff.added.length + diff.removed.length + diff.modified.length + localEdits.length + conflicts.length;
     if (total === 0) {
       return `<div class="onboarding-diff-panel">
         <span class="onboarding-card-desc">No changes detected. The imported tree matches the source.</span>
@@ -298,14 +300,24 @@ const Onboarding = (() => {
         </div>
       </div>`;
     }
+    const clobberCount = conflicts.length + localEdits.length;
+    const clobberWarning = clobberCount
+      ? `<div class="onboarding-diff-warning">Overwrite will discard ${clobberCount} local edit${clobberCount === 1 ? '' : 's'} inside CE's imported copy.</div>`
+      : '';
+    const overwriteLabel = clobberCount
+      ? `Overwrite (discards ${clobberCount} local edit${clobberCount === 1 ? '' : 's'})`
+      : 'Overwrite (mirror source)';
     return `<div class="onboarding-diff-panel">
       ${renderDiffList('Added', diff.added, 'added')}
       ${renderDiffList('Removed', diff.removed, 'removed')}
       ${renderDiffList('Modified', diff.modified, 'modified')}
+      ${renderDiffList('Conflicting (local edit + source changed)', conflicts, 'conflict')}
+      ${renderDiffList('Local edits (source unchanged)', localEdits, 'local')}
+      ${clobberWarning}
       <div class="onboarding-diff-actions">
         <button class="fb" type="button" ${inFlight ? 'disabled' : ''} onclick="Onboarding.closeDiff('${sourceId}')">Cancel</button>
         <button class="fb" type="button" ${inFlight || !diff.added.length ? 'disabled' : ''} onclick="Onboarding.applySync('${sourceId}', 'append')">${inFlight === 'apply' ? 'Applying…' : 'Append (add new only)'}</button>
-        <button class="save-btn" type="button" ${inFlight ? 'disabled' : ''} onclick="Onboarding.applySync('${sourceId}', 'overwrite')">${inFlight === 'apply' ? 'Applying…' : 'Overwrite (mirror source)'}</button>
+        <button class="save-btn" type="button" ${inFlight ? 'disabled' : ''} onclick="Onboarding.applySync('${sourceId}', 'overwrite')">${inFlight === 'apply' ? 'Applying…' : esc(overwriteLabel)}</button>
       </div>
     </div>`;
   }

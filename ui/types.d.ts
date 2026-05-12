@@ -161,6 +161,8 @@ type DataStoreApi = {
       added: Array<{ rel: string; size: number; mtimeMs: number }>;
       removed: Array<{ rel: string }>;
       modified: Array<{ rel: string; size: number; mtimeMs: number }>;
+      localEdits: Array<{ rel: string; size: number; mtimeMs: number }>;
+      conflicts: Array<{ rel: string; size: number; mtimeMs: number }>;
     };
   } | null>;
   applySkillSourceSync(
