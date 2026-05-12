@@ -151,6 +151,12 @@
   font-size: var(--fs-01);
 }
 
+.dashboard-index-status .db-index-stale {
+  flex: 1 1 100%;
+  color: var(--warn);
+  font-size: var(--fs-02);
+}
+
 .dashboard-panel-primary {
   background: var(--bg-raised);
   border-color: var(--line-2);

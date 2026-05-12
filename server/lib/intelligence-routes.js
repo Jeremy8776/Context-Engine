@@ -12,6 +12,8 @@ const {
   upsertVectors,
   replaceVectors,
   searchVectors,
+  clearIndexStale,
+  getIndexStale,
 } = require('./vectorstore');
 const { generateDedupReport, loadDedupReport, saveDedupReport, resolveDedupCluster } = require('./dedup');
 const { smartCompile } = require('./smart-compile');
@@ -62,12 +64,16 @@ async function handleIntelligenceRequest(req, res, url, deps) {
   if (p === '/api/index/status' && req.method === 'GET') {
     const store = loadVectorStore();
     const skillIds = new Set(store.records.map((record) => record.skillId));
+    const stale = getIndexStale();
     return json(res, {
       ok: true,
       chunks: store.records.length,
       skills: skillIds.size,
       model: store.model,
       updatedAt: store.updatedAt,
+      stale: !!stale.stale,
+      staleReason: stale.reason || null,
+      staleSince: stale.since || null,
     });
   }
 
@@ -85,6 +91,9 @@ async function handleIntelligenceRequest(req, res, url, deps) {
     const records = chunks.map((chunk, index) => ({ ...chunk, vector: embedded.vectors[index] || [] }));
     const store = replaceVectors(records, embedded.model || DEFAULT_EMBED_MODEL);
     saveVectorStore(store);
+    // Full rebuild clears the stale flag — the index now reflects the current
+    // skill set as walked by scanSkills across every registered source.
+    clearIndexStale();
     return json(res, {
       ok: true,
       chunks: store.records.length,

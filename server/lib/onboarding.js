@@ -6,7 +6,7 @@ const fs = require('fs');
 const { DATA_DIR, SESSION_LOG } = require('./config');
 const { readData, writeData } = require('./backup');
 const { scanSkills } = require('./skills');
-const { loadVectorStore } = require('./vectorstore');
+const { loadVectorStore, getIndexStale } = require('./vectorstore');
 const { buildHostConfigs } = require('./mcp-host-config');
 
 const ONBOARDING_FILE = 'onboarding.json';
@@ -55,6 +55,7 @@ function getContextSummary() {
   const memory = readData('memory.json');
   const store = loadVectorStore();
   const skillIds = new Set(store.records.map((record) => record.skillId));
+  const stale = getIndexStale();
   return {
     totalSkills: skills.length,
     activeSkills: countActiveSkills(skills, states),
@@ -65,6 +66,8 @@ function getContextSummary() {
       skills: skillIds.size,
       model: store.model || null,
       updatedAt: store.updatedAt || null,
+      stale: !!stale.stale,
+      staleReason: stale.reason || null,
     },
     activeSkillNames: skills
       .filter((skill) => {

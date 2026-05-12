@@ -241,7 +241,14 @@ const DashboardTab = (() => {
         return;
       }
       const time = data.updatedAt ? new Date(data.updatedAt).toLocaleString() : 'unknown time';
-      status.innerHTML = `<span class="ct-badge ct-installed">Ready</span><strong>${Number(data.chunks).toLocaleString()} chunks / ${Number(data.skills || 0).toLocaleString()} skills</strong><code>model: ${esc(data.model || 'unknown model')} / updated: ${esc(time)}</code>`;
+      const stale = !!data.stale;
+      const badge = stale
+        ? '<span class="ct-badge ct-warn">Stale</span>'
+        : '<span class="ct-badge ct-installed">Ready</span>';
+      const staleNote = stale
+        ? `<span class="db-index-stale">Skill set changed (${esc(data.staleReason || 'sources updated')}) — rebuild to reflect it in search results.</span>`
+        : '';
+      status.innerHTML = `${badge}<strong>${Number(data.chunks).toLocaleString()} chunks / ${Number(data.skills || 0).toLocaleString()} skills</strong><code>model: ${esc(data.model || 'unknown model')} / updated: ${esc(time)}</code>${staleNote}`;
     } catch {
       status.innerHTML =
         '<span class="ct-badge ct-broken">Unavailable</span><span>Vector index status unavailable.</span>';

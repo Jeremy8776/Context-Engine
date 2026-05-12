@@ -188,6 +188,12 @@
   background: var(--err-bg);
 }
 
+.ct-warn {
+  color: var(--warn);
+  border-color: var(--warn);
+  background: var(--warn-bg);
+}
+
 .ct-project-only,
 .ct-manual {
   color: var(--accent-hi);

@@ -58,6 +58,7 @@ const {
   readManifest: readSkillImportManifest,
   forgetImport: forgetSkillImport,
 } = require('./lib/skill-import');
+const { markIndexStale } = require('./lib/vectorstore');
 
 const ALLOWED_INGEST_HOSTS = new Set(['github.com', 'gitlab.com', 'codeberg.org', 'bitbucket.org']);
 
@@ -189,6 +190,7 @@ async function handleRequest(req, res, url) {
     const result = addSkillSource({ path: data?.path, label: data?.label });
     if (!result.ok) return json(res, { ok: false, error: result.error }, 400);
     invalidateSkillCache();
+    markIndexStale('Linked a new skill source');
     return json(res, { ok: true, source: result.source });
   }
 
@@ -208,6 +210,7 @@ async function handleRequest(req, res, url) {
     const result = await importSkillSource(id);
     if (!result.ok) return json(res, { ok: false, error: result.error }, 400);
     invalidateSkillCache();
+    markIndexStale('Imported a skill source');
     return json(res, { ok: true, manifest: result.manifest });
   }
 
@@ -236,6 +239,10 @@ async function handleRequest(req, res, url) {
     const result = await applySkillSyncDiff(id, data?.mode);
     if (!result.ok) return json(res, { ok: false, error: result.error }, 400);
     invalidateSkillCache();
+    // Only mark stale if something actually changed on disk. A no-op sync
+    // shouldn't trigger a rebuild prompt.
+    const touched = (result.applied?.added || 0) + (result.applied?.removed || 0) + (result.applied?.modified || 0);
+    if (touched > 0) markIndexStale('Synced a skill source');
     return json(res, { ok: true, applied: result.applied, manifest: result.manifest });
   }
 
@@ -250,6 +257,7 @@ async function handleRequest(req, res, url) {
     // to materialise those files; tearing them down on unlink would surprise.
     forgetSkillImport(id);
     invalidateSkillCache();
+    markIndexStale('Unlinked a skill source');
     return json(res, { ok: true });
   }
 

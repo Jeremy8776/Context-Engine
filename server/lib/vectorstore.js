@@ -5,6 +5,61 @@ const path = require('path');
 const { DATA_DIR } = require('./config');
 
 const DEFAULT_VECTOR_FILE = path.join(DATA_DIR, 'vectors.json');
+const INDEX_STALE_FILE = path.join(DATA_DIR, 'index-stale.json');
+
+/**
+ * Mark the vector index as stale. The next /api/index/status response will
+ * carry { stale: true, staleReason, staleSince } so the dashboard + onboarding
+ * surfaces can prompt for a rebuild. Skill-source mutations (link / unlink /
+ * import / sync apply) call this — the index goes out of date the moment the
+ * walked skill set changes.
+ *
+ * @param {string=} reason   Short reason string surfaced to the user.
+ */
+function markIndexStale(reason) {
+  try {
+    if (!fs.existsSync(path.dirname(INDEX_STALE_FILE))) {
+      fs.mkdirSync(path.dirname(INDEX_STALE_FILE), { recursive: true });
+    }
+    fs.writeFileSync(
+      INDEX_STALE_FILE,
+      JSON.stringify({
+        stale: true,
+        reason: reason || 'Skill set changed',
+        since: new Date().toISOString(),
+      }, null, 2),
+      'utf8',
+    );
+  } catch {
+    /* best-effort — stale flag is advisory, not load-bearing */
+  }
+}
+
+/** Clear the stale flag (called after a successful index rebuild). */
+function clearIndexStale() {
+  try {
+    if (fs.existsSync(INDEX_STALE_FILE)) fs.unlinkSync(INDEX_STALE_FILE);
+  } catch {
+    /* best-effort */
+  }
+}
+
+/**
+ * Read the current stale state. Returns { stale: false } when no sidecar
+ * exists; otherwise the persisted shape.
+ *
+ * @returns {{ stale: boolean, reason?: string, since?: string }}
+ */
+function getIndexStale() {
+  try {
+    const raw = fs.readFileSync(INDEX_STALE_FILE, 'utf8');
+    const parsed = JSON.parse(raw);
+    if (parsed?.stale) return { stale: true, reason: parsed.reason, since: parsed.since };
+  } catch {
+    /* missing or unreadable — treat as not stale */
+  }
+  return { stale: false };
+}
 
 /**
  * @typedef {import('./chunker').SkillChunk & { vector: number[] }} VectorRecord
@@ -128,10 +183,14 @@ function isVectorRecord(value) {
 
 module.exports = {
   DEFAULT_VECTOR_FILE,
+  INDEX_STALE_FILE,
   loadVectorStore,
   saveVectorStore,
   upsertVectors,
   replaceVectors,
   searchVectors,
   cosineSimilarity,
+  markIndexStale,
+  clearIndexStale,
+  getIndexStale,
 };

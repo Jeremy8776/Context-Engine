@@ -164,6 +164,15 @@ const Onboarding = (() => {
     const index = ctx.index || {};
     const activeNames = ctx.activeSkillNames || [];
     const indexReady = !!index.ready;
+    const indexStale = !!index.stale;
+    const indexLabel = !indexReady ? 'Empty' : indexStale ? 'Stale' : 'Ready';
+    const indexHint = !indexReady
+      ? 'Build to enable search'
+      : indexStale
+        ? `Rebuild — ${index.staleReason || 'sources changed'}`
+        : `${index.chunks || 0} chunks`;
+    const showBuildAction = !indexReady || indexStale;
+    const buildLabel = indexReady && indexStale ? 'Rebuild vector index' : 'Build vector index';
     return `<section class="onboarding-step-body" data-step="2">
       <header class="onboarding-step-head">
         <h3>Available context</h3>
@@ -173,7 +182,7 @@ const Onboarding = (() => {
         ${statCard('Skills found', ctx.totalSkills || 0)}
         ${statCard('Active skills', ctx.activeSkills || 0)}
         ${statCard('Memory entries', ctx.memoryEntries || 0)}
-        ${statCard('Vector index', indexReady ? 'Ready' : 'Empty', indexReady ? `${index.chunks || 0} chunks` : 'Build to enable search')}
+        ${statCard('Vector index', indexLabel, indexHint)}
       </div>
       <div class="onboarding-active-skills">
         <span class="onboarding-card-name">Active now</span>
@@ -181,9 +190,9 @@ const Onboarding = (() => {
       </div>
       ${renderSourcesSection()}
       ${
-        indexReady
-          ? ''
-          : `<button class="fb onboarding-inline-action" type="button" onclick="Onboarding.buildIndex()">Build vector index</button>`
+        showBuildAction
+          ? `<button class="fb onboarding-inline-action" type="button" onclick="Onboarding.buildIndex()">${esc(buildLabel)}</button>`
+          : ''
       }
     </section>`;
   }
