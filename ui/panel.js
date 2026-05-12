@@ -13,11 +13,11 @@ const SidePanel = (() => {
   function measurePanelTop() {
     const activeTab = document.querySelector('.tab-panel.active');
     const content = activeTab?.querySelector(
-      '.memory-card, .skill-row, .mode-card:not(.mode-card-ghost), .mcp-host-row, .memory-results, .skills-scroll, .modes-list, .mcp-hosts-list',
+      '.memory-card, .handoff-card, .skill-row, .mode-card:not(.mode-card-ghost), .mcp-host-row, .memory-results, .handoffs-results, .skills-scroll, .modes-list, .mcp-hosts-list',
     );
     if (content) return Math.round(content.getBoundingClientRect().top);
 
-    const toolbar = activeTab?.querySelector('.toolbar, .memory-toolbar, .modes-toolbar');
+    const toolbar = activeTab?.querySelector('.toolbar, .memory-toolbar, .handoffs-toolbar, .modes-toolbar');
     if (toolbar) return Math.round(toolbar.getBoundingClientRect().bottom);
 
     const navBrand = document.querySelector('.nav-brand');

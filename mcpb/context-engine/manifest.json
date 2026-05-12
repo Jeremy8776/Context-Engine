@@ -57,6 +57,14 @@
     {
       "name": "context_engine_status",
       "description": "Report the Context Engine vector index status."
+    },
+    {
+      "name": "context_engine_handoffs",
+      "description": "List active Context Engine handoffs for resuming in-flight threads, with bounded commit timelines for repo-bound handoffs."
+    },
+    {
+      "name": "context_engine_sync_project_handoff",
+      "description": "Sync <repo>/.context-engine/handoff.md into Context Engine's managed handoff store."
     }
   ],
   "keywords": ["context", "memory", "skills", "mcp", "local"],

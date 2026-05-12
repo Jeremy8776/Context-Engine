@@ -23,6 +23,9 @@ function switchTab(name, btn) {
   if (name === 'modes' && typeof ModesTab !== 'undefined') {
     requestAnimationFrame(() => ModesTab.syncCreateShortcut?.());
   }
+  if (name === 'handoffs' && typeof HandoffsTab !== 'undefined') {
+    requestAnimationFrame(() => HandoffsTab.ensureLoaded?.());
+  }
 }
 function switchTabByName(name) {
   const btn = document.querySelector(`.tab-btn[onclick*="'${name}'"]`);
@@ -98,6 +101,7 @@ async function boot() {
   }
   SkillsTab.init();
   MemoryTab.init();
+  if (typeof HandoffsTab !== 'undefined') await HandoffsTab.init();
   ConfigTab.init();
   await ModesTab.init();
   if (typeof CompileTab !== 'undefined') await CompileTab.init();

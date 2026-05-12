@@ -1,0 +1,374 @@
+/* Handoffs tab. Mirrors Memory's dense admin pattern with a distinct binding
+   metadata row for repo/thread lifecycle signals. */
+
+#handoffs-tab {
+  overflow: hidden;
+}
+
+#handoffs-tab .simple-page {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: 6px 0 16px;
+}
+
+#handoffs-tab .simple-inner {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.handoffs-toolbar {
+  display: grid;
+  grid-template-columns: minmax(260px, 520px) auto;
+  gap: 16px;
+  align-items: center;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0 24px 8px;
+}
+
+.handoffs-search {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.handoffs-toolbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+}
+
+.handoffs-list {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  transition: padding-right var(--spring);
+}
+
+.handoffs-workbench,
+.handoffs-results {
+  height: 100%;
+  min-height: 0;
+}
+
+.handoffs-results-scroll {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-auto-rows: min-content;
+  align-content: start;
+  gap: 10px;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  padding: 24px;
+}
+
+.handoff-card {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  width: 100%;
+  min-height: 148px;
+  padding: 15px;
+  border: 1px solid var(--soft-line);
+  border-radius: var(--r-3);
+  background: var(--bg-card);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.handoff-card:hover,
+.handoff-card.active {
+  border-color: var(--alpha-purple-45);
+  background: var(--alpha-purple-06);
+}
+
+.handoff-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.handoff-title {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.handoff-type,
+.handoff-meta span,
+.handoff-detail-meta span {
+  min-height: 24px;
+  padding: 5px 8px;
+  border: 1px solid var(--soft-line-2);
+  border-radius: var(--r-full);
+  background: var(--bg-elevated);
+  color: var(--text-3);
+  font-family: var(--mono);
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.handoff-type {
+  flex: 0 0 auto;
+  color: var(--accent-hi);
+}
+
+.handoff-preview {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text-3);
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.handoff-meta,
+.handoff-detail-meta {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: auto;
+}
+
+.handoffs-stats {
+  display: none;
+}
+
+.handoff-add-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.handoff-add-open svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.handoff-commit-section,
+.handoff-timeline-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--soft-line);
+  border-radius: var(--r-3);
+  background: var(--bg-card);
+}
+
+.handoff-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--text-3);
+  font-size: 11px;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.handoff-section-head span:last-child {
+  color: var(--text-4);
+  font-family: var(--mono);
+  font-weight: 500;
+  text-transform: none;
+}
+
+.handoff-commit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.handoff-commit-item {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr) 88px;
+  gap: 8px;
+  align-items: center;
+  min-height: 30px;
+  padding: 7px 8px;
+  border: 1px solid var(--soft-line-2);
+  border-radius: var(--r-2);
+  background: var(--bg-elevated);
+}
+
+.handoff-commit-sha,
+.handoff-commit-date {
+  color: var(--text-4);
+  font-family: var(--mono);
+  font-size: 10px;
+}
+
+.handoff-commit-subject {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.handoff-commit-date {
+  text-align: right;
+}
+
+.handoff-commit-empty {
+  color: var(--text-4);
+  font-size: 12px;
+}
+
+.handoff-timeline-list {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-left: 14px;
+}
+
+.handoff-timeline-list::before {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: 4px;
+  width: 1px;
+  background: var(--soft-line-2);
+  content: '';
+}
+
+.handoff-timeline-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.handoff-timeline-marker {
+  width: 9px;
+  height: 9px;
+  margin-top: 12px;
+  border: 2px solid var(--accent-hi);
+  border-radius: var(--r-full);
+  background: var(--bg-card);
+  z-index: 1;
+}
+
+.handoff-timeline-content {
+  min-width: 0;
+  padding: 11px;
+  border: 1px solid var(--soft-line-2);
+  border-radius: var(--r-3);
+  background: var(--bg-elevated);
+}
+
+.handoff-timeline-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.handoff-timeline-top h4 {
+  margin: 0;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.3;
+}
+
+.handoff-timeline-top span {
+  flex: 0 0 auto;
+  color: var(--text-4);
+  font-family: var(--mono);
+  font-size: 10px;
+}
+
+.handoff-timeline-body {
+  margin-top: 7px;
+  color: var(--text-3);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.handoff-timeline-body p {
+  margin: 0 0 8px;
+}
+
+.handoff-timeline-body p:last-child {
+  margin-bottom: 0;
+}
+
+.handoff-modal {
+  width: min(720px, 100%);
+}
+
+.handoff-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.handoff-modal-grid .modal-field:last-child {
+  grid-column: 1 / -1;
+}
+
+body.side-panel-active #handoffs-tab .handoffs-list {
+  padding-right: calc(min(var(--rail-w), calc(100vw - var(--rail-max-gutter))) + var(--s-6));
+}
+
+@media (max-width: 760px) {
+  #handoffs-tab {
+    overflow-y: auto;
+  }
+
+  #handoffs-tab .simple-page,
+  #handoffs-tab .simple-inner,
+  #handoffs-tab .handoffs-list,
+  #handoffs-tab .handoffs-workbench,
+  #handoffs-tab .handoffs-results {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .handoffs-toolbar,
+  .handoff-modal-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .handoffs-toolbar-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .handoff-commit-item {
+    grid-template-columns: 62px minmax(0, 1fr);
+  }
+
+  .handoff-commit-date {
+    grid-column: 2;
+    text-align: left;
+  }
+}

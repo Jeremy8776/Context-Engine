@@ -52,6 +52,31 @@
       "name": "context_engine_status",
       "description": "Report the Context Engine vector index status: chunk count, indexed skill count, embedding model, and last-indexed timestamp. Use this to detect a stale or unbuilt index before searching.",
       "inputSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "name": "context_engine_handoffs",
+      "description": "List active handoffs — in-flight thread state bookmarks recorded by Context Engine. Use this at the start of a session to resume a conversation thread instead of re-deriving context. Includes a bounded commit timeline for repo-bound handoffs. Optional filters by repo (project handoffs) or thread_tag (named threads).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "repo": { "type": "string", "description": "Filter to handoffs bound to this repo path." },
+          "thread_tag": { "type": "string", "description": "Filter to handoffs bound to this thread tag." }
+        }
+      }
+    },
+    {
+      "name": "context_engine_sync_project_handoff",
+      "description": "Sync a host-written project handoff from <repo>/.context-engine/handoff.md into Context Engine's managed handoff store. Use this after writing or updating a project checkpoint file from an LLM host.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "repo": {
+            "type": "string",
+            "description": "Absolute path to the project directory containing .context-engine/handoff.md."
+          }
+        },
+        "required": ["repo"]
+      }
     }
   ]
 }

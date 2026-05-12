@@ -86,6 +86,47 @@ const HANDLERS = {
       ready: (status.chunks || 0) > 0,
     };
   },
+  context_engine_handoffs: async ({ repo, thread_tag } = {}) => {
+    const resp = await ceRequest('GET', '/api/handoffs');
+    let list = Array.isArray(resp?.handoffs) ? resp.handoffs : [];
+    if (repo) list = list.filter((handoff) => handoff.repo === repo);
+    if (thread_tag) list = list.filter((handoff) => handoff.thread_tag === thread_tag);
+    return {
+      count: list.length,
+      handoffs: list.map((handoff) => ({
+        slug: handoff.slug,
+        title: handoff.title,
+        type: handoff.type,
+        repo: handoff.repo,
+        thread_tag: handoff.thread_tag,
+        last_touched: handoff.last_touched,
+        commits_past_head: handoff.staleness?.commits_past_head ?? null,
+        commit_timeline: Array.isArray(handoff.staleness?.commit_timeline)
+          ? handoff.staleness.commit_timeline
+          : [],
+        body: handoff.body,
+      })),
+    };
+  },
+  context_engine_sync_project_handoff: async ({ repo }) => {
+    if (!repo || typeof repo !== 'string') throw new Error('repo is required and must be a string');
+    const result = await ceRequest('POST', '/api/handoffs/sync-project', { body: { repo } });
+    return {
+      ok: result.ok === true,
+      created: result.created === true,
+      source: result.source,
+      handoff: result.handoff
+        ? {
+            slug: result.handoff.slug,
+            title: result.handoff.title,
+            type: result.handoff.type,
+            repo: result.handoff.repo,
+            thread_tag: result.handoff.thread_tag,
+            last_touched: result.handoff.last_touched,
+          }
+        : null,
+    };
+  },
 };
 
 const TOOLS = SCHEMAS.tools.map((schema) => ({ ...schema, handler: HANDLERS[schema.name] }));

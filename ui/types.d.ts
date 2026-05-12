@@ -321,6 +321,20 @@ declare const MemoryTab: {
   closeAddModal(): void;
   createFromModal(): Promise<void>;
 };
+declare const HandoffsTab: {
+  init(): Promise<void>;
+  ensureLoaded(): Promise<void>;
+  render(): void;
+  select(slug: string): void;
+  setView(view: string): void;
+  save(slug: string): Promise<void>;
+  archive(slug: string): Promise<void>;
+  restore(slug: string): Promise<void>;
+  purge(slug: string): Promise<void>;
+  openAddModal(): void;
+  closeAddModal(event?: MouseEvent): void;
+  createFromModal(): Promise<void>;
+};
 declare const ConfigTab: {
   init(): void;
 };

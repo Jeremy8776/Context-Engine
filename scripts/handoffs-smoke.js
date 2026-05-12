@@ -1,0 +1,195 @@
+// @ts-check
+
+const assert = require('assert');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { execFileSync } = require('child_process');
+
+const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'ce-handoffs-'));
+process.env.CE_ROOT = tmpRoot;
+
+const {
+  HANDOFFS_DIR,
+  ARCHIVE_DIR,
+  createHandoff,
+  listHandoffs,
+  listArchived,
+  restoreHandoff,
+  purgeHandoff,
+} = require('../server/lib/handoffs');
+const { PROJECT_HANDOFF_RELATIVE, syncProjectHandoff } = require('../server/lib/handoff-project-sync');
+const { parseLegacyHandoff, migrateLegacyHandoff } = require('../server/lib/handoff-migration');
+
+const active = createHandoff({
+  title: 'Thread resume',
+  thread_tag: 'thread-resume',
+  body: 'Continue from the mocked thread state.',
+});
+assert.strictEqual(active.ok, true, 'expected thread handoff to create');
+assert.strictEqual(active.handoff.type, 'thread');
+assert.strictEqual(active.handoff.slug, 'thread-resume');
+assert.strictEqual(listHandoffs().length, 1, 'expected active handoff in list');
+
+const archived = fs.readFileSync(path.join(HANDOFFS_DIR, 'thread-resume.md'), 'utf8');
+fs.writeFileSync(
+  path.join(HANDOFFS_DIR, 'thread-resume.md'),
+  archived.replace(/last_touched: .+/, 'last_touched: 2020-01-01T00:00:00.000Z'),
+  'utf8',
+);
+assert.strictEqual(listHandoffs().length, 0, 'idle thread handoff should auto-archive');
+assert.strictEqual(listArchived().length, 1, 'archived list should include stale thread handoff');
+
+const restored = restoreHandoff('thread-resume');
+assert.strictEqual(restored.ok, true, 'expected archived handoff to restore');
+assert.strictEqual(listHandoffs().length, 1, 'restored handoff should be active again');
+
+const dual = createHandoff({
+  title: 'Dual stale thread',
+  repo: tmpRoot,
+  thread_tag: 'dual-stale-thread',
+  body: 'A dual-bound handoff should archive when the thread is idle.',
+});
+assert.strictEqual(dual.ok, true, 'expected dual handoff to create against existing directory');
+const dualPath = path.join(HANDOFFS_DIR, 'dual-stale-thread.md');
+fs.writeFileSync(
+  dualPath,
+  fs.readFileSync(dualPath, 'utf8').replace(/last_touched: .+/, 'last_touched: 2020-01-01T00:00:00.000Z'),
+  'utf8',
+);
+listHandoffs();
+assert(
+  fs.existsSync(path.join(ARCHIVE_DIR, 'dual-stale-thread.md')),
+  'dual-bound handoff should archive when thread is idle even if commit count is unavailable',
+);
+
+const purged = purgeHandoff('dual-stale-thread');
+assert.strictEqual(purged.ok, true, 'expected purge of archived handoff');
+assert(!fs.existsSync(path.join(ARCHIVE_DIR, 'dual-stale-thread.md')), 'purged handoff should be deleted');
+
+const repoDir = path.join(tmpRoot, 'repo');
+fs.mkdirSync(repoDir);
+/** @param {string[]} args */
+const git = (args) => execFileSync('git', args, { cwd: repoDir, stdio: ['ignore', 'pipe', 'ignore'] });
+git(['init']);
+git(['config', 'user.email', 'context-engine@example.test']);
+git(['config', 'user.name', 'Context Engine Test']);
+fs.writeFileSync(path.join(repoDir, 'notes.txt'), 'baseline\n', 'utf8');
+git(['add', 'notes.txt']);
+git(['commit', '-m', 'baseline']);
+const project = createHandoff({
+  title: 'Project timeline',
+  repo: repoDir,
+  thread_tag: 'project-timeline',
+  body: 'Track commits made after the handoff was written.',
+});
+assert.strictEqual(project.ok, true, 'expected project handoff to create against git repo');
+fs.appendFileSync(path.join(repoDir, 'notes.txt'), 'first\n', 'utf8');
+git(['add', 'notes.txt']);
+git(['commit', '-m', 'first change']);
+fs.appendFileSync(path.join(repoDir, 'notes.txt'), 'second\n', 'utf8');
+git(['add', 'notes.txt']);
+git(['commit', '-m', 'second change']);
+const timelineHandoff = listHandoffs().find((handoff) => handoff.slug === 'project-timeline');
+assert(timelineHandoff, 'expected project timeline handoff to stay active under commit threshold');
+assert.strictEqual(timelineHandoff.staleness.commits_past_head, 2, 'expected two commits past handoff head');
+assert.strictEqual(timelineHandoff.staleness.commit_timeline.length, 2, 'expected bounded commit timeline');
+const latestCommit = timelineHandoff.staleness.commit_timeline[0];
+assert(latestCommit, 'expected at least one commit in timeline');
+assert.strictEqual(latestCommit.subject, 'second change');
+assert(latestCommit.short_sha, 'expected short sha in commit timeline');
+
+const projectHandoffFile = path.join(repoDir, PROJECT_HANDOFF_RELATIVE);
+fs.mkdirSync(path.dirname(projectHandoffFile), { recursive: true });
+fs.writeFileSync(
+  projectHandoffFile,
+  [
+    '---',
+    'title: Host-written checkpoint',
+    'thread_tag: host-sync',
+    '---',
+    '# Current state',
+    '',
+    'The host wrote this handoff inside the project directory.',
+    '',
+    '## Next',
+    '',
+    'Context Engine should pull it into managed handoffs.',
+  ].join('\n'),
+  'utf8',
+);
+const synced = syncProjectHandoff(repoDir);
+assert.strictEqual(synced.ok, true, 'expected project handoff file to sync');
+assert.strictEqual(synced.created, true, 'expected first project file sync to create a handoff');
+assert.strictEqual(synced.handoff.thread_tag, 'host-sync');
+assert(synced.handoff.body.includes('Current state'), 'expected synced body from project file');
+fs.writeFileSync(
+  projectHandoffFile,
+  [
+    '---',
+    'title: LLM should not overwrite UI title',
+    'thread_tag: host-sync',
+    '---',
+    '# Updated by host',
+    '',
+    'Second sync should update the body only.',
+  ].join('\n'),
+  'utf8',
+);
+const resynced = syncProjectHandoff(repoDir);
+assert.strictEqual(resynced.ok, true, 'expected project handoff file to resync');
+assert.strictEqual(resynced.created, false, 'expected second project file sync to update existing handoff');
+assert.strictEqual(
+  resynced.handoff.title,
+  'Host-written checkpoint',
+  'existing UI title should be preserved',
+);
+assert(resynced.handoff.body.includes('Second sync'), 'expected synced body to update');
+
+const appJs = fs.readFileSync(path.join(__dirname, '..', 'ui', 'app.js'), 'utf8');
+const handoffsUi = fs.readFileSync(path.join(__dirname, '..', 'ui', 'handoffs.js'), 'utf8');
+assert(appJs.includes("name === 'handoffs'"), 'switchTab should handle Handoffs activation');
+assert(appJs.includes('HandoffsTab.ensureLoaded'), 'Handoffs tab activation should retry load');
+assert(handoffsUi.includes('ensureLoaded'), 'HandoffsTab should expose an idempotent loader');
+assert(handoffsUi.includes('renderHandoffTimeline'), 'Handoffs detail should render body as timeline cards');
+assert(!handoffsUi.includes('handoff-edit-body'), 'Handoffs detail should not expose manual body editing');
+
+const legacySource = path.join(tmpRoot, 'llm-handoff.md');
+fs.writeFileSync(
+  legacySource,
+  [
+    '# LLM Handoff',
+    '',
+    '## Last session',
+    '',
+    '**2026-05-12 Current feature** - Continue wiring the new managed surface.',
+    '',
+    'Details stay with the first parsed entry.',
+    '',
+    '**2026-05-10 Older work** - Preserve this in archive.',
+    '',
+    'Older detail body.',
+    '',
+    '## Open threads',
+    '',
+    '- This section is not a dated legacy handoff entry.',
+    '',
+  ].join('\n'),
+  'utf8',
+);
+const parsedLegacy = parseLegacyHandoff(fs.readFileSync(legacySource, 'utf8'));
+assert.strictEqual(parsedLegacy.length, 2, 'expected two dated legacy entries');
+const firstLegacy = parsedLegacy[0];
+assert(firstLegacy, 'expected first parsed legacy entry');
+assert.strictEqual(firstLegacy.title, 'Current feature');
+assert(firstLegacy.body.includes('Details stay'), 'expected body continuation to stay with entry');
+
+const migrated = migrateLegacyHandoff({ sourceFile: legacySource, repo: tmpRoot, keepActive: 1 });
+assert.strictEqual(migrated.ok, true, 'expected legacy migration to succeed');
+assert.strictEqual(migrated.imported, 2, 'expected two imported legacy entries');
+assert.strictEqual(migrated.active, 1, 'expected newest legacy entry to stay active');
+assert.strictEqual(migrated.archived, 1, 'expected older legacy entry to archive');
+assert(fs.existsSync(path.join(HANDOFFS_DIR, 'legacy-2026-05-12-current-feature.md')));
+assert(fs.existsSync(path.join(ARCHIVE_DIR, 'legacy-2026-05-10-older-work.md')));
+
+console.log('handoffs smoke ok');

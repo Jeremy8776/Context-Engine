@@ -132,6 +132,46 @@ const HANDLERS = {
       ready: (status.chunks || 0) > 0,
     };
   },
+  context_engine_handoffs: async ({ repo, thread_tag } = {}) => {
+    const resp = await ceRequest('GET', '/api/handoffs');
+    let list = Array.isArray(resp?.handoffs) ? resp.handoffs : [];
+    if (repo) list = list.filter((h) => h.repo === repo);
+    if (thread_tag) list = list.filter((h) => h.thread_tag === thread_tag);
+    // Keep the resume payload bounded; commit_timeline is capped server-side.
+    return {
+      count: list.length,
+      handoffs: list.map((h) => ({
+        slug: h.slug,
+        title: h.title,
+        type: h.type,
+        repo: h.repo,
+        thread_tag: h.thread_tag,
+        last_touched: h.last_touched,
+        commits_past_head: h.staleness?.commits_past_head ?? null,
+        commit_timeline: Array.isArray(h.staleness?.commit_timeline) ? h.staleness.commit_timeline : [],
+        body: h.body,
+      })),
+    };
+  },
+  context_engine_sync_project_handoff: async ({ repo }) => {
+    if (!repo || typeof repo !== 'string') throw new Error('repo is required and must be a string');
+    const result = await ceRequest('POST', '/api/handoffs/sync-project', { body: { repo } });
+    return {
+      ok: result.ok === true,
+      created: result.created === true,
+      source: result.source,
+      handoff: result.handoff
+        ? {
+            slug: result.handoff.slug,
+            title: result.handoff.title,
+            type: result.handoff.type,
+            repo: result.handoff.repo,
+            thread_tag: result.handoff.thread_tag,
+            last_touched: result.handoff.last_touched,
+          }
+        : null,
+    };
+  },
 };
 
 const TOOLS = SCHEMAS.tools.map((schema) => ({ ...schema, handler: HANDLERS[schema.name] }));

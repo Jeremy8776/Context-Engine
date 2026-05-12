@@ -113,6 +113,19 @@
                   <path d="M6 12v5c0 2 2.7 3.5 6 3.5s6-1.5 6-3.5v-5" /></svg></span
               ><span class="nav-text">Memory</span>
             </button>
+            <button
+              class="tab-btn"
+              data-label="Handoffs"
+              title="Handoffs"
+              onclick="switchTab('handoffs', this)"
+            >
+              <span class="nav-icon"
+                ><svg viewBox="0 0 24 24">
+                  <path d="M7 4h7l3 3v13H7z" />
+                  <path d="M14 4v4h4" />
+                  <path d="M10 12h5M10 16h4" /></svg></span
+              ><span class="nav-text">Handoffs</span>
+            </button>
             <button class="tab-btn" data-label="Rules" title="Rules" onclick="switchTab('config', this)">
               <span class="nav-icon"
                 ><svg viewBox="0 0 24 24">
@@ -570,7 +583,80 @@
         <div id="config-tab" class="tab-panel">
           <div class="simple-page"><div class="simple-inner wide" id="rules-root"></div></div>
         </div>
+        <div id="handoffs-tab" class="tab-panel">
+          <div class="simple-page">
+            <div class="simple-inner wide">
+              <div class="handoffs-toolbar">
+                <div class="handoffs-search">
+                  <input
+                    class="search"
+                    id="handoffs-search-input"
+                    type="search"
+                    placeholder="Search handoffs"
+                  />
+                </div>
+                <div class="handoffs-toolbar-actions">
+                  <div class="view-toggle">
+                    <button
+                      class="view-btn on"
+                      id="handoffs-btn-active"
+                      title="Active"
+                      onclick="HandoffsTab.setView('active')"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l4 4L19 6" /></svg>
+                    </button>
+                    <button
+                      class="view-btn"
+                      id="handoffs-btn-archive"
+                      title="Archived"
+                      onclick="HandoffsTab.setView('archive')"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M4 7h16M7 7v13h10V7M9 11h6" />
+                      </svg>
+                    </button>
+                  </div>
+                  <button
+                    class="save-btn handoff-add-open"
+                    onclick="HandoffsTab.openAddModal()"
+                    title="Add handoff"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                    <span>Add</span>
+                  </button>
+                </div>
+              </div>
+              <div id="handoffs-stats" class="handoffs-stats"></div>
+              <div id="handoffs-list" class="handoffs-list"></div>
+            </div>
+          </div>
+        </div>
         <div id="compile-tab" class="tab-panel"></div>
+      </div>
+    </div>
+    <div class="modal-overlay" id="handoff-modal-overlay" onclick="HandoffsTab.closeAddModal(event)">
+      <div class="memory-modal handoff-modal" onclick="event.stopPropagation()">
+        <div class="memory-modal-head">
+          <h3>New Handoff</h3>
+          <button class="icon-btn" onclick="HandoffsTab.closeAddModal()" title="Close" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          </button>
+        </div>
+        <div class="memory-modal-body handoff-modal-grid">
+          <label class="modal-field"
+            ><span>Title</span><input class="add-input" id="handoff-modal-title"
+          /></label>
+          <label class="modal-field"
+            ><span>Thread tag</span><input class="add-input" id="handoff-modal-thread"
+          /></label>
+          <label class="modal-field"
+            ><span>Repo path</span><input class="add-input" id="handoff-modal-repo"
+          /></label>
+        </div>
+        <div class="memory-modal-actions">
+          <button class="fb" onclick="HandoffsTab.closeAddModal()">Cancel</button>
+          <button class="save-btn" onclick="HandoffsTab.createFromModal()">Create</button>
+        </div>
       </div>
     </div>
     <div class="side-panel-overlay" id="side-panel-overlay"></div>
@@ -595,6 +681,7 @@
     <script src="skills.js"></script>
     <script src="skills-maintenance.js"></script>
     <script src="memory.js"></script>
+    <script src="handoffs.js"></script>
     <script src="config.js"></script>
     <script src="rules-lab.js"></script>
     <script src="dashboard.js"></script>

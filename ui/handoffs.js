@@ -1,0 +1,423 @@
+// @ts-nocheck - renderer globals are declared in ui/types.d.ts.
+
+const HandoffsTab = (() => {
+  let active = [];
+  let archived = [];
+  let view = 'active';
+  let query = '';
+  let selected = '';
+  let initialized = false;
+  let loaded = false;
+
+  function currentItems() {
+    const q = query.trim().toLowerCase();
+    const source = view === 'archive' ? archived : active;
+    return source.filter((item) => {
+      const haystack = `${item.title || ''} ${item.body || ''} ${item.repo || ''} ${item.thread_tag || ''}`;
+      return !q || haystack.toLowerCase().includes(q);
+    });
+  }
+
+  async function load() {
+    const [activeResp, archivedResp] = await Promise.all([
+      apiFetch('/handoffs'),
+      apiFetch('/handoffs/archive'),
+    ]);
+    active = Array.isArray(activeResp?.handoffs) ? activeResp.handoffs : [];
+    archived = Array.isArray(archivedResp?.handoffs) ? archivedResp.handoffs : [];
+    loaded = !!activeResp || !!archivedResp;
+    render();
+  }
+
+  function render() {
+    updateToggle();
+    renderStats();
+    const host = document.getElementById('handoffs-list');
+    if (!host) return;
+    const items = currentItems();
+    if (!items.length) {
+      host.innerHTML = `
+        <div class="handoffs-workbench">
+          <section class="handoffs-results"><div class="db-empty">No handoffs match this view.</div></section>
+        </div>`;
+      return;
+    }
+    if (!items.some((item) => item.slug === selected)) selected = items[0].slug;
+    host.innerHTML = `
+      <div class="handoffs-workbench">
+        <section class="handoffs-results">
+          <div class="handoffs-results-scroll">
+            ${items.map(renderCard).join('')}
+          </div>
+        </section>
+      </div>`;
+  }
+
+  function renderCard(item) {
+    const isActive = item.slug === selected ? ' active' : '';
+    const commits = item.staleness?.commits_past_head;
+    const commitLabel = commits === null || commits === undefined ? 'No git signal' : `${commits} commits`;
+    return `
+      <button class="handoff-card${isActive}" onclick="HandoffsTab.select('${esc(item.slug)}')">
+        <span class="handoff-card-top">
+          <span class="handoff-title">${esc(item.title || item.slug)}</span>
+          <span class="handoff-type">${esc(typeLabel(item.type))}</span>
+        </span>
+        <span class="handoff-preview">${esc(preview(item.body))}</span>
+        <span class="handoff-meta">
+          <span>${esc(bindingLabel(item))}</span>
+          <span>${esc(ageLabel(item.last_touched))}</span>
+          <span>${esc(commitLabel)}</span>
+        </span>
+      </button>`;
+  }
+
+  function select(slug) {
+    selected = slug;
+    const item = currentItems().find((candidate) => candidate.slug === slug);
+    render();
+    if (!item) return;
+    SidePanel.open(
+      item.title || item.slug,
+      view === 'archive' ? renderArchivedDetail(item) : renderActiveDetail(item),
+    );
+  }
+
+  function renderActiveDetail(item) {
+    return `
+      <div class="sp-detail">
+        <div class="handoff-detail-meta">
+          <span>${esc(typeLabel(item.type))}</span>
+          <span>${esc(bindingLabel(item))}</span>
+          <span>${esc(ageLabel(item.last_touched))}</span>
+        </div>
+        ${renderCommitTimeline(item)}
+        <div class="sp-field">
+          <label>Title</label>
+          <input class="add-input" id="handoff-edit-title" value="${esc(item.title || '')}" />
+        </div>
+        ${renderHandoffTimeline(item)}
+        <div class="sp-actions sp-actions-edit compact">
+          <button class="save-btn" onclick="HandoffsTab.save('${esc(item.slug)}')">Save title</button>
+          <button class="save-btn ghost" onclick="SidePanel.close()">Cancel</button>
+          <button class="mem-btn danger push-end" onclick="HandoffsTab.archive('${esc(item.slug)}')">Archive</button>
+        </div>
+      </div>`;
+  }
+
+  function renderArchivedDetail(item) {
+    return `
+      <div class="sp-detail">
+        <div class="handoff-detail-meta">
+          <span>${esc(typeLabel(item.type))}</span>
+          <span>${esc(bindingLabel(item))}</span>
+          <span>${esc(item.archived ? `Archived ${ageLabel(item.archived)}` : 'Archived')}</span>
+        </div>
+        ${renderCommitTimeline(item)}
+        ${renderHandoffTimeline(item)}
+        <div class="sp-actions sp-actions-edit compact">
+          <button class="save-btn" onclick="HandoffsTab.restore('${esc(item.slug)}')">Restore</button>
+          <button class="mem-btn danger push-end" onclick="HandoffsTab.purge('${esc(item.slug)}')">Purge</button>
+        </div>
+      </div>`;
+  }
+
+  async function save(slug) {
+    const title = document.getElementById('handoff-edit-title')?.value.trim();
+    if (!title) return Toast.error('Title is required');
+    const result = await apiFetch(`/handoffs/${encodeURIComponent(slug)}`, 'PATCH', { title });
+    if (!result?.ok) return;
+    Toast.success('Handoff title saved');
+    await load();
+    select(slug);
+  }
+
+  async function archive(slug) {
+    const ok = await AppDialog.confirm({
+      title: 'Archive handoff',
+      message: 'This moves the handoff out of the active resume list.',
+      confirmText: 'Archive',
+    });
+    if (!ok) return;
+    const result = await apiFetch(`/handoffs/${encodeURIComponent(slug)}/archive`, 'POST', {});
+    if (!result?.ok) return;
+    SidePanel.close();
+    selected = '';
+    Toast.success('Handoff archived');
+    await load();
+  }
+
+  async function restore(slug) {
+    const result = await apiFetch(`/handoffs/${encodeURIComponent(slug)}/restore`, 'POST', {});
+    if (!result?.ok) return;
+    view = 'active';
+    selected = slug;
+    SidePanel.close();
+    Toast.success('Handoff restored');
+    await load();
+  }
+
+  async function purge(slug) {
+    const ok = await AppDialog.confirm({
+      title: 'Purge handoff',
+      message: 'This permanently deletes the archived handoff.',
+      confirmText: 'Purge',
+      danger: true,
+    });
+    if (!ok) return;
+    const result = await apiFetch(`/handoffs/${encodeURIComponent(slug)}/purge`, 'POST', {});
+    if (!result?.ok) return;
+    SidePanel.close();
+    selected = '';
+    Toast.success('Handoff purged');
+    await load();
+  }
+
+  function setView(next) {
+    view = next === 'archive' ? 'archive' : 'active';
+    selected = '';
+    SidePanel.close();
+    render();
+  }
+
+  function updateToggle() {
+    document.getElementById('handoffs-btn-active')?.classList.toggle('on', view === 'active');
+    document.getElementById('handoffs-btn-archive')?.classList.toggle('on', view === 'archive');
+  }
+
+  function renderStats() {
+    const host = document.getElementById('handoffs-stats');
+    if (!host) return;
+    host.innerHTML = `
+      <span><b>${active.length}</b> active</span>
+      <span><b>${archived.length}</b> archived</span>
+      <span><b>${currentItems().length}</b> visible</span>`;
+  }
+
+  function renderCommitTimeline(item) {
+    if (!item.repo || !item.head_sha) return '';
+    const commits = Array.isArray(item.staleness?.commit_timeline) ? item.staleness.commit_timeline : [];
+    const count = item.staleness?.commits_past_head;
+    const countLabel =
+      count === null || count === undefined ? 'No git signal' : `${count} commits past handoff`;
+    return `
+      <section class="handoff-commit-section">
+        <div class="handoff-section-head">
+          <span>Commit timeline</span>
+          <span>${esc(countLabel)}</span>
+        </div>
+        ${
+          commits.length
+            ? `<div class="handoff-commit-list">${commits.map(renderCommit).join('')}</div>`
+            : '<div class="handoff-commit-empty">No commits past the recorded handoff head.</div>'
+        }
+      </section>`;
+  }
+
+  function renderCommit(commit) {
+    return `
+      <div class="handoff-commit-item">
+        <span class="handoff-commit-sha">${esc(commit.short_sha || '')}</span>
+        <span class="handoff-commit-subject">${esc(commit.subject || 'Untitled commit')}</span>
+        <span class="handoff-commit-date">${esc(commitDateLabel(commit.date))}</span>
+      </div>`;
+  }
+
+  function renderHandoffTimeline(item) {
+    const entries = parseTimelineEntries(item.body);
+    return `
+      <section class="handoff-timeline-section">
+        <div class="handoff-section-head">
+          <span>Handoff timeline</span>
+          <span>${esc(sourceLabel(item))}</span>
+        </div>
+        ${
+          entries.length
+            ? `<div class="handoff-timeline-list">${entries.map(renderTimelineEntry).join('')}</div>`
+            : '<div class="handoff-commit-empty">No handoff updates yet.</div>'
+        }
+      </section>`;
+  }
+
+  function renderTimelineEntry(entry, index) {
+    return `
+      <article class="handoff-timeline-card">
+        <div class="handoff-timeline-marker" aria-hidden="true"></div>
+        <div class="handoff-timeline-content">
+          <div class="handoff-timeline-top">
+            <h4>${esc(entry.title || `Update ${index + 1}`)}</h4>
+            ${entry.meta ? `<span>${esc(entry.meta)}</span>` : ''}
+          </div>
+          <div class="handoff-timeline-body">${formatTimelineBody(entry.body)}</div>
+        </div>
+      </article>`;
+  }
+
+  function parseTimelineEntries(body) {
+    const text = String(body || '')
+      .replace(/\r\n/g, '\n')
+      .trim();
+    if (!text) return [];
+    const lines = text.split('\n');
+    const entries = [];
+    let current = null;
+    const start = (title, meta, firstLine) => {
+      if (current) entries.push(current);
+      current = { title, meta, lines: [] };
+      if (firstLine) current.lines.push(firstLine);
+    };
+
+    for (const rawLine of lines) {
+      const line = rawLine.trimEnd();
+      const trimmed = line.trim();
+      const heading = trimmed.match(/^#{1,4}\s+(.+)$/);
+      const bold = trimmed.match(/^\*\*([^*]+)\*\*\s*-?\s*(.*)$/);
+      const dated = trimmed.match(/^-?\s*(\d{4}-\d{2}-\d{2}(?:[ T][^:]+)?)[:\s-]+(.+)$/);
+      if (heading) {
+        start(heading[1], '', '');
+      } else if (bold) {
+        start(bold[1], '', bold[2] || '');
+      } else if (dated) {
+        start(dated[2], dated[1], '');
+      } else if (current) {
+        current.lines.push(line);
+      } else {
+        start('Latest handoff', '', line);
+      }
+    }
+    if (current) entries.push(current);
+    return entries.map((entry) => ({
+      title: entry.title,
+      meta: entry.meta,
+      body: entry.lines.join('\n').trim(),
+    }));
+  }
+
+  function formatTimelineBody(body) {
+    const text = String(body || '').trim();
+    if (!text) return '<p>No detail.</p>';
+    return text
+      .split(/\n{2,}/)
+      .map((block) => `<p>${esc(block).replace(/\n/g, '<br />')}</p>`)
+      .join('');
+  }
+
+  function openAddModal() {
+    const overlay = document.getElementById('handoff-modal-overlay');
+    if (!overlay) return;
+    ['handoff-modal-title', 'handoff-modal-thread', 'handoff-modal-repo'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    overlay.classList.add('open');
+    setTimeout(() => document.getElementById('handoff-modal-title')?.focus(), 0);
+  }
+
+  function closeAddModal(event) {
+    if (event && event.target.id !== 'handoff-modal-overlay') return;
+    document.getElementById('handoff-modal-overlay')?.classList.remove('open');
+  }
+
+  async function createFromModal() {
+    const title = document.getElementById('handoff-modal-title')?.value.trim();
+    const thread_tag = document.getElementById('handoff-modal-thread')?.value.trim();
+    const repo = document.getElementById('handoff-modal-repo')?.value.trim();
+    if (!title) return Toast.error('Title is required');
+    if (!thread_tag && !repo) return Toast.error('Add a thread tag or repo path');
+    const result = await apiFetch('/handoffs', 'POST', { title, thread_tag, repo });
+    if (!result?.ok) return;
+    closeAddModal();
+    view = 'active';
+    selected = result.handoff.slug;
+    Toast.success('Handoff created');
+    await load();
+  }
+
+  function typeLabel(type) {
+    if (type === 'dual') return 'Project + thread';
+    if (type === 'project') return 'Project';
+    return 'Thread';
+  }
+
+  function bindingLabel(item) {
+    if (item.thread_tag) return item.thread_tag;
+    if (item.repo) return shortPath(item.repo);
+    return item.slug;
+  }
+
+  function sourceLabel(item) {
+    if (item.repo) return '.context-engine/handoff.md';
+    return item.thread_tag || 'thread handoff';
+  }
+
+  function shortPath(value) {
+    return String(value || '')
+      .replace(/\\/g, '/')
+      .split('/')
+      .filter(Boolean)
+      .slice(-2)
+      .join('/');
+  }
+
+  function preview(body) {
+    const text = String(body || '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return text.length > 150 ? `${text.slice(0, 150).trim()}...` : text || 'No body yet.';
+  }
+
+  function ageLabel(value) {
+    const t = new Date(value || 0).getTime();
+    if (!Number.isFinite(t) || !t) return 'Unknown age';
+    const days = Math.max(0, Math.floor((Date.now() - t) / 86400000));
+    if (days === 0) return 'Today';
+    if (days === 1) return '1 day ago';
+    return `${days} days ago`;
+  }
+
+  function commitDateLabel(value) {
+    const t = new Date(value || 0);
+    if (!Number.isFinite(t.getTime())) return 'Unknown date';
+    return t.toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
+  async function init() {
+    if (initialized) return ensureLoaded();
+    initialized = true;
+    document.getElementById('handoffs-search-input')?.addEventListener('input', (event) => {
+      query = event.target.value || '';
+      selected = '';
+      render();
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') closeAddModal();
+    });
+    await load();
+  }
+
+  async function ensureLoaded() {
+    if (!initialized) return init();
+    if (!loaded) return load();
+    render();
+  }
+
+  return {
+    init,
+    ensureLoaded,
+    render,
+    select,
+    setView,
+    save,
+    archive,
+    restore,
+    purge,
+    openAddModal,
+    closeAddModal,
+    createFromModal,
+  };
+})();

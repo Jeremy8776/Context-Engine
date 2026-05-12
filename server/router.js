@@ -59,6 +59,8 @@ const {
   forgetImport: forgetSkillImport,
 } = require('./lib/skill-import');
 const { markIndexStale } = require('./lib/vectorstore');
+const { handleHandoffRequest, handoffRouteDocs } = require('./lib/handoff-routes');
+const { apiDocs } = require('./lib/api-docs');
 
 const ALLOWED_INGEST_HOSTS = new Set(['github.com', 'gitlab.com', 'codeberg.org', 'bitbucket.org']);
 
@@ -200,11 +202,7 @@ async function handleRequest(req, res, url) {
 
   // POST /api/skill-sources/:id/import — first-time import (copy/hard-link
   // into <CE_ROOT>/skills/imported/<id>/).
-  if (
-    p.startsWith('/api/skill-sources/') &&
-    p.endsWith('/import') &&
-    req.method === 'POST'
-  ) {
+  if (p.startsWith('/api/skill-sources/') && p.endsWith('/import') && req.method === 'POST') {
     const id = decodeURIComponent(p.slice('/api/skill-sources/'.length, -'/import'.length));
     if (!id) return json(res, { ok: false, error: 'id is required' }, 400);
     const result = await importSkillSource(id);
@@ -215,11 +213,7 @@ async function handleRequest(req, res, url) {
   }
 
   // GET /api/skill-sources/:id/sync — read-only diff.
-  if (
-    p.startsWith('/api/skill-sources/') &&
-    p.endsWith('/sync') &&
-    req.method === 'GET'
-  ) {
+  if (p.startsWith('/api/skill-sources/') && p.endsWith('/sync') && req.method === 'GET') {
     const id = decodeURIComponent(p.slice('/api/skill-sources/'.length, -'/sync'.length));
     if (!id) return json(res, { ok: false, error: 'id is required' }, 400);
     const result = computeSkillSyncDiff(id);
@@ -228,11 +222,7 @@ async function handleRequest(req, res, url) {
   }
 
   // POST /api/skill-sources/:id/sync/apply — apply the diff with a mode.
-  if (
-    p.startsWith('/api/skill-sources/') &&
-    p.endsWith('/sync/apply') &&
-    req.method === 'POST'
-  ) {
+  if (p.startsWith('/api/skill-sources/') && p.endsWith('/sync/apply') && req.method === 'POST') {
     const id = decodeURIComponent(p.slice('/api/skill-sources/'.length, -'/sync/apply'.length));
     if (!id) return json(res, { ok: false, error: 'id is required' }, 400);
     const data = await body(req);
@@ -241,7 +231,8 @@ async function handleRequest(req, res, url) {
     invalidateSkillCache();
     // Only mark stale if something actually changed on disk. A no-op sync
     // shouldn't trigger a rebuild prompt.
-    const touched = (result.applied?.added || 0) + (result.applied?.removed || 0) + (result.applied?.modified || 0);
+    const touched =
+      (result.applied?.added || 0) + (result.applied?.removed || 0) + (result.applied?.modified || 0);
     if (touched > 0) markIndexStale('Synced a skill source');
     return json(res, { ok: true, applied: result.applied, manifest: result.manifest });
   }
@@ -543,57 +534,12 @@ async function handleRequest(req, res, url) {
       : json(res, { ok: false, error: 'Mode not found' }, 404);
   }
 
+  const handoffHandled = await handleHandoffRequest(req, res, url);
+  if (handoffHandled !== null) return handoffHandled;
+
   // ---- API DOCS ----
   if (p === '/api/docs' && req.method === 'GET') {
-    return json(res, {
-      version: '0.2.0',
-      endpoints: [
-        { method: 'GET', path: '/api/skills', description: 'List all discovered skills' },
-        {
-          method: 'GET',
-          path: '/api/skills/:id',
-          description: 'Get one skill (record + body + section index). Optional ?section= for a slice.',
-        },
-        { method: 'GET', path: '/api/memory', description: 'Get memory entries' },
-        { method: 'POST', path: '/api/memory', description: 'Update memory (validated)' },
-        { method: 'GET', path: '/api/rules', description: 'Get rules configuration' },
-        { method: 'POST', path: '/api/rules', description: 'Update rules (validated)' },
-        { method: 'GET', path: '/api/states', description: 'Get skill toggle states' },
-        { method: 'POST', path: '/api/states', description: 'Update states + regenerate (transactional)' },
-        { method: 'GET', path: '/api/context-md', description: 'Get CONTEXT.md content + budget' },
-        { method: 'POST', path: '/api/context-md', description: 'Force-regenerate CONTEXT.md' },
-        { method: 'GET', path: '/api/compile/targets', description: 'List available compile targets' },
-        { method: 'POST', path: '/api/compile/preview', description: 'Preview compiled output' },
-        { method: 'POST', path: '/api/compile', description: 'Compile and write files to disk' },
-        { method: 'GET', path: '/api/health', description: 'Skill health check + budget' },
-        { method: 'GET', path: '/api/backups', description: 'List backup snapshots' },
-        { method: 'POST', path: '/api/backups', description: 'Create backup snapshot' },
-        { method: 'POST', path: '/api/restore', description: 'Restore from backup' },
-        { method: 'GET', path: '/api/session-log', description: 'Get activity log' },
-        { method: 'GET', path: '/api/modes', description: 'List mode presets' },
-        { method: 'POST', path: '/api/modes/apply', description: 'Apply mode preset (transactional)' },
-        ...intelligenceRouteDocs(),
-        { method: 'GET', path: '/api/mcp/hosts', description: 'List MCP host config status and snippets' },
-        {
-          method: 'POST',
-          path: '/api/mcp/hosts/install',
-          description: 'Safely install Context Engine MCP config for one supported host',
-        },
-        { method: 'GET', path: '/api/tools/detect', description: 'Auto-detect installed AI tools' },
-        {
-          method: 'POST',
-          path: '/api/tools/install-global',
-          description: 'Install compiled context to global tool paths',
-        },
-        { method: 'GET', path: '/api/workspaces', description: 'List registered project workspaces' },
-        { method: 'POST', path: '/api/workspaces', description: 'Add or remove a workspace' },
-        {
-          method: 'POST',
-          path: '/api/workspaces/compile',
-          description: 'Compile into one or all workspaces',
-        },
-      ],
-    });
+    return json(res, apiDocs([...intelligenceRouteDocs(), ...handoffRouteDocs()]));
   }
 
   // ---- COMPILER ----

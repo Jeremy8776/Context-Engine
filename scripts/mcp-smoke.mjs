@@ -39,6 +39,8 @@ const EXPECTED_TOOLS = [
   'context_engine_list_skills',
   'context_engine_get_skill',
   'context_engine_status',
+  'context_engine_handoffs',
+  'context_engine_sync_project_handoff',
 ];
 
 const failures = [];

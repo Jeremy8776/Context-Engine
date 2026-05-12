@@ -48,12 +48,19 @@ try {
 
   const { tools } = await client.listTools();
   const names = tools.map((tool) => tool.name);
-  if (names.includes('context_engine_status')) pass(`tools/list: ${tools.length} tools`);
-  else fail('tools/list: missing context_engine_status');
+  if (names.includes('context_engine_status') && names.includes('context_engine_handoffs')) {
+    pass(`tools/list: ${tools.length} tools`);
+  } else {
+    fail('tools/list: missing expected Context Engine tools');
+  }
 
   const status = await client.callTool({ name: 'context_engine_status', arguments: {} });
   if (status.isError) fail('call: context_engine_status returned isError');
   else pass('call: context_engine_status');
+
+  const handoffs = await client.callTool({ name: 'context_engine_handoffs', arguments: {} });
+  if (handoffs.isError) fail('call: context_engine_handoffs returned isError');
+  else pass('call: context_engine_handoffs');
 
   const expected = await expectedActiveSkillCount();
   const activeSkills = await client.callTool({
