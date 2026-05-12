@@ -486,6 +486,20 @@ const DS = {
   async installMcpHost(hostId) {
     return await apiFetch('/mcp/hosts/install', 'POST', { hostId }, { returnErrors: true });
   },
+  async listSkillSources() {
+    return await apiFetch('/skill-sources');
+  },
+  async scanSkillSources() {
+    return await apiFetch('/skill-sources/scan');
+  },
+  /** @param {{ path: string, label?: string }} input */
+  async addSkillSource(input) {
+    return await apiFetch('/skill-sources', 'POST', input, { returnErrors: true });
+  },
+  /** @param {string} id */
+  async removeSkillSource(id) {
+    return await apiFetch(`/skill-sources/${encodeURIComponent(id)}`, 'DELETE', null, { returnErrors: true });
+  },
   async getCompileTargets() {
     return await apiFetch('/compile/targets');
   },

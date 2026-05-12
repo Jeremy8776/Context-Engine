@@ -16,6 +16,14 @@ const Onboarding = (() => {
   let step = 1;
   /** @type {Set<string>} */
   let selectedHosts = new Set();
+  /** @type {Array<{id: string, label: string, path: string, type: string, skillCount: number}>} */
+  let skillSources = [];
+  /** @type {Array<{path: string, label: string, exists: boolean, skillCount: number, alreadyLinked: boolean}>} */
+  let skillCandidates = [];
+  /** @type {string} */
+  let customSourcePath = '';
+  /** @type {string} */
+  let sourceMessage = '';
   let mounted = false;
 
   function root() {
@@ -38,9 +46,22 @@ const Onboarding = (() => {
     if (!selectedHosts.size) {
       (summary.hosts || []).filter((host) => host.supported).forEach((host) => selectedHosts.add(host.id));
     }
+    await loadSkillSources();
     step = 1;
     mount();
     return true;
+  }
+
+  async function loadSkillSources() {
+    try {
+      const [sourcesResp, scanResp] = await Promise.all([DS.listSkillSources(), DS.scanSkillSources()]);
+      skillSources = Array.isArray(sourcesResp?.sources) ? sourcesResp.sources : [];
+      skillCandidates = Array.isArray(scanResp?.candidates) ? scanResp.candidates : [];
+    } catch (err) {
+      console.error('onboarding: skill source load failed', err);
+      skillSources = [];
+      skillCandidates = [];
+    }
   }
 
   function mount() {
@@ -152,12 +173,79 @@ const Onboarding = (() => {
         <span class="onboarding-card-name">Active now</span>
         <span class="onboarding-card-desc">${esc(activeNames.length ? activeNames.join(', ') : 'No active skills yet')}</span>
       </div>
+      ${renderSourcesSection()}
       ${
         indexReady
           ? ''
           : `<button class="fb onboarding-inline-action" type="button" onclick="Onboarding.buildIndex()">Build vector index</button>`
       }
     </section>`;
+  }
+
+  function renderSourcesSection() {
+    const linked = skillSources.filter((s) => s.type !== 'internal');
+    const candidates = skillCandidates.filter((c) => c.exists && !c.alreadyLinked && c.skillCount > 0);
+    const messageHtml = sourceMessage
+      ? `<div class="onboarding-source-message">${esc(sourceMessage)}</div>`
+      : '';
+    return `<div class="onboarding-sources">
+      <div class="onboarding-sources-head">
+        <span class="onboarding-card-name">Bring in existing skills</span>
+        <span class="onboarding-card-desc">Link a folder of SKILL.md files from another tool — Context Engine reads them without copying or moving the originals.</span>
+      </div>
+      ${
+        candidates.length
+          ? `<div class="onboarding-source-list">${candidates.map(renderCandidateRow).join('')}</div>`
+          : `<div class="onboarding-source-empty"><span class="onboarding-card-desc">No host-app skills folders detected. Paste a path below to link any folder of SKILL.md files.</span></div>`
+      }
+      <form class="onboarding-source-form" onsubmit="event.preventDefault(); Onboarding.linkCustom();">
+        <input
+          class="onboarding-source-input"
+          type="text"
+          placeholder="C:\\path\\to\\my\\skills"
+          value="${esc(customSourcePath)}"
+          oninput="Onboarding._setCustomPath(this.value)"
+        />
+        <button class="fb" type="submit">Link folder</button>
+      </form>
+      ${
+        linked.length
+          ? `<div class="onboarding-linked-head"><span class="onboarding-card-name">Linked</span></div>
+             <div class="onboarding-source-list">${linked.map(renderLinkedRow).join('')}</div>`
+          : ''
+      }
+      ${messageHtml}
+    </div>`;
+  }
+
+  /** @param {{path: string, label: string, skillCount: number}} candidate */
+  function renderCandidateRow(candidate) {
+    const pathArg = candidate.path.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    const labelArg = candidate.label.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    return `<div class="onboarding-source-row">
+      <div class="onboarding-source-row-body">
+        <span class="onboarding-card-name">${esc(candidate.label)}</span>
+        <span class="onboarding-card-desc onboarding-source-path">${esc(candidate.path)}</span>
+      </div>
+      <div class="onboarding-source-row-meta">
+        <span class="ct-badge">${esc(String(candidate.skillCount))} ${candidate.skillCount === 1 ? 'skill' : 'skills'}</span>
+        <button class="fb" type="button" onclick="Onboarding.linkPath('${pathArg}', '${labelArg}')">Link</button>
+      </div>
+    </div>`;
+  }
+
+  /** @param {{id: string, label: string, path: string, skillCount: number}} source */
+  function renderLinkedRow(source) {
+    return `<div class="onboarding-source-row linked">
+      <div class="onboarding-source-row-body">
+        <span class="onboarding-card-name">${esc(source.label)}</span>
+        <span class="onboarding-card-desc onboarding-source-path">${esc(source.path)}</span>
+      </div>
+      <div class="onboarding-source-row-meta">
+        <span class="ct-badge">${esc(String(source.skillCount || 0))} ${(source.skillCount || 0) === 1 ? 'skill' : 'skills'}</span>
+        <button class="fb" type="button" onclick="Onboarding.unlinkSource('${source.id}')">Unlink</button>
+      </div>
+    </div>`;
   }
 
   /** @param {any} tool */
@@ -300,7 +388,48 @@ const Onboarding = (() => {
 
   async function refresh() {
     summary = await apiFetch('/onboarding');
+    await loadSkillSources();
     render();
+  }
+
+  /** @param {string} sourcePath @param {string} [label] */
+  async function linkPath(sourcePath, label) {
+    sourceMessage = '';
+    const result = await DS.addSkillSource({ path: sourcePath, label });
+    if (result?.ok) {
+      sourceMessage = `Linked ${result.source?.label || sourcePath}.`;
+      if (typeof Toast !== 'undefined') Toast.success(sourceMessage);
+      await refresh();
+    } else {
+      sourceMessage = result?.error || 'Could not link this folder.';
+      render();
+    }
+  }
+
+  async function linkCustom() {
+    const trimmed = customSourcePath.trim();
+    if (!trimmed) return;
+    await linkPath(trimmed);
+    customSourcePath = '';
+  }
+
+  /** @param {string} id */
+  async function unlinkSource(id) {
+    sourceMessage = '';
+    const result = await DS.removeSkillSource(id);
+    if (result?.ok) {
+      sourceMessage = 'Source unlinked.';
+      await refresh();
+    } else {
+      sourceMessage = result?.error || 'Could not unlink that source.';
+      render();
+    }
+  }
+
+  /** @param {string} value */
+  function setCustomPath(value) {
+    customSourcePath = value;
+    // Do not re-render on every keystroke — input is uncontrolled-style.
   }
 
   /** @param {string} hostId */
@@ -350,6 +479,10 @@ const Onboarding = (() => {
     buildIndex,
     finish,
     skip,
+    linkPath,
+    linkCustom,
+    unlinkSource,
+    _setCustomPath: setCustomPath,
     _backdrop: onBackdrop,
   };
 })();

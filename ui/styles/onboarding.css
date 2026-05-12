@@ -308,6 +308,104 @@
   justify-self: start;
 }
 
+/* Step 2: skill sources sub-section */
+
+.onboarding-sources {
+  display: grid;
+  gap: var(--s-3);
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--dram-line-subtle);
+}
+
+.onboarding-sources-head {
+  display: grid;
+  gap: 4px;
+}
+
+.onboarding-source-list {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.onboarding-source-row {
+  display: flex;
+  gap: var(--s-3);
+  align-items: center;
+  padding: var(--s-2) var(--s-3);
+  background: var(--dram-card-bg);
+  border: 1px solid var(--dram-card-border);
+  border-radius: var(--r-2);
+}
+
+.onboarding-source-row.linked {
+  border-color: var(--dram-card-border-hover);
+}
+
+.onboarding-source-row-body {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.onboarding-source-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono, monospace);
+  font-size: var(--fs-01);
+  color: var(--text-4);
+}
+
+.onboarding-source-row-meta {
+  display: flex;
+  gap: var(--s-2);
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.onboarding-source-empty {
+  padding: var(--s-3);
+  background: var(--dram-bg-recessed);
+  border: 1px dashed var(--dram-line-subtle);
+  border-radius: var(--r-2);
+}
+
+.onboarding-source-form {
+  display: flex;
+  gap: var(--s-2);
+  align-items: center;
+}
+
+.onboarding-source-input {
+  flex: 1;
+  padding: 8px 10px;
+  background: var(--dram-bg-recessed);
+  border: 1px solid var(--dram-line-subtle);
+  border-radius: var(--r-2);
+  color: var(--text);
+  font-family: var(--font-mono, monospace);
+  font-size: var(--fs-02);
+}
+
+.onboarding-source-input:focus {
+  outline: none;
+  border-color: var(--dram-card-border-hover);
+}
+
+.onboarding-linked-head {
+  padding-top: var(--s-1);
+}
+
+.onboarding-source-message {
+  padding: var(--s-2) var(--s-3);
+  background: var(--dram-bg-recessed);
+  border-left: 2px solid var(--accent);
+  border-radius: var(--r-1);
+  color: var(--text-3);
+  font-size: var(--fs-02);
+}
+
 /* Step 3: surface grid */
 
 .onboarding-surface-grid {

@@ -45,6 +45,12 @@ const { buildHostConfigs, installHostConfig } = require('./lib/mcp-host-config')
 const { getOnboardingSummary, completeOnboarding, resetOnboarding } = require('./lib/onboarding');
 const { checkSafeWritePath } = require('./lib/security');
 const { handleIntelligenceRequest, intelligenceRouteDocs } = require('./lib/intelligence-routes');
+const {
+  listSources: listSkillSources,
+  addSource: addSkillSource,
+  removeSource: removeSkillSource,
+  scanHostSkillPaths,
+} = require('./lib/skill-sources');
 
 const ALLOWED_INGEST_HOSTS = new Set(['github.com', 'gitlab.com', 'codeberg.org', 'bitbucket.org']);
 
@@ -136,6 +142,45 @@ async function handleRequest(req, res, url) {
     } catch (e) {
       return json(res, { ok: false, error: e.message }, 400);
     }
+  }
+
+  // ---- SKILL SOURCES ----
+  // Registry of external skill directories. The implicit `internal` source
+  // (CE_ROOT/skills) is always returned first; user-linked sources follow.
+  if (p === '/api/skill-sources' && req.method === 'GET') {
+    const sources = listSkillSources().map((src) => {
+      // Attach a live skill count per source so the onboarding UI can
+      // surface "12 skills at ~/.claude/skills" without a second probe.
+      let skillCount = 0;
+      try {
+        skillCount = countSkillFiles(src.path);
+      } catch {
+        skillCount = 0;
+      }
+      return { ...src, skillCount };
+    });
+    return json(res, { sources });
+  }
+
+  if (p === '/api/skill-sources' && req.method === 'POST') {
+    const data = await body(req);
+    const result = addSkillSource({ path: data?.path, label: data?.label });
+    if (!result.ok) return json(res, { ok: false, error: result.error }, 400);
+    invalidateSkillCache();
+    return json(res, { ok: true, source: result.source });
+  }
+
+  if (p.startsWith('/api/skill-sources/') && req.method === 'DELETE') {
+    const id = decodeURIComponent(p.replace('/api/skill-sources/', ''));
+    if (!id || id === 'scan') return json(res, { ok: false, error: 'id is required' }, 400);
+    const result = removeSkillSource(id);
+    if (!result.ok) return json(res, { ok: false, error: result.error }, 400);
+    invalidateSkillCache();
+    return json(res, { ok: true });
+  }
+
+  if (p === '/api/skill-sources/scan' && req.method === 'GET') {
+    return json(res, { candidates: scanHostSkillPaths() });
   }
 
   if (p === '/api/skills/organise' && req.method === 'POST') {

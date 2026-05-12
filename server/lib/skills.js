@@ -277,46 +277,69 @@ function scanSkills(forceRefresh = false) {
   if (!forceRefresh && _skillCache && now - _skillCacheTime < SKILL_CACHE_TTL) return _skillCache;
 
   const map = {};
-  if (!fs.existsSync(SKILLS_DIR)) return map;
   const cache = loadParseCache();
+  // Lazy-required to avoid load-order issues during module init.
+  const { listSources } = require('./skill-sources');
 
-  const scan = (dir, cat = 'Uncategorized') => {
-    const items = fs.readdirSync(dir).sort((a, b) => a.localeCompare(b));
+  const scan = (dir, sourceId, sourceLabel, cat = 'Uncategorized') => {
+    let items;
+    try {
+      items = fs.readdirSync(dir).sort((a, b) => a.localeCompare(b));
+    } catch {
+      return;
+    }
     items.forEach((item) => {
       const fullPath = path.join(dir, item);
-      const stat = fs.statSync(fullPath);
-      if (stat.isDirectory()) {
-        const skillFile = path.join(fullPath, 'SKILL.md');
-        if (fs.existsSync(skillFile)) {
-          const id = item;
-          if (map[id]) return;
-          const content = fs.readFileSync(skillFile, 'utf8');
-          const fm = parseSkillFrontmatter(content);
-          const cached = cache[id];
-          let desc = cached?.description || fm.description || '';
-          if (!desc) {
-            const headingMatch = content.match(/^#\s+.+\r?\n\r?\n(.+)/m);
-            if (headingMatch) desc = headingMatch[1].trim();
-          }
-          const triggers = cached?.triggers || extractTriggers(content, desc);
-          map[id] = {
-            id,
-            name: fm.name || id,
-            cat,
-            type: 'custom',
-            path: skillFile,
-            desc: desc || 'No description',
-            triggers,
-            needsParse: !fm.description && !cached,
-          };
-        } else {
-          scan(fullPath, item);
+      let stat;
+      try {
+        stat = fs.statSync(fullPath);
+      } catch {
+        return;
+      }
+      if (!stat.isDirectory()) return;
+      const skillFile = path.join(fullPath, 'SKILL.md');
+      if (fs.existsSync(skillFile)) {
+        const id = item;
+        // First-source-wins. Internal is scanned first; later sources don't
+        // overwrite an id that's already mapped.
+        if (map[id]) return;
+        let content;
+        try {
+          content = fs.readFileSync(skillFile, 'utf8');
+        } catch {
+          return;
         }
+        const fm = parseSkillFrontmatter(content);
+        const cached = cache[id];
+        let desc = cached?.description || fm.description || '';
+        if (!desc) {
+          const headingMatch = content.match(/^#\s+.+\r?\n\r?\n(.+)/m);
+          if (headingMatch) desc = headingMatch[1].trim();
+        }
+        const triggers = cached?.triggers || extractTriggers(content, desc);
+        map[id] = {
+          id,
+          name: fm.name || id,
+          cat,
+          type: 'custom',
+          path: skillFile,
+          desc: desc || 'No description',
+          triggers,
+          needsParse: !fm.description && !cached,
+          sourceId,
+          sourceLabel,
+        };
+      } else {
+        scan(fullPath, sourceId, sourceLabel, item);
       }
     });
   };
 
-  scan(SKILLS_DIR);
+  for (const source of listSources()) {
+    if (!fs.existsSync(source.path)) continue;
+    scan(source.path, source.id, source.label);
+  }
+
   _skillCache = map;
   _skillCacheTime = now;
   return map;

@@ -115,6 +115,24 @@ type DataStoreApi = {
   }): Promise<any>;
   getMcpHosts(): Promise<{ hosts?: McpHostRecord[] } | null>;
   installMcpHost(hostId: string): Promise<any>;
+  listSkillSources(): Promise<{
+    sources?: Array<{ id: string; label: string; path: string; type: string; skillCount: number }>;
+  } | null>;
+  scanSkillSources(): Promise<{
+    candidates?: Array<{
+      path: string;
+      label: string;
+      exists: boolean;
+      skillCount: number;
+      alreadyLinked: boolean;
+    }>;
+  } | null>;
+  addSkillSource(input: { path: string; label?: string }): Promise<{
+    ok: boolean;
+    error?: string;
+    source?: { id: string; label: string; path: string };
+  } | null>;
+  removeSkillSource(id: string): Promise<{ ok: boolean; error?: string } | null>;
   getCompileTargets(): Promise<any>;
   compilePreview(targets: string[]): Promise<any>;
   compile(targets: string[], outputDir?: string): Promise<any>;
