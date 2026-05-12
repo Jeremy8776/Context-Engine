@@ -328,9 +328,8 @@
 }
 
 .onboarding-source-row {
-  display: flex;
-  gap: var(--s-3);
-  align-items: center;
+  display: grid;
+  gap: var(--s-2);
   padding: var(--s-2) var(--s-3);
   background: var(--dram-card-bg);
   border: 1px solid var(--dram-card-border);
@@ -339,6 +338,16 @@
 
 .onboarding-source-row.linked {
   border-color: var(--dram-card-border-hover);
+}
+
+.onboarding-source-row.expanded {
+  border-color: var(--dram-card-border-active);
+}
+
+.onboarding-source-row-top {
+  display: flex;
+  gap: var(--s-3);
+  align-items: center;
 }
 
 .onboarding-source-row-body {
@@ -404,6 +413,70 @@
   border-radius: var(--r-1);
   color: var(--text-3);
   font-size: var(--fs-02);
+}
+
+/* Diff panel (expanded linked row showing sync changes) */
+
+.onboarding-diff-panel {
+  display: grid;
+  gap: var(--s-2);
+  padding-top: var(--s-2);
+  border-top: 1px solid var(--dram-line-subtle);
+}
+
+.onboarding-diff-group {
+  display: grid;
+  gap: 4px;
+}
+
+.onboarding-diff-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-3);
+}
+
+.onboarding-diff-group[data-kind='added'] .onboarding-diff-label {
+  color: var(--ok);
+}
+
+.onboarding-diff-group[data-kind='removed'] .onboarding-diff-label {
+  color: var(--err);
+}
+
+.onboarding-diff-group[data-kind='modified'] .onboarding-diff-label {
+  color: var(--warn);
+}
+
+.onboarding-diff-files {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0 0 0 var(--s-3);
+  list-style: none;
+  font-family: var(--font-mono, monospace);
+  font-size: var(--fs-01);
+  color: var(--text-3);
+}
+
+.onboarding-diff-files li {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.onboarding-diff-more {
+  color: var(--text-4);
+  font-style: italic;
+}
+
+.onboarding-diff-actions {
+  display: flex;
+  gap: var(--s-2);
+  justify-content: flex-end;
+  align-items: center;
+  padding-top: var(--s-2);
 }
 
 /* Step 3: surface grid */

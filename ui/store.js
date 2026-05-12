@@ -500,6 +500,18 @@ const DS = {
   async removeSkillSource(id) {
     return await apiFetch(`/skill-sources/${encodeURIComponent(id)}`, 'DELETE', null, { returnErrors: true });
   },
+  /** @param {string} id */
+  async importSkillSource(id) {
+    return await apiFetch(`/skill-sources/${encodeURIComponent(id)}/import`, 'POST', {}, { returnErrors: true });
+  },
+  /** @param {string} id */
+  async syncSkillSource(id) {
+    return await apiFetch(`/skill-sources/${encodeURIComponent(id)}/sync`, 'GET', null, { returnErrors: true });
+  },
+  /** @param {string} id @param {'append' | 'overwrite'} mode */
+  async applySkillSourceSync(id, mode) {
+    return await apiFetch(`/skill-sources/${encodeURIComponent(id)}/sync/apply`, 'POST', { mode }, { returnErrors: true });
+  },
   async getCompileTargets() {
     return await apiFetch('/compile/targets');
   },

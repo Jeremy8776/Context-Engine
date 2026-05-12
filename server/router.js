@@ -51,6 +51,13 @@ const {
   removeSource: removeSkillSource,
   scanHostSkillPaths,
 } = require('./lib/skill-sources');
+const {
+  importSource: importSkillSource,
+  computeSyncDiff: computeSkillSyncDiff,
+  applySyncDiff: applySkillSyncDiff,
+  readManifest: readSkillImportManifest,
+  forgetImport: forgetSkillImport,
+} = require('./lib/skill-import');
 
 const ALLOWED_INGEST_HOSTS = new Set(['github.com', 'gitlab.com', 'codeberg.org', 'bitbucket.org']);
 
@@ -157,7 +164,22 @@ async function handleRequest(req, res, url) {
       } catch {
         skillCount = 0;
       }
-      return { ...src, skillCount };
+      // Imported state is derived from manifest presence — the user's source
+      // record stays `external`; importing is a runtime aspect, not a type.
+      let imported = false;
+      let lastSyncedAt = null;
+      let aggregateStrategy = null;
+      let fileCount = 0;
+      if (src.type !== 'internal') {
+        const manifest = readSkillImportManifest(src.id);
+        if (manifest) {
+          imported = true;
+          lastSyncedAt = manifest.lastSyncedAt;
+          aggregateStrategy = manifest.aggregateStrategy;
+          fileCount = manifest.files.length;
+        }
+      }
+      return { ...src, skillCount, imported, lastSyncedAt, aggregateStrategy, fileCount };
     });
     return json(res, { sources });
   }
@@ -170,17 +192,65 @@ async function handleRequest(req, res, url) {
     return json(res, { ok: true, source: result.source });
   }
 
+  if (p === '/api/skill-sources/scan' && req.method === 'GET') {
+    return json(res, { candidates: scanHostSkillPaths() });
+  }
+
+  // POST /api/skill-sources/:id/import — first-time import (copy/hard-link
+  // into <CE_ROOT>/skills/imported/<id>/).
+  if (
+    p.startsWith('/api/skill-sources/') &&
+    p.endsWith('/import') &&
+    req.method === 'POST'
+  ) {
+    const id = decodeURIComponent(p.slice('/api/skill-sources/'.length, -'/import'.length));
+    if (!id) return json(res, { ok: false, error: 'id is required' }, 400);
+    const result = await importSkillSource(id);
+    if (!result.ok) return json(res, { ok: false, error: result.error }, 400);
+    invalidateSkillCache();
+    return json(res, { ok: true, manifest: result.manifest });
+  }
+
+  // GET /api/skill-sources/:id/sync — read-only diff.
+  if (
+    p.startsWith('/api/skill-sources/') &&
+    p.endsWith('/sync') &&
+    req.method === 'GET'
+  ) {
+    const id = decodeURIComponent(p.slice('/api/skill-sources/'.length, -'/sync'.length));
+    if (!id) return json(res, { ok: false, error: 'id is required' }, 400);
+    const result = computeSkillSyncDiff(id);
+    if (!result.ok) return json(res, { ok: false, error: result.error }, 400);
+    return json(res, { ok: true, diff: result.diff, manifest: result.manifest });
+  }
+
+  // POST /api/skill-sources/:id/sync/apply — apply the diff with a mode.
+  if (
+    p.startsWith('/api/skill-sources/') &&
+    p.endsWith('/sync/apply') &&
+    req.method === 'POST'
+  ) {
+    const id = decodeURIComponent(p.slice('/api/skill-sources/'.length, -'/sync/apply'.length));
+    if (!id) return json(res, { ok: false, error: 'id is required' }, 400);
+    const data = await body(req);
+    const result = await applySkillSyncDiff(id, data?.mode);
+    if (!result.ok) return json(res, { ok: false, error: result.error }, 400);
+    invalidateSkillCache();
+    return json(res, { ok: true, applied: result.applied, manifest: result.manifest });
+  }
+
+  // DELETE /api/skill-sources/:id — must come AFTER more-specific sub-routes.
   if (p.startsWith('/api/skill-sources/') && req.method === 'DELETE') {
     const id = decodeURIComponent(p.replace('/api/skill-sources/', ''));
     if (!id || id === 'scan') return json(res, { ok: false, error: 'id is required' }, 400);
     const result = removeSkillSource(id);
     if (!result.ok) return json(res, { ok: false, error: result.error }, 400);
+    // If the source was imported, drop its manifest so future re-links of the
+    // same path start fresh. The imported tree itself stays — the user chose
+    // to materialise those files; tearing them down on unlink would surprise.
+    forgetSkillImport(id);
     invalidateSkillCache();
     return json(res, { ok: true });
-  }
-
-  if (p === '/api/skill-sources/scan' && req.method === 'GET') {
-    return json(res, { candidates: scanHostSkillPaths() });
   }
 
   if (p === '/api/skills/organise' && req.method === 'POST') {

@@ -116,7 +116,17 @@ type DataStoreApi = {
   getMcpHosts(): Promise<{ hosts?: McpHostRecord[] } | null>;
   installMcpHost(hostId: string): Promise<any>;
   listSkillSources(): Promise<{
-    sources?: Array<{ id: string; label: string; path: string; type: string; skillCount: number }>;
+    sources?: Array<{
+      id: string;
+      label: string;
+      path: string;
+      type: string;
+      skillCount: number;
+      imported?: boolean;
+      lastSyncedAt?: string | null;
+      aggregateStrategy?: string | null;
+      fileCount?: number;
+    }>;
   } | null>;
   scanSkillSources(): Promise<{
     candidates?: Array<{
@@ -133,6 +143,34 @@ type DataStoreApi = {
     source?: { id: string; label: string; path: string };
   } | null>;
   removeSkillSource(id: string): Promise<{ ok: boolean; error?: string } | null>;
+  importSkillSource(id: string): Promise<{
+    ok: boolean;
+    error?: string;
+    manifest?: {
+      sourceId: string;
+      sourcePath: string;
+      destPath: string;
+      aggregateStrategy: string;
+      files: Array<{ rel: string; size: number; mtimeMs: number; strategy: string }>;
+    };
+  } | null>;
+  syncSkillSource(id: string): Promise<{
+    ok: boolean;
+    error?: string;
+    diff?: {
+      added: Array<{ rel: string; size: number; mtimeMs: number }>;
+      removed: Array<{ rel: string }>;
+      modified: Array<{ rel: string; size: number; mtimeMs: number }>;
+    };
+  } | null>;
+  applySkillSourceSync(
+    id: string,
+    mode: 'append' | 'overwrite',
+  ): Promise<{
+    ok: boolean;
+    error?: string;
+    applied?: { added: number; removed: number; modified: number };
+  } | null>;
   getCompileTargets(): Promise<any>;
   compilePreview(targets: string[]): Promise<any>;
   compile(targets: string[], outputDir?: string): Promise<any>;

@@ -16,7 +16,7 @@ const Onboarding = (() => {
   let step = 1;
   /** @type {Set<string>} */
   let selectedHosts = new Set();
-  /** @type {Array<{id: string, label: string, path: string, type: string, skillCount: number}>} */
+  /** @type {Array<{id: string, label: string, path: string, type: string, skillCount: number, imported?: boolean, lastSyncedAt?: string | null, aggregateStrategy?: string | null, fileCount?: number}>} */
   let skillSources = [];
   /** @type {Array<{path: string, label: string, exists: boolean, skillCount: number, alreadyLinked: boolean}>} */
   let skillCandidates = [];
@@ -24,6 +24,12 @@ const Onboarding = (() => {
   let customSourcePath = '';
   /** @type {string} */
   let sourceMessage = '';
+  /** @type {string | null} */
+  let expandedSourceId = null;
+  /** @type {Map<string, {added: Array<{rel: string}>, removed: Array<{rel: string}>, modified: Array<{rel: string}>}>} */
+  const pendingDiffs = new Map();
+  /** @type {Map<string, 'import' | 'sync' | 'apply'>} */
+  const pendingOp = new Map();
   let mounted = false;
 
   function root() {
@@ -234,17 +240,74 @@ const Onboarding = (() => {
     </div>`;
   }
 
-  /** @param {{id: string, label: string, path: string, skillCount: number}} source */
+  /** @param {{id: string, label: string, path: string, skillCount: number, imported?: boolean, lastSyncedAt?: string | null, fileCount?: number}} source */
   function renderLinkedRow(source) {
-    return `<div class="onboarding-source-row linked">
-      <div class="onboarding-source-row-body">
-        <span class="onboarding-card-name">${esc(source.label)}</span>
-        <span class="onboarding-card-desc onboarding-source-path">${esc(source.path)}</span>
+    const isImported = !!source.imported;
+    const isExpanded = expandedSourceId === source.id;
+    const inFlight = pendingOp.get(source.id);
+    const diff = pendingDiffs.get(source.id);
+
+    const importedBadge = isImported
+      ? `<span class="ct-badge">Imported${source.fileCount ? ` (${source.fileCount} files)` : ''}</span>`
+      : '';
+
+    const primaryAction = isImported
+      ? `<button class="fb" type="button" ${inFlight ? 'disabled' : ''} onclick="Onboarding.checkSourceChanges('${source.id}')">${inFlight === 'sync' ? 'Checking…' : 'Check for changes'}</button>`
+      : `<button class="fb" type="button" ${inFlight ? 'disabled' : ''} onclick="Onboarding.importSource('${source.id}')">${inFlight === 'import' ? 'Importing…' : 'Import to CE'}</button>`;
+
+    return `<div class="onboarding-source-row linked ${isExpanded ? 'expanded' : ''}">
+      <div class="onboarding-source-row-top">
+        <div class="onboarding-source-row-body">
+          <span class="onboarding-card-name">${esc(source.label)}</span>
+          <span class="onboarding-card-desc onboarding-source-path">${esc(source.path)}</span>
+        </div>
+        <div class="onboarding-source-row-meta">
+          ${importedBadge}
+          <span class="ct-badge">${esc(String(source.skillCount || 0))} ${(source.skillCount || 0) === 1 ? 'skill' : 'skills'}</span>
+          ${primaryAction}
+          <button class="fb" type="button" ${inFlight ? 'disabled' : ''} onclick="Onboarding.unlinkSource('${source.id}')">Unlink</button>
+        </div>
       </div>
-      <div class="onboarding-source-row-meta">
-        <span class="ct-badge">${esc(String(source.skillCount || 0))} ${(source.skillCount || 0) === 1 ? 'skill' : 'skills'}</span>
-        <button class="fb" type="button" onclick="Onboarding.unlinkSource('${source.id}')">Unlink</button>
+      ${isExpanded && diff ? renderDiffPanel(source.id, diff) : ''}
+    </div>`;
+  }
+
+  /** @param {string} sourceId @param {{added: Array<{rel: string}>, removed: Array<{rel: string}>, modified: Array<{rel: string}>}} diff */
+  function renderDiffPanel(sourceId, diff) {
+    const inFlight = pendingOp.get(sourceId);
+    const total = diff.added.length + diff.removed.length + diff.modified.length;
+    if (total === 0) {
+      return `<div class="onboarding-diff-panel">
+        <span class="onboarding-card-desc">No changes detected. The imported tree matches the source.</span>
+        <div class="onboarding-diff-actions">
+          <button class="fb" type="button" onclick="Onboarding.closeDiff('${sourceId}')">Close</button>
+        </div>
+      </div>`;
+    }
+    return `<div class="onboarding-diff-panel">
+      ${renderDiffList('Added', diff.added, 'added')}
+      ${renderDiffList('Removed', diff.removed, 'removed')}
+      ${renderDiffList('Modified', diff.modified, 'modified')}
+      <div class="onboarding-diff-actions">
+        <button class="fb" type="button" ${inFlight ? 'disabled' : ''} onclick="Onboarding.closeDiff('${sourceId}')">Cancel</button>
+        <button class="fb" type="button" ${inFlight || !diff.added.length ? 'disabled' : ''} onclick="Onboarding.applySync('${sourceId}', 'append')">${inFlight === 'apply' ? 'Applying…' : 'Append (add new only)'}</button>
+        <button class="save-btn" type="button" ${inFlight ? 'disabled' : ''} onclick="Onboarding.applySync('${sourceId}', 'overwrite')">${inFlight === 'apply' ? 'Applying…' : 'Overwrite (mirror source)'}</button>
       </div>
+    </div>`;
+  }
+
+  /** @param {string} label @param {Array<{rel: string}>} items @param {string} kind */
+  function renderDiffList(label, items, kind) {
+    if (!items.length) return '';
+    return `<div class="onboarding-diff-group" data-kind="${kind}">
+      <span class="onboarding-diff-label">${esc(label)} · ${items.length}</span>
+      <ul class="onboarding-diff-files">
+        ${items
+          .slice(0, 8)
+          .map((entry) => `<li>${esc(entry.rel)}</li>`)
+          .join('')}
+        ${items.length > 8 ? `<li class="onboarding-diff-more">+${items.length - 8} more</li>` : ''}
+      </ul>
     </div>`;
   }
 
@@ -432,6 +495,79 @@ const Onboarding = (() => {
     // Do not re-render on every keystroke — input is uncontrolled-style.
   }
 
+  /** @param {string} id */
+  async function importSource(id) {
+    sourceMessage = '';
+    pendingOp.set(id, 'import');
+    render();
+    try {
+      const result = await DS.importSkillSource(id);
+      if (result?.ok) {
+        const strategy = result.manifest?.aggregateStrategy || 'link';
+        sourceMessage = `Imported. Files placed via ${strategy === 'link' ? 'hard link' : strategy === 'copy' ? 'copy' : 'link + copy'}.`;
+        if (typeof Toast !== 'undefined') Toast.success('Source imported');
+        await refresh();
+      } else {
+        sourceMessage = result?.error || 'Could not import this source.';
+        render();
+      }
+    } finally {
+      pendingOp.delete(id);
+      render();
+    }
+  }
+
+  /** @param {string} id */
+  async function checkSourceChanges(id) {
+    sourceMessage = '';
+    pendingOp.set(id, 'sync');
+    render();
+    try {
+      const result = await DS.syncSkillSource(id);
+      if (result?.ok && result.diff) {
+        pendingDiffs.set(id, result.diff);
+        expandedSourceId = id;
+      } else {
+        sourceMessage = result?.error || 'Could not read source changes.';
+      }
+    } finally {
+      pendingOp.delete(id);
+      render();
+    }
+  }
+
+  /** @param {string} id */
+  function closeDiff(id) {
+    pendingDiffs.delete(id);
+    if (expandedSourceId === id) expandedSourceId = null;
+    render();
+  }
+
+  /** @param {string} id @param {'append' | 'overwrite'} mode */
+  async function applySync(id, mode) {
+    pendingOp.set(id, 'apply');
+    render();
+    try {
+      const result = await DS.applySkillSourceSync(id, mode);
+      if (result?.ok) {
+        const a = result.applied?.added || 0;
+        const r = result.applied?.removed || 0;
+        const m = result.applied?.modified || 0;
+        sourceMessage = `Sync applied — ${a} added, ${r} removed, ${m} modified.`;
+        pendingDiffs.delete(id);
+        expandedSourceId = null;
+        if (typeof Toast !== 'undefined') Toast.success('Source synced');
+        await refresh();
+      } else {
+        sourceMessage = result?.error || 'Could not apply changes.';
+        render();
+      }
+    } finally {
+      pendingOp.delete(id);
+      render();
+    }
+  }
+
   /** @param {string} hostId */
   async function connectHost(hostId) {
     const result = await DS.installMcpHost(hostId);
@@ -482,6 +618,10 @@ const Onboarding = (() => {
     linkPath,
     linkCustom,
     unlinkSource,
+    importSource,
+    checkSourceChanges,
+    closeDiff,
+    applySync,
     _setCustomPath: setCustomPath,
     _backdrop: onBackdrop,
   };
