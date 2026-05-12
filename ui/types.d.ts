@@ -365,6 +365,7 @@ declare const SkillSourcesPanel: {
   refresh(): Promise<void> | void;
   linkPath(path: string, label?: string): Promise<void>;
   linkCustom(): Promise<void>;
+  browse(): Promise<void>;
   unlink(id: string): Promise<void>;
   import(id: string): Promise<void>;
   check(id: string): Promise<void>;
@@ -425,6 +426,7 @@ interface Window {
     installUpdate: () => void;
     appVersion?: string;
     runtime?: 'electron' | 'browser' | string;
+    selectFolder?: (options?: { title?: string }) => Promise<string | null>;
   };
   CESelect?: typeof CESelect;
 }

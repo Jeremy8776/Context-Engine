@@ -23,6 +23,10 @@ contextBridge.exposeInMainWorld('contextEngineDesktop', {
     return () => ipcRenderer.removeListener('update:event', listener);
   },
   installUpdate: () => ipcRenderer.send('update:install'),
+  // Native folder picker — returns a path string or null on cancel. Consumers
+  // (onboarding, connections Sources panel) fall back to the text input when
+  // this isn't available (i.e. when running in a plain browser).
+  selectFolder: (options) => ipcRenderer.invoke('dialog:select-folder', options || {}),
 });
 
 window.addEventListener('DOMContentLoaded', () => {

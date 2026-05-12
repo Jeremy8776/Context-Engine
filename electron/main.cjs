@@ -231,3 +231,16 @@ ipcMain.on('window:maximize', () => {
 ipcMain.on('window:close', () => {
   if (mainWindow) mainWindow.close();
 });
+
+// Native folder picker. Renderer calls contextEngineDesktop.selectFolder()
+// to get a path string back; primarily used by the skill-sources UI in both
+// onboarding and the Connections tab so users don't have to paste full paths.
+ipcMain.handle('dialog:select-folder', async (_event, options) => {
+  const dialogOptions = {
+    properties: ['openDirectory'],
+    title: (options && typeof options.title === 'string' ? options.title : 'Pick a folder'),
+  };
+  const result = await dialog.showOpenDialog(mainWindow || undefined, dialogOptions);
+  if (result.canceled || !result.filePaths?.length) return null;
+  return result.filePaths[0];
+});

@@ -56,6 +56,11 @@ const SkillSourcesPanel = (() => {
           value="${esc(customPath)}"
           oninput="SkillSourcesPanel._setPath(this.value)"
         />
+        ${
+          typeof window !== 'undefined' && window.contextEngineDesktop?.selectFolder
+            ? '<button class="fb" type="button" onclick="SkillSourcesPanel.browse()">Browse…</button>'
+            : ''
+        }
         <button class="fb" type="submit">Link folder</button>
       </form>
       ${
@@ -180,6 +185,19 @@ const SkillSourcesPanel = (() => {
     customPath = '';
   }
 
+  async function browse() {
+    const picker = window.contextEngineDesktop?.selectFolder;
+    if (!picker) return;
+    try {
+      const picked = await picker({ title: 'Pick a folder of SKILL.md files to link' });
+      if (picked) await linkPath(picked);
+    } catch (err) {
+      console.error('skill-sources-panel: folder picker failed', err);
+      message = 'Could not open folder picker.';
+      render();
+    }
+  }
+
   /** @param {string} id */
   async function unlink(id) {
     message = '';
@@ -273,6 +291,7 @@ const SkillSourcesPanel = (() => {
     refresh,
     linkPath,
     linkCustom,
+    browse,
     unlink,
     import: importSource,
     check,

@@ -212,6 +212,11 @@ const Onboarding = (() => {
           value="${esc(customSourcePath)}"
           oninput="Onboarding._setCustomPath(this.value)"
         />
+        ${
+          typeof window !== 'undefined' && window.contextEngineDesktop?.selectFolder
+            ? '<button class="fb" type="button" onclick="Onboarding.browse()">Browse…</button>'
+            : ''
+        }
         <button class="fb" type="submit">Link folder</button>
       </form>
       ${
@@ -476,6 +481,19 @@ const Onboarding = (() => {
     customSourcePath = '';
   }
 
+  async function browse() {
+    const picker = window.contextEngineDesktop?.selectFolder;
+    if (!picker) return;
+    try {
+      const picked = await picker({ title: 'Pick a folder of SKILL.md files to link' });
+      if (picked) await linkPath(picked);
+    } catch (err) {
+      console.error('onboarding: folder picker failed', err);
+      sourceMessage = 'Could not open folder picker.';
+      render();
+    }
+  }
+
   /** @param {string} id */
   async function unlinkSource(id) {
     sourceMessage = '';
@@ -617,6 +635,7 @@ const Onboarding = (() => {
     skip,
     linkPath,
     linkCustom,
+    browse,
     unlinkSource,
     importSource,
     checkSourceChanges,
