@@ -83,9 +83,55 @@ function deleteManifest(sourceId) {
   }
 }
 
+/** Cap traversal to bound DoS via huge trees / infinite loops. */
+const WALK_FILE_CAP = 10000;
+const WALK_DEPTH_CAP = 12;
+
+/**
+ * Reject a relative path that escapes the walked root (`..` segments,
+ * absolute path, drive letter). Used as a second-line check on the
+ * `path.relative()` output before any `path.join(dest, rel)` operation.
+ *
+ * @param {string} rel
+ */
+function isRelPathSafe(rel) {
+  if (!rel || typeof rel !== 'string') return false;
+  if (path.isAbsolute(rel)) return false;
+  // Reject drive-letter prefixes that path.isAbsolute misses on cross-platform paths.
+  if (/^[a-zA-Z]:/.test(rel)) return false;
+  const segments = rel.split(/[\\/]+/);
+  return !segments.some((seg) => seg === '..' || seg === '');
+}
+
+/**
+ * Join base + rel and assert the result stays strictly inside base. Returns
+ * null when rel is unsafe or resolves outside base; caller decides whether
+ * to skip the file or fail the whole operation. Always use this instead of
+ * `path.join(base, rel)` when `rel` came from disk-walked or manifest data.
+ *
+ * @param {string} base
+ * @param {string} rel
+ */
+function safeJoin(base, rel) {
+  if (!isRelPathSafe(rel)) return null;
+  const target = path.resolve(base, rel);
+  const baseResolved = path.resolve(base);
+  // Allow `target === baseResolved` (rel === '') only at the boundary; reject
+  // anything that doesn't sit STRICTLY under base + separator.
+  if (target !== baseResolved && !target.startsWith(baseResolved + path.sep)) return null;
+  return target;
+}
+
 /**
  * Walk a directory recursively and return every file as a relative path with
  * stat info. Tolerant of unreadable dirs.
+ *
+ * Symlinks are detected via `fs.lstatSync` and **skipped** — they're the
+ * primary import-tree escape vector. A "safe-looking" source dir with a
+ * symlink to `C:\Windows\system.ini` would otherwise be followed by the
+ * walk and hard-linked into the imported tree. Symlinked subdirs would
+ * produce `rel` paths like `../../Windows/...` that downstream `path.join`
+ * would happily place outside dest.
  *
  * @param {string} root
  * @returns {Array<{ rel: string, abs: string, size: number, mtimeMs: number }>}
@@ -93,9 +139,17 @@ function deleteManifest(sourceId) {
 function walkFiles(root) {
   /** @type {Array<{ rel: string, abs: string, size: number, mtimeMs: number }>} */
   const out = [];
+  let resolvedRoot;
+  try {
+    resolvedRoot = fs.realpathSync(root);
+  } catch {
+    return out;
+  }
 
-  /** @param {string} dir */
-  const walk = (dir) => {
+  /** @param {string} dir @param {number} depth */
+  const walk = (dir, depth) => {
+    if (depth > WALK_DEPTH_CAP) return;
+    if (out.length >= WALK_FILE_CAP) return;
     let items;
     try {
       items = fs.readdirSync(dir);
@@ -103,25 +157,39 @@ function walkFiles(root) {
       return;
     }
     for (const item of items) {
+      if (out.length >= WALK_FILE_CAP) return;
       const abs = path.join(dir, item);
-      let stat;
+      let lstat;
       try {
-        stat = fs.statSync(abs);
+        lstat = fs.lstatSync(abs);
       } catch {
         continue;
       }
-      if (stat.isDirectory()) {
-        walk(abs);
-      } else if (stat.isFile()) {
-        const rel = path.relative(root, abs).replace(/\\/g, '/');
-        out.push({ rel, abs, size: stat.size, mtimeMs: stat.mtimeMs });
+      // Skip every symlink — both file and directory. Following them
+      // either escapes the root (containment violation) or hard-links
+      // through to whatever the symlink points at (file disclosure).
+      if (lstat.isSymbolicLink()) continue;
+      if (lstat.isDirectory()) {
+        walk(abs, depth + 1);
+      } else if (lstat.isFile()) {
+        const rel = path.relative(resolvedRoot, abs).replace(/\\/g, '/');
+        // Defence in depth: a `..` should be impossible after the symlink
+        // skip above, but bail anyway if anything produced a traversal.
+        if (!isRelPathSafe(rel)) continue;
+        out.push({ rel, abs, size: lstat.size, mtimeMs: lstat.mtimeMs });
       }
     }
   };
 
-  walk(root);
+  walk(resolvedRoot, 0);
   return out.sort((a, b) => a.rel.localeCompare(b.rel));
 }
+
+// Errors where hard-link is genuinely not possible but copy will work.
+// Anything else (ENOSPC disk full, EROFS read-only, EACCES auth, EIO) is
+// a real failure and should propagate so the caller can surface it
+// instead of silently masking with a copy that will also fail.
+const LINK_FALLBACK_CODES = new Set(['EXDEV', 'EPERM', 'ENOTSUP', 'EOPNOTSUPP']);
 
 /**
  * Hard-link or copy one source file into the destination tree. Creates parent
@@ -148,7 +216,9 @@ function placeFile(src, dest) {
         /* fall through to copy */
       }
     }
-    // Cross-volume, permission, non-link-capable filesystem — copy instead.
+    // Cross-volume / permission-blocked-for-link / non-link-capable filesystem.
+    // Other errors (disk-full, IO, etc.) propagate; copy isn't going to help.
+    if (!LINK_FALLBACK_CODES.has(code) && code !== 'EEXIST') throw err;
     fs.copyFileSync(src, dest);
     return 'copy';
   }
@@ -247,7 +317,10 @@ async function importSource(sourceId) {
     /** @type {ImportFileEntry[]} */
     const placed = [];
     for (const file of files) {
-      const target = path.join(dest, file.rel);
+      const target = safeJoin(dest, file.rel);
+      if (!target) {
+        return { ok: false, error: `Refusing to place ${file.rel}: path escapes import directory` };
+      }
       let strategy;
       try {
         strategy = placeFile(file.abs, target);
@@ -369,13 +442,17 @@ function computeSyncDiff(sourceId) {
  * @param {ImportFileEntry} entry
  */
 function importedCopyDiverged(manifest, entry) {
-  const target = path.join(manifest.destPath, entry.rel);
+  const target = safeJoin(manifest.destPath, entry.rel);
+  if (!target) return true;
   let destStat;
   try {
-    destStat = fs.statSync(target);
+    destStat = fs.lstatSync(target);
   } catch {
     return true;
   }
+  // A dest entry that's become a symlink can't be trusted; flag as diverged
+  // so overwrite re-places it from source (and breaks the symlink).
+  if (destStat.isSymbolicLink()) return true;
   return destStat.size !== entry.size || destStat.mtimeMs !== entry.mtimeMs;
 }
 
@@ -387,8 +464,11 @@ function importedCopyDiverged(manifest, entry) {
  *   re-placement pass.
  */
 function currentByRelForReplace(sourcePath, rel) {
+  const target = safeJoin(sourcePath, rel);
+  if (!target) return false;
   try {
-    return fs.statSync(path.join(sourcePath, rel)).isFile();
+    const lstat = fs.lstatSync(target);
+    return lstat.isFile() && !lstat.isSymbolicLink();
   } catch {
     return false;
   }
@@ -435,8 +515,11 @@ async function applySyncDiff(sourceId, mode) {
 
     // 1. Add new files.
     for (const entry of diff.added) {
-      const src = path.join(sourcePath, entry.rel);
-      const tgt = path.join(dest, entry.rel);
+      const src = safeJoin(sourcePath, entry.rel);
+      const tgt = safeJoin(dest, entry.rel);
+      if (!src || !tgt) {
+        return { ok: false, error: `Refusing to place ${entry.rel}: path escapes import directory` };
+      }
       let strategy;
       try {
         strategy = placeFile(src, tgt);
@@ -446,7 +529,15 @@ async function applySyncDiff(sourceId, mode) {
           error: `Could not place ${entry.rel}: ${err instanceof Error ? err.message : String(err)}`,
         };
       }
-      const stat = fs.statSync(src);
+      let stat;
+      try {
+        stat = fs.statSync(src);
+      } catch {
+        // Source file disappeared between diff and apply. Drop from manifest
+        // rather than blowing up the whole operation.
+        fileMap.delete(entry.rel);
+        continue;
+      }
       fileMap.set(entry.rel, {
         rel: entry.rel,
         size: stat.size,
@@ -460,7 +551,8 @@ async function applySyncDiff(sourceId, mode) {
       // 2. Remove deleted files. (Caller has been warned via the diff if any
       //    of these were locally edited — that case lives in `conflicts`.)
       for (const entry of diff.removed) {
-        const tgt = path.join(dest, entry.rel);
+        const tgt = safeJoin(dest, entry.rel);
+        if (!tgt) continue;
         try {
           fs.unlinkSync(tgt);
         } catch {
@@ -483,8 +575,9 @@ async function applySyncDiff(sourceId, mode) {
         ...diff.localEdits,
       ];
       for (const entry of toReplace) {
-        const src = path.join(sourcePath, entry.rel);
-        const tgt = path.join(dest, entry.rel);
+        const src = safeJoin(sourcePath, entry.rel);
+        const tgt = safeJoin(dest, entry.rel);
+        if (!src || !tgt) continue;
         try {
           fs.unlinkSync(tgt);
         } catch {
@@ -499,7 +592,13 @@ async function applySyncDiff(sourceId, mode) {
             error: `Could not re-place ${entry.rel}: ${err instanceof Error ? err.message : String(err)}`,
           };
         }
-        const stat = fs.statSync(src);
+        let stat;
+        try {
+          stat = fs.statSync(src);
+        } catch {
+          fileMap.delete(entry.rel);
+          continue;
+        }
         fileMap.set(entry.rel, {
           rel: entry.rel,
           size: stat.size,

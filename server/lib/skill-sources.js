@@ -102,6 +102,15 @@ function addSource(input) {
   const rawPath = String(input?.path || '').trim();
   if (!rawPath) return { ok: false, error: 'path is required' };
 
+  // Reject Windows UNC paths (`\\server\share`, `\\?\C:\Windows`,
+  // `\\.\C:\Windows`). The denylist substring-matches well-known absolute
+  // dirs and protected fragments, but UNC + device-prefix paths don't share
+  // those prefixes — they'd register cleanly. UNC also opens the door to
+  // network-mounted attacker-controlled shares.
+  if (/^\\\\/.test(rawPath) || /^\/\//.test(rawPath)) {
+    return { ok: false, error: 'UNC and network-share paths are not allowed' };
+  }
+
   let resolved;
   try {
     resolved = path.resolve(rawPath);
@@ -109,29 +118,59 @@ function addSource(input) {
     return { ok: false, error: `Invalid path: ${e instanceof Error ? e.message : String(e)}` };
   }
 
+  // path.resolve can re-introduce a UNC prefix on some inputs; double-check.
+  if (/^\\\\/.test(resolved)) {
+    return { ok: false, error: 'UNC and network-share paths are not allowed' };
+  }
+
+  // Follow symlinks to their real target — registering a "safe-looking"
+  // path that's actually a symlink into /etc would bypass the denylist
+  // because the literal path string wouldn't match. realpath collapses it.
+  let realResolved;
+  try {
+    realResolved = fs.realpathSync(resolved);
+  } catch {
+    return { ok: false, error: 'Path does not exist on this machine' };
+  }
+
   // Reuse the write-path denylist as a read-path denylist. We're not writing,
   // but we still don't want to register hostile paths that future export flows
-  // could turn into exfiltration vectors. Same protected dirs apply.
-  const denyReason = checkSafeWritePath(resolved);
+  // could turn into exfiltration vectors. Run the check against BOTH the
+  // user-supplied path and the realpath-collapsed form so a symlink target
+  // inside a denied dir is caught.
+  const denyReason = checkSafeWritePath(realResolved) || checkSafeWritePath(resolved);
   if (denyReason) return { ok: false, error: denyReason };
 
   let stat;
   try {
-    stat = fs.statSync(resolved);
+    stat = fs.statSync(realResolved);
   } catch {
     return { ok: false, error: 'Path does not exist on this machine' };
   }
   if (!stat.isDirectory()) return { ok: false, error: 'Path is not a directory' };
 
   // Refuse paths inside CE's own skills tree — that's already the internal source.
-  if (resolved === SKILLS_DIR || resolved.startsWith(SKILLS_DIR + path.sep)) {
+  // Compare against the realpath form so a symlink into SKILLS_DIR is caught.
+  const skillsDirReal = (() => {
+    try { return fs.realpathSync(SKILLS_DIR); } catch { return SKILLS_DIR; }
+  })();
+  if (
+    realResolved === skillsDirReal ||
+    realResolved.startsWith(skillsDirReal + path.sep) ||
+    realResolved.toLowerCase() === skillsDirReal.toLowerCase() ||
+    realResolved.toLowerCase().startsWith(skillsDirReal.toLowerCase() + path.sep)
+  ) {
     return { ok: false, error: 'Path is already inside Context Engine\'s skills directory' };
   }
 
   const stored = readStored();
 
-  // Refuse duplicate paths (compare resolved + normalized).
-  if (stored.some((s) => path.resolve(s.path) === resolved)) {
+  // Refuse duplicate paths. Case-insensitive on Windows since the filesystem
+  // is case-preserving but case-insensitive (C:\Foo === c:\foo on disk).
+  const isWin = process.platform === 'win32';
+  /** @param {string} p */
+  const norm = (p) => (isWin ? path.resolve(p).toLowerCase() : path.resolve(p));
+  if (stored.some((s) => norm(s.path) === norm(realResolved))) {
     return { ok: false, error: 'This source is already linked' };
   }
 
@@ -144,7 +183,7 @@ function addSource(input) {
   const source = {
     id,
     label,
-    path: resolved,
+    path: realResolved,
     type: 'external',
     writable: false,
     added: new Date().toISOString(),

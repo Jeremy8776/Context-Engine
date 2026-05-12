@@ -126,10 +126,21 @@ function checkSafeWritePath(requestedPath) {
     return `Invalid path: ${e instanceof Error ? e.message : String(e)}`;
   }
 
-  const lower = resolved.toLowerCase();
+  // Strip Windows extended-length and device-path prefixes BEFORE matching.
+  // `\\?\C:\Windows` and `\\.\C:\Windows` would otherwise slip past the
+  // `C:\Windows` startsWith check because of the leading prefix.
+  let stripped = resolved.replace(/^[\\/]+\?[\\/]+/, '').replace(/^[\\/]+\.[\\/]+/, '');
+  if (/^\\\\/.test(resolved) || /^\/\//.test(resolved)) {
+    return 'Refusing to use UNC / network-share paths';
+  }
+
+  // Normalise all separators to the platform separator before comparing so
+  // forward-slash inputs on Windows don't bypass segment checks that use
+  // `path.sep` as the boundary character.
+  const lower = stripped.toLowerCase().replace(/[\\/]/g, path.sep);
   for (const abs of DEFAULT_DENY_ABSOLUTE) {
-    const a = abs.toLowerCase();
-    if (lower === a || lower.startsWith(a + path.sep) || lower.startsWith(a + '/')) {
+    const a = abs.toLowerCase().replace(/[\\/]/g, path.sep);
+    if (lower === a || lower.startsWith(a + path.sep)) {
       return `Refusing to write into protected location: ${abs}`;
     }
   }
