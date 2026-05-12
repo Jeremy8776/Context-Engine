@@ -152,9 +152,14 @@ A new "Sources" affordance in the Skills tab header — a small select/expander 
 - Removing a source unhooks its skills from the index without errors.
 - `npm run typecheck`, `lint`, `lint:css`, `smoke` stay green. New smoke tests: a source-add roundtrip and a scan against a temp fixture dir.
 
+## Resolved decisions (2026-05-11)
+
+1. **Detected sources require an explicit Link click.** No auto-link. Listing a path is not the same as reading from it; users should validate before CE walks their home directory. The detected-source row shows path + skill count + a Link button; nothing happens until clicked.
+2. **No filesystem-wide scan.** Detection only probes the known paths in the table above (`~/.claude/skills`, `~/.opencode/skills`, plus per-registered-workspace `.claude/skills` / `.clinerules` / `.continue/rules`). When detection finds nothing, the **text-input picker is the catch-all** — users paste any path they want and click Link. We never scan the whole disk looking for `SKILL.md` files.
+3. **Project root source = `data/workspaces.json`.** Project-level probes iterate every registered workspace. CWD-based probing is dropped; it's misleading when CWD is the CE install dir.
+4. **Phase 2 Import uses hard-link + diff detection.** Walk source files and create file-level hard links inside `<CE_ROOT>/skills/imported/<id>/`. Hard-link keeps content in sync automatically (same inode), so the user gets disk savings without a stale-copy problem. **On subsequent imports**, CE diffs at the directory-structure level (files added in source, files removed in source) and prompts the user to **Append** (only add new files, don't touch removed/changed) or **Overwrite** (mirror full source state, including deletions). Fallback to copy when hard-link fails — cross-volume on Windows, FAT filesystems, permission errors. Mode (link vs copy) is recorded per-source so re-syncs use the same strategy.
+5. **Skill id collision handling deferred to Phase 2.** Phase 1 dedupes by id with first-source-wins semantics (internal takes precedence, then linked sources in registration order). If collisions become a real issue in practice we'll add the `<sourceId>:<skillId>` prefix scheme in Phase 2. Keeping bare ids in Phase 1 means `data/skill-states.json` doesn't need migration.
+
 ## Open questions
 
-1. **Active state for external skills**: skill active/inactive state is in `data/skill-states.json` keyed by skill id. If two sources register a skill with the same id, the state collapses. Decision: prefix the runtime id with sourceId when sources differ (`claude-global:foo` vs `internal:foo`); UI displays the unprefixed name. Keep `skill-states.json` keyed by the prefixed id.
-2. **Default for detected sources during onboarding**: auto-link, or require explicit click? Lean explicit click — users should know their personal dir is being read. Default to nothing pre-selected.
-3. **Phase 2 import flow**: copy or hard-link? Hard-link is faster + saves disk but doesn't survive editing on either side. Copy is safer. Recommend copy.
-4. **Project-aware detection**: probing `<CWD>/.claude/skills` only makes sense if CE knows the user's project root. Today CWD is the CE install dir. Either skip project probes in Phase 1, or use the registered workspaces (`data/workspaces.json`) as project roots. Recommend the workspaces approach — it's already wired.
+(None remaining for Phase 1 — proceed to implementation.)
