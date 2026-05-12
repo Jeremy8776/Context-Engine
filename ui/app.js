@@ -101,6 +101,7 @@ async function boot() {
   ConfigTab.init();
   await ModesTab.init();
   if (typeof CompileTab !== 'undefined') await CompileTab.init();
+  if (typeof SkillSourcesPanel !== 'undefined') await SkillSourcesPanel.init();
   await DashboardTab.init();
   if (typeof ContextFlow !== 'undefined') ContextFlow.init();
   initNavCollapse();

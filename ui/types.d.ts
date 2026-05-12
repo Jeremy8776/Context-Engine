@@ -360,6 +360,18 @@ declare const SkillsMaintenance: {
   applyAllReviews(): Promise<void>;
   resolveDedup(clusterId: string, action: string): Promise<void>;
 };
+declare const SkillSourcesPanel: {
+  init(): Promise<void> | void;
+  refresh(): Promise<void> | void;
+  linkPath(path: string, label?: string): Promise<void>;
+  linkCustom(): Promise<void>;
+  unlink(id: string): Promise<void>;
+  import(id: string): Promise<void>;
+  check(id: string): Promise<void>;
+  closeDiff(id: string): void;
+  apply(id: string, mode: 'append' | 'overwrite'): Promise<void>;
+  _setPath(value: string): void;
+};
 declare const Onboarding: {
   init(): Promise<void> | void;
   go(stepId: string): void;

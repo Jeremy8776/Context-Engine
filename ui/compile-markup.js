@@ -19,6 +19,17 @@
           <div id="mcp-hosts-list" class="mcp-hosts-list"></div>
         </section>
 
+        <section class="connections-host-section mcp-host-card" id="skill-sources-section">
+          <div class="compile-card-head connections-host-head">
+            <div>
+              <h2 class="skill-sources-title">Skill sources</h2>
+              <p class="skill-sources-subtitle">Folders Context Engine reads SKILL.md files from. Link external trees read-only, or import a hard-link copy into CE for resilience against the source moving.</p>
+            </div>
+            <button class="fb small" onclick="SkillSourcesPanel.refresh()">Re-scan</button>
+          </div>
+          <div id="skill-sources-panel"></div>
+        </section>
+
       </div>
     </div>
   `;

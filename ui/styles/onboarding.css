@@ -479,6 +479,69 @@
   padding-top: var(--s-2);
 }
 
+/* Connections-tab Sources panel — same row patterns as onboarding, different
+   outer container. The .onboarding-source-row classes are reused via class
+   composition; the .ssp-* wrappers handle the inline panel layout. */
+
+#skill-sources-section .skill-sources-title {
+  margin: 0;
+  font-size: var(--fs-04);
+  font-weight: 600;
+  color: var(--text);
+}
+
+#skill-sources-section .skill-sources-subtitle {
+  margin: 4px 0 0;
+  color: var(--text-3);
+  font-size: var(--fs-02);
+  line-height: 1.5;
+}
+
+#skill-sources-panel {
+  display: grid;
+  gap: var(--s-3);
+}
+
+.ssp-list {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.ssp-empty {
+  padding: var(--s-3);
+  background: var(--dram-bg-recessed);
+  border: 1px dashed var(--dram-line-subtle);
+  border-radius: var(--r-2);
+  color: var(--text-3);
+  font-size: var(--fs-02);
+}
+
+.ssp-form {
+  display: flex;
+  gap: var(--s-2);
+  align-items: center;
+}
+
+.ssp-input {
+  flex: 1;
+  padding: 8px 10px;
+  background: var(--dram-bg-recessed);
+  border: 1px solid var(--dram-line-subtle);
+  border-radius: var(--r-2);
+  color: var(--text);
+  font-family: var(--font-mono, monospace);
+  font-size: var(--fs-02);
+}
+
+.ssp-input:focus {
+  outline: none;
+  border-color: var(--dram-card-border-hover);
+}
+
+.ssp-linked-head {
+  padding-top: var(--s-1);
+}
+
 /* Step 3: surface grid */
 
 .onboarding-surface-grid {
