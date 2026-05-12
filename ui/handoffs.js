@@ -96,9 +96,18 @@ const HandoffsTab = (() => {
           <label>Title</label>
           <input class="add-input" id="handoff-edit-title" value="${esc(item.title || '')}" />
         </div>
+        <div class="sp-field">
+          <label>Body</label>
+          <textarea
+            class="add-input handoff-edit-body"
+            id="handoff-edit-body"
+            rows="10"
+            placeholder="Where you are, what's next, anchors and references."
+          >${esc(item.body || '')}</textarea>
+        </div>
         ${renderHandoffTimeline(item)}
         <div class="sp-actions sp-actions-edit compact">
-          <button class="save-btn" onclick="HandoffsTab.save('${esc(item.slug)}')">Save title</button>
+          <button class="save-btn" onclick="HandoffsTab.save('${esc(item.slug)}')">Save</button>
           <button class="save-btn ghost" onclick="SidePanel.close()">Cancel</button>
           <button class="mem-btn danger push-end" onclick="HandoffsTab.archive('${esc(item.slug)}')">Archive</button>
         </div>
@@ -123,11 +132,15 @@ const HandoffsTab = (() => {
   }
 
   async function save(slug) {
-    const title = document.getElementById('handoff-edit-title')?.value.trim();
+    const title = /** @type {HTMLInputElement|null} */ (document.getElementById('handoff-edit-title'))?.value.trim();
     if (!title) return Toast.error('Title is required');
-    const result = await apiFetch(`/handoffs/${encodeURIComponent(slug)}`, 'PATCH', { title });
+    // Body is optional; pass through even when empty so users can clear it.
+    const body = /** @type {HTMLTextAreaElement|null} */ (document.getElementById('handoff-edit-body'))?.value ?? undefined;
+    const patch = { title };
+    if (body !== undefined) patch.body = body;
+    const result = await apiFetch(`/handoffs/${encodeURIComponent(slug)}`, 'PATCH', patch);
     if (!result?.ok) return;
-    Toast.success('Handoff title saved');
+    Toast.success('Handoff saved');
     await load();
     select(slug);
   }
@@ -305,9 +318,9 @@ const HandoffsTab = (() => {
   function openAddModal() {
     const overlay = document.getElementById('handoff-modal-overlay');
     if (!overlay) return;
-    ['handoff-modal-title', 'handoff-modal-thread', 'handoff-modal-repo'].forEach((id) => {
+    ['handoff-modal-title', 'handoff-modal-thread', 'handoff-modal-repo', 'handoff-modal-body'].forEach((id) => {
       const el = document.getElementById(id);
-      if (el) el.value = '';
+      if (el) /** @type {HTMLInputElement|HTMLTextAreaElement} */ (el).value = '';
     });
     overlay.classList.add('open');
     setTimeout(() => document.getElementById('handoff-modal-title')?.focus(), 0);
@@ -319,12 +332,13 @@ const HandoffsTab = (() => {
   }
 
   async function createFromModal() {
-    const title = document.getElementById('handoff-modal-title')?.value.trim();
-    const thread_tag = document.getElementById('handoff-modal-thread')?.value.trim();
-    const repo = document.getElementById('handoff-modal-repo')?.value.trim();
+    const title = /** @type {HTMLInputElement|null} */ (document.getElementById('handoff-modal-title'))?.value.trim();
+    const thread_tag = /** @type {HTMLInputElement|null} */ (document.getElementById('handoff-modal-thread'))?.value.trim();
+    const repo = /** @type {HTMLInputElement|null} */ (document.getElementById('handoff-modal-repo'))?.value.trim();
+    const body = /** @type {HTMLTextAreaElement|null} */ (document.getElementById('handoff-modal-body'))?.value || '';
     if (!title) return Toast.error('Title is required');
     if (!thread_tag && !repo) return Toast.error('Add a thread tag or repo path');
-    const result = await apiFetch('/handoffs', 'POST', { title, thread_tag, repo });
+    const result = await apiFetch('/handoffs', 'POST', { title, thread_tag, repo, body });
     if (!result?.ok) return;
     closeAddModal();
     view = 'active';

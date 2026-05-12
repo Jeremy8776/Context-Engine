@@ -93,6 +93,39 @@ git(['commit', '-m', 'second change']);
 const timelineHandoff = listHandoffs().find((handoff) => handoff.slug === 'project-timeline');
 assert(timelineHandoff, 'expected project timeline handoff to stay active under commit threshold');
 assert.strictEqual(timelineHandoff.staleness.commits_past_head, 2, 'expected two commits past handoff head');
+
+// Restore-doesn't-re-archive regression: archive a project handoff via the
+// commit threshold, then restore. The previous bug left head_sha pointing
+// at the pre-archive sha so the next listHandoffs() would immediately re-
+// archive on the same trip. Restore should refresh head_sha so the counter
+// resets and the entry stays active.
+const projectArchiveTarget = listHandoffs().find((h) => h.slug === 'project-timeline');
+assert(projectArchiveTarget, 'project handoff should exist before forced archive');
+const archiveResult = require('../server/lib/handoffs').archiveHandoff('project-timeline');
+assert.strictEqual(archiveResult.ok, true, 'project handoff should archive on demand');
+// Advance the repo so commits_past_head against the old sha is > threshold.
+for (let i = 0; i < 6; i++) {
+  fs.appendFileSync(path.join(repoDir, 'notes.txt'), `extra-${i}\n`, 'utf8');
+  git(['add', 'notes.txt']);
+  git(['commit', '-m', `extra ${i}`]);
+}
+const restoredProject = restoreHandoff('project-timeline');
+assert.strictEqual(restoredProject.ok, true, 'archived project handoff should restore');
+// After restore + auto-sweep, the handoff must still be active (i.e. head_sha
+// was refreshed; the commit counter is now zero against the new head).
+const afterRestoreList = listHandoffs().map((h) => h.slug);
+assert(
+  afterRestoreList.includes('project-timeline'),
+  'restored project handoff should stay active — head_sha must be refreshed on restore',
+);
+const refreshed = listHandoffs().find((h) => h.slug === 'project-timeline');
+assert(refreshed, 'restored project handoff should appear in active list');
+assert.strictEqual(
+  refreshed.staleness.commits_past_head,
+  0,
+  'restored project handoff should report 0 commits past head',
+);
+
 assert.strictEqual(timelineHandoff.staleness.commit_timeline.length, 2, 'expected bounded commit timeline');
 const latestCommit = timelineHandoff.staleness.commit_timeline[0];
 assert(latestCommit, 'expected at least one commit in timeline');
@@ -152,7 +185,14 @@ assert(appJs.includes("name === 'handoffs'"), 'switchTab should handle Handoffs 
 assert(appJs.includes('HandoffsTab.ensureLoaded'), 'Handoffs tab activation should retry load');
 assert(handoffsUi.includes('ensureLoaded'), 'HandoffsTab should expose an idempotent loader');
 assert(handoffsUi.includes('renderHandoffTimeline'), 'Handoffs detail should render body as timeline cards');
-assert(!handoffsUi.includes('handoff-edit-body'), 'Handoffs detail should not expose manual body editing');
+assert(
+  handoffsUi.includes('handoff-edit-body'),
+  'Handoffs detail should expose a body textarea so users can write the handoff prose themselves',
+);
+assert(
+  handoffsUi.includes('handoff-modal-body'),
+  'Handoffs create modal should expose a body textarea so the feature is usable end-to-end from the GUI',
+);
 
 const legacySource = path.join(tmpRoot, 'llm-handoff.md');
 fs.writeFileSync(

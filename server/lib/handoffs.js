@@ -58,6 +58,19 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  * @property {{ commits_past_head: number | null, commit_timeline: { sha: string, short_sha: string, date: string, subject: string }[], idle_days: number, eligible_for_archive: boolean }} staleness
  */
 
+/**
+ * A handoff slug is a stable, filesystem-safe id. Reject anything that could
+ * break out of HANDOFFS_DIR via path traversal (`..\..\some-file`) or address
+ * other files via separators / drive letters. Slugs are generated internally
+ * by uniqueSlug() and only contain `[a-z0-9-]`, so the regex matches what we
+ * actually produce.
+ *
+ * @param {string} slug
+ */
+function isSlugSafe(slug) {
+  return typeof slug === 'string' && /^[a-z0-9][a-z0-9-]{0,79}$/.test(slug);
+}
+
 function ensureDirs() {
   if (!fs.existsSync(HANDOFFS_DIR)) fs.mkdirSync(HANDOFFS_DIR, { recursive: true });
   if (!fs.existsSync(ARCHIVE_DIR)) fs.mkdirSync(ARCHIVE_DIR, { recursive: true });
@@ -252,6 +265,7 @@ function listArchived() {
 /** @param {string} slug @returns {Handoff | null} */
 function getHandoff(slug) {
   ensureDirs();
+  if (!isSlugSafe(slug)) return null;
   const activePath = path.join(HANDOFFS_DIR, `${slug}.md`);
   const archivedPath = path.join(ARCHIVE_DIR, `${slug}.md`);
   const target = fs.existsSync(activePath) ? activePath : fs.existsSync(archivedPath) ? archivedPath : null;
@@ -326,6 +340,7 @@ function createHandoff(input) {
  */
 function updateHandoff(slug, patch) {
   ensureDirs();
+  if (!isSlugSafe(slug)) return { ok: false, error: 'Invalid slug' };
   const file = path.join(HANDOFFS_DIR, `${slug}.md`);
   if (!fs.existsSync(file)) return { ok: false, error: 'Handoff not found (already archived?)' };
   const parsed = readFile(file);
@@ -348,6 +363,7 @@ function updateHandoff(slug, patch) {
  */
 function archiveBySlug(slug) {
   ensureDirs();
+  if (!isSlugSafe(slug)) return { ok: false, error: 'Invalid slug' };
   const file = path.join(HANDOFFS_DIR, `${slug}.md`);
   if (!fs.existsSync(file)) return { ok: false, error: 'Handoff not found' };
   const parsed = readFile(file);
@@ -368,6 +384,7 @@ function archiveBySlug(slug) {
  */
 function restoreHandoff(slug) {
   ensureDirs();
+  if (!isSlugSafe(slug)) return { ok: false, error: 'Invalid slug' };
   const file = path.join(ARCHIVE_DIR, `${slug}.md`);
   if (!fs.existsSync(file)) return { ok: false, error: 'Archived handoff not found' };
   const parsed = readFile(file);
@@ -375,6 +392,14 @@ function restoreHandoff(slug) {
   const fm = { ...parsed.fm };
   delete fm.archived;
   fm.last_touched = new Date().toISOString();
+  // CRITICAL: refresh head_sha on restore. The handoff was archived because
+  // commits had moved past the recorded sha; if we leave that sha in place,
+  // the next listHandoffs() will immediately re-archive (commitTrip stays
+  // true). Reset to current HEAD so the 5-commits-past counter starts fresh.
+  if ((fm.type === 'project' || fm.type === 'dual') && fm.repo) {
+    const fresh = currentHeadSha(fm.repo);
+    if (fresh) fm.head_sha = fresh;
+  }
   const newFile = path.join(HANDOFFS_DIR, `${slug}.md`);
   fs.writeFileSync(newFile, serialiseFile(fm, parsed.body), 'utf8');
   fs.unlinkSync(file);
@@ -391,6 +416,7 @@ function restoreHandoff(slug) {
  */
 function purgeHandoff(slug) {
   ensureDirs();
+  if (!isSlugSafe(slug)) return { ok: false, error: 'Invalid slug' };
   const file = path.join(ARCHIVE_DIR, `${slug}.md`);
   if (!fs.existsSync(file)) return { ok: false, error: 'Archived handoff not found' };
   fs.unlinkSync(file);

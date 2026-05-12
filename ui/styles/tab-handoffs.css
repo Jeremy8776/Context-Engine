@@ -372,3 +372,19 @@ body.side-panel-active #handoffs-tab .handoffs-list {
     text-align: left;
   }
 }
+
+/* Body editors — both the create modal and the side-panel detail. The base
+   .add-input class normalises chrome; these rules size + soft-wrap the
+   textareas so multi-paragraph handoff prose has somewhere to live. */
+.handoff-modal-body-field {
+  grid-column: 1 / -1;
+}
+
+.handoff-modal-body-input,
+.handoff-edit-body {
+  min-height: 120px;
+  resize: vertical;
+  font-family: var(--font-mono, monospace);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
