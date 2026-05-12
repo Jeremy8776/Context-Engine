@@ -163,3 +163,123 @@ A new "Sources" affordance in the Skills tab header — a small select/expander 
 ## Open questions
 
 (None remaining for Phase 1 — proceed to implementation.)
+
+## Phase 2 detailed design (2026-05-11)
+
+Locked decisions:
+- **Import action lives on the linked row.** Link is the cheap commitment, Import is the heavier one; forcing Link-then-Import is the right progression. No Import button on candidate rows.
+- **Manual Sync only.** No filesystem watching; a Sync button on imported rows triggers the diff. Keeps the user in control of when CE walks their dirs.
+
+### Source lifecycle (extended)
+
+Three states for a registered source: `external` (linked, read from original), `imported` (linked + a copy/hard-link tree has been written into `<CE_ROOT>/skills/imported/<sourceId>/`), `internal` (implicit, never stored).
+
+Transitions:
+```
+external --[POST /api/skill-sources/:id/import]--> imported
+imported --[POST /api/skill-sources/:id/sync/apply]--> imported (manifest rewritten)
+imported --[DELETE /api/skill-sources/:id]--> removed (imported dir kept, orphaned)
+external --[DELETE /api/skill-sources/:id]--> removed (no on-disk artefact to clean up)
+```
+
+Unlinking an imported source intentionally **keeps** the imported tree. The user has accepted those skills into CE; tearing them down on unlink would surprise. Orphaned imported dir continues to be walked by the implicit internal source — skills remain visible, sourceLabel unset.
+
+### Import strategy: hard-link + copy fallback
+
+File-level `fs.linkSync` is the primary strategy. Fall back to `fs.copyFileSync` per-file on:
+- `EXDEV` — cross-volume on Windows. NTFS hard-links are intra-volume only.
+- `EPERM` / `EACCES` — source permissions.
+- Non-link-capable filesystems (FAT/exFAT).
+
+Strategy is recorded **per file** in the manifest because a single import can mix strategies in edge cases. Aggregate per source: `link`, `copy`, or `mixed`.
+
+### Manifest shape
+
+One file per imported source at `data/skill-imports/<sourceId>.json`:
+
+```json
+{
+  "sourceId": "user-claude",
+  "sourcePath": "/home/jeremy/.claude/skills",
+  "destPath": "<CE_ROOT>/skills/imported/user-claude",
+  "importedAt": "2026-05-11T15:00:00Z",
+  "lastSyncedAt": "2026-05-11T15:00:00Z",
+  "aggregateStrategy": "link",
+  "files": [
+    { "rel": "react/SKILL.md", "size": 2341, "mtimeMs": 1715000000000, "strategy": "link" }
+  ]
+}
+```
+
+`size` + `mtimeMs` are the change signal. No content hashing — it's overkill for SKILL.md files at this scale.
+
+### Sync diff
+
+`GET /api/skill-sources/:id/sync` walks the source and compares against the manifest. Returns:
+
+```json
+{
+  "added":    [{ "rel": "...", "size": ..., "mtimeMs": ... }],
+  "removed":  [{ "rel": "..." }],
+  "modified": [{ "rel": "...", "size": ..., "mtimeMs": ... }]
+}
+```
+
+Definitions:
+- **Added**: in source, absent from manifest.
+- **Removed**: in manifest, absent from source.
+- **Modified**: in both, but `size` or `mtimeMs` differs **and** the per-file strategy is `copy`. Hard-linked files can't drift in content (shared inode), so we don't list them as modified even if mtime moved on the source.
+
+`POST /api/skill-sources/:id/sync/apply` body `{ mode: 'append' | 'overwrite' }`:
+- `append`: adds new files only. Removed and modified are left.
+- `overwrite`: applies all three categories — add new, delete removed, re-link/re-copy modified.
+
+Manifest is rewritten after successful apply.
+
+### Endpoints (Phase 2)
+
+| Method | Path                                            | Description                                                                |
+| ------ | ----------------------------------------------- | -------------------------------------------------------------------------- |
+| POST   | `/api/skill-sources/:id/import`                 | Walk source + write imported tree + manifest. Idempotent: refuses if already imported. |
+| GET    | `/api/skill-sources/:id/sync`                   | Compute diff without applying.                                             |
+| POST   | `/api/skill-sources/:id/sync/apply`             | Body `{ mode }`. Apply diff + rewrite manifest.                            |
+
+### UI placement (Phase 2)
+
+**Onboarding step 2 — inline progression on the linked row.** A linked row gains an "Import" affordance next to Unlink. Clicking expands the row to show the import target path + Confirm. After import, the row shows last-synced timestamp + a "Check for changes" action. That action expands to show the diff and Append / Overwrite / Cancel buttons.
+
+**Skills tab "Sources" panel (2B).** Mirrors the same lifecycle outside onboarding. Add, link, import, sync, unlink. Reuses the same DS helpers and endpoints.
+
+### Electron folder picker (2C)
+
+`electron/main.cjs`: register `ipcMain.handle('select-folder', ...)` that calls `dialog.showOpenDialog` with `properties: ['openDirectory']`. Returns the picked path or `null` on cancel.
+
+`electron/preload.cjs`: expose `selectFolder()` on the `contextEngineDesktop` bridge.
+
+`ui/onboarding.js`: when `contextEngineDesktop?.runtime === 'electron'`, render a "Browse…" button alongside the text input. Browse → calls `selectFolder` → on resolve, fills the input + auto-submits. Text input remains visible in both modes as the catch-all.
+
+### Index reactivity (2D)
+
+Vector index doesn't auto-rebuild on source mutation — that would be a 15-60s blocking operation users wouldn't expect. Instead, flag the index as stale and surface a CTA.
+
+- `data/index-status.json` adds a `stale` boolean (already exists for the index — extend the schema).
+- `vectorstore.js` exports `markIndexStale()` and reflects the flag in `/api/index/status`.
+- Skill-source mutation endpoints call `markIndexStale()` after invalidating the skill cache.
+- Index rebuild clears the flag.
+- UI: dashboard's Vector Index panel + onboarding step 2's Vector Index stat card both look at the staleness flag. When stale, show a small "Rebuild needed" badge + a Rebuild button that triggers the existing `DS.indexSkills()` flow.
+
+### Acceptance criteria — Phase 2
+
+- Import on a Link produces a manifest, copies/hard-links every SKILL.md and its siblings, returns aggregate strategy. Hard-linkable files are verified by inode equality on POSIX (in tests).
+- Sync without changes returns empty diff arrays. After `mtime` bump on a copied file → file appears in `modified`. After adding a new SKILL.md in source → appears in `added`. After removing a SKILL.md in source → appears in `removed`.
+- `append` adds only new files; `overwrite` mirrors source exactly. Manifest reflects the new state after either.
+- Imported tree survives unlinking. After unlink the dir still has its skills walked by the internal source; `sourceLabel` is absent.
+- Windows cross-volume: importing from `D:\` while CE is on `C:\` falls back to copy without errors.
+- Electron picker: `Browse…` opens native dialog in Electron, hidden or fallback in browser.
+- Index-stale banner appears after any source mutation, clears after rebuild.
+
+### Open considerations (Phase 2)
+
+- **Concurrency lock during import** — process-memory mutex per sourceId is enough. Don't use lock files (stale-lock recovery is a tax we don't need).
+- **Source path moved/deleted between import and sync** — sync returns a clear error and leaves the imported tree intact. Don't auto-unlink (destructive).
+- **User edits an imported SKILL.md directly in CE** — overwrite will silently clobber those edits. v1 documents this in the Overwrite prompt copy ("Local edits will be discarded"). If users hit this in practice we'll add a content-diff prompt.
