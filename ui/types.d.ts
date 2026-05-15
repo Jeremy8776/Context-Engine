@@ -327,6 +327,7 @@ declare const HandoffsTab: {
   render(): void;
   select(slug: string): void;
   setView(view: string): void;
+  setLayout(layout: string): void;
   save(slug: string): Promise<void>;
   archive(slug: string): Promise<void>;
   restore(slug: string): Promise<void>;

@@ -51,29 +51,86 @@ const MemoryTab = (() => {
     };
   }
 
+  // Keyword tables for auto-categorisation. Patterns must match WHOLE WORDS —
+  // the previous version used bare substrings and matched "rent" inside
+  // "current" / "parent", "tax" inside "syntax", "git" inside "digit",
+  // "code" inside "node". The most common symptom was ComfyUI / AI nodes
+  // memories getting tagged as Finance (substring hit on "rent"-like words
+  // inside surrounding prose). All patterns use \b boundaries now.
+  //
+  // To tune for personal patterns, edit these locally — runtime user data
+  // lives in CE_ROOT/data/ and is not in the repo.
+  const CATEGORY_PATTERNS = [
+    {
+      id: 'photography',
+      re: /\b(photo|photos|photograph|photographer|photography|camera|lens|aperture|shutter|iso|raw|lightroom|capture(?:\s?one)?|fuji(?:film)?|x100|gfx|leica)\b/,
+    },
+    {
+      id: 'health',
+      re: /\b(health|fitness|exercise|workout|run|running|cycling|cardio|diet|calorie|calories|bmi|sleep|hrv|resting\s?heart(?:\s?rate)?|steps|garmin|whoop|oura|strava)\b/,
+    },
+    {
+      id: 'people',
+      re: /\b(partner|spouse|wife|husband|family|brother|sister|parent|parents|friend|friends|colleague|teammate|pet|dog|cat)\b/,
+    },
+    {
+      id: 'finance',
+      re: /\b(invoice|invoices|tax|taxes|budget|budgets|expense|expenses|income|salary|savings|rent|mortgage|payroll|payroll|stock|stocks|equity|dividend|finance|financial|bank|banking|payment|payments)\b/,
+    },
+    {
+      id: 'technical',
+      // Broadly: programming, AI/ML tooling, ops. ComfyUI / nodes / models /
+      // workflow / prompt sit here because that's where Jeremy keeps his
+      // image-gen pipeline knowledge.
+      re: /\b(code|coding|api|sdk|cli|repo|repository|github|gitlab|python|node\.?js|nodejs|node|nodes|javascript|typescript|java|rust|go|cpp|sql|docker|kubernetes|k8s|terraform|ansible|git|devops|linux|bash|powershell|terminal|prompt|prompts|workflow|workflows|model|models|llm|llms|inference|comfyui|stable\s?diffusion|sdxl|sdxl|flux|lora|controlnet|checkpoint|sampler|scheduler|tensor|gradio|huggingface|hugging\s?face|ollama|anthropic|openai|claude|gemini|pytorch|tensorflow|cuda|gpu)\b/,
+    },
+    {
+      id: 'workspace',
+      re: /\b(workspace|desktop|laptop|machine|pc|workstation|monitor|keyboard|mouse|drive|ssd|hdd|nas|setup\s?routine|startup\s?routine|shutdown\s?routine)\b/,
+    },
+    {
+      id: 'career',
+      re: /\b(job|role|career|employer|employment|hiring|client|clients|resume|résumé|cv|linkedin|portfolio|offer|interview|interviews|onboarding|promotion|raise)\b/,
+    },
+    {
+      id: 'travel',
+      re: /\b(travel|travelling|traveling|flight|flights|hotel|hotels|airbnb|airport|airline|itinerary|trip|trips|vacation|holiday|visa|passport|tokyo|london|paris|new\s?york)\b/,
+    },
+    {
+      id: 'personal',
+      re: /\b(childhood|biography|identity|background|values|beliefs|personal\s?history|origin|hometown)\b/,
+    },
+    {
+      id: 'profile',
+      re: /\b(born|date\s?of\s?birth|birthday|birthdate|nickname|legal\s?name|preferred\s?name|pronouns)\b/,
+    },
+  ];
+
+  /**
+   * Auto-pick a category from the text body. Counts whole-word matches per
+   * pattern and picks the highest scorer; ties break by the pattern order
+   * above. Explicit non-empty + non-"general" entry.category always wins
+   * over the auto-pick so user-edited tags stay sticky.
+   *
+   * @param {string} text
+   * @param {string=} explicit
+   */
   function inferCategory(text, explicit) {
     const value = String(explicit || '')
       .toLowerCase()
       .trim();
-    if (value && value !== 'general') return value.replace(/[^a-z0-9-]/g, '-');
+    if (value && value !== 'general' && value !== 'auto') {
+      return value.replace(/[^a-z0-9-]/g, '-');
+    }
 
-    // Generic keyword-based auto-categorization. Patterns are intentionally
-    // broad so they work for any user. To extend with personal patterns,
-    // edit this function locally — runtime user data lives in CE_ROOT/data/
-    // not in the repo.
     const s = text.toLowerCase();
-    if (/photo|photography|camera|lens|lightroom|capture/.test(s)) return 'photography';
-    if (/health|fitness|exercise|diet|calories|bmi|sleep|heart rate|steps/.test(s)) return 'health';
-    if (/partner|spouse|family|friend|colleague|teammate|pet/.test(s)) return 'people';
-    if (/invoice|tax|budget|expense|income|salary|savings|rent|mortgage/.test(s)) return 'finance';
-    if (/code|api|python|javascript|typescript|sql|docker|git|devops|terminal|cli/.test(s))
-      return 'technical';
-    if (/workspace|setup|desktop|laptop|machine|drive|monitor|keyboard/.test(s)) return 'workspace';
-    if (/job|role|career|employer|client|resume|résumé|cv|linkedin|portfolio/.test(s)) return 'career';
-    if (/travel|flight|hotel|trip|vacation|visit|holiday|airport/.test(s)) return 'travel';
-    if (/childhood|biography|identity|background|history|origin/.test(s)) return 'personal';
-    if (/born|date of birth|birthday|nickname/.test(s)) return 'profile';
-    return 'general';
+    let best = { id: 'general', hits: 0 };
+    for (const { id, re } of CATEGORY_PATTERNS) {
+      const matches = s.match(new RegExp(re.source, 'g'));
+      const hits = matches ? matches.length : 0;
+      if (hits > best.hits) best = { id, hits };
+    }
+    return best.id;
   }
 
   function titleFor(text, category) {
@@ -234,9 +291,29 @@ const MemoryTab = (() => {
   function openDetail(i) {
     panelMode = 'detail';
     const item = normalizeEntry(entries[i], i);
+    // Determine which category the entry CURRENTLY has explicitly (or "auto"
+    // if it's deferring to inferCategory). Used as the default select value.
+    const raw = entries[i];
+    const explicit =
+      typeof raw === 'object' && raw && typeof raw.category === 'string'
+        ? raw.category.toLowerCase().trim()
+        : '';
+    const selectedValue = explicit && explicit !== 'general' ? explicit : 'auto';
+    const options = ['auto', ...Object.keys(categoryLabels)]
+      .map((key) => {
+        const label = key === 'auto' ? `Auto (${categoryLabels[item.category] || item.category})` : categoryLabels[key] || key;
+        const sel = key === selectedValue ? ' selected' : '';
+        return `<option value="${esc(key)}"${sel}>${esc(label)}</option>`;
+      })
+      .join('');
     const html = `
       <div class="sp-detail">
-        <div class="sp-field"><label>Category</label><span class="memory-cat-badge mem-cat-${esc(item.category)}">${esc(categoryLabels[item.category] || item.category)}</span></div>
+        <div class="sp-field">
+          <label>Category</label>
+          <select class="add-input mem-edit-category" id="mem-edit-cat-${i}">
+            ${options}
+          </select>
+        </div>
         <div class="sp-field">
           <label>Content</label>
           <textarea class="rules-textarea" id="mem-edit-${i}" rows="12">${esc(item.text)}</textarea>
@@ -294,12 +371,26 @@ const MemoryTab = (() => {
 
   function saveEdit(i) {
     const ta = document.getElementById(`mem-edit-${i}`);
-    if (ta && ta.value.trim()) {
-      const txt = ta.value.trim();
-      if (typeof entries[i] === 'string') entries[i] = txt;
-      else entries[i].content = txt;
-      saveState();
+    const catSel = /** @type {HTMLSelectElement|null} */ (document.getElementById(`mem-edit-cat-${i}`));
+    const text = ta && ta.value.trim();
+    if (!text) {
+      // Empty content is a no-op save; close the panel and re-render.
+      SidePanel.close();
+      render();
+      return;
     }
+    // "auto" means "defer to inferCategory" — represented on disk as no
+    // category field (or an empty string). Any other selection sticks.
+    const chosen = catSel ? String(catSel.value || '').trim().toLowerCase() : 'auto';
+    const explicit = chosen && chosen !== 'auto' ? chosen : '';
+    if (typeof entries[i] === 'string') {
+      entries[i] = explicit ? { content: text, category: explicit } : text;
+    } else {
+      entries[i] = { ...entries[i], content: text };
+      if (explicit) entries[i].category = explicit;
+      else delete entries[i].category;
+    }
+    saveState();
     SidePanel.close();
     render();
     if (typeof Toast !== 'undefined') Toast.success('Memory saved');

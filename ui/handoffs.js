@@ -4,6 +4,7 @@ const HandoffsTab = (() => {
   let active = [];
   let archived = [];
   let view = 'active';
+  let layout = 'grid'; // 'grid' | 'list' — mirrors Skills + Memory tabs
   let query = '';
   let selected = '';
   let initialized = false;
@@ -46,7 +47,7 @@ const HandoffsTab = (() => {
     host.innerHTML = `
       <div class="handoffs-workbench">
         <section class="handoffs-results">
-          <div class="handoffs-results-scroll">
+          <div class="handoffs-results-scroll handoffs-layout-${esc(layout)}">
             ${items.map(renderCard).join('')}
           </div>
         </section>
@@ -57,10 +58,21 @@ const HandoffsTab = (() => {
     const isActive = item.slug === selected ? ' active' : '';
     const commits = item.staleness?.commits_past_head;
     const commitLabel = commits === null || commits === undefined ? 'No git signal' : `${commits} commits`;
+    // Project-bound handoffs surface the project name (basename of the repo
+    // path) as a prominent badge so a user scanning the list can tell
+    // "context-engine" handoffs apart from "comfyui-deploy" handoffs at a
+    // glance instead of squinting at the trailing two path segments.
+    const projectName = item.repo ? esc(projectTitle(item.repo)) : '';
+    const projectBadge = projectName
+      ? `<span class="handoff-project-badge" title="${esc(item.repo)}">${projectName}</span>`
+      : '';
     return `
       <button class="handoff-card${isActive}" onclick="HandoffsTab.select('${esc(item.slug)}')">
         <span class="handoff-card-top">
-          <span class="handoff-title">${esc(item.title || item.slug)}</span>
+          <span class="handoff-title-row">
+            ${projectBadge}
+            <span class="handoff-title">${esc(item.title || item.slug)}</span>
+          </span>
           <span class="handoff-type">${esc(typeLabel(item.type))}</span>
         </span>
         <span class="handoff-preview">${esc(preview(item.body))}</span>
@@ -193,18 +205,41 @@ const HandoffsTab = (() => {
     render();
   }
 
+  function setLayout(next) {
+    layout = next === 'list' ? 'list' : 'grid';
+    document.getElementById('handoffs-btn-grid')?.classList.toggle('on', layout === 'grid');
+    document.getElementById('handoffs-btn-list')?.classList.toggle('on', layout === 'list');
+    render();
+  }
+
   function updateToggle() {
-    document.getElementById('handoffs-btn-active')?.classList.toggle('on', view === 'active');
-    document.getElementById('handoffs-btn-archive')?.classList.toggle('on', view === 'archive');
+    // Toolbar now carries the layout toggle; the active/archive pills live
+    // inside renderStats. Sync the layout pills here so a re-render after
+    // load picks up the right ".on" class.
+    document.getElementById('handoffs-btn-grid')?.classList.toggle('on', layout === 'grid');
+    document.getElementById('handoffs-btn-list')?.classList.toggle('on', layout === 'list');
   }
 
   function renderStats() {
     const host = document.getElementById('handoffs-stats');
     if (!host) return;
+    const visible = currentItems().length;
     host.innerHTML = `
-      <span><b>${active.length}</b> active</span>
-      <span><b>${archived.length}</b> archived</span>
-      <span><b>${currentItems().length}</b> visible</span>`;
+      <div class="handoffs-stats-row">
+        <div class="handoffs-filter-pills" role="group" aria-label="Filter">
+          <button
+            class="handoff-filter-pill ${view === 'active' ? 'on' : ''}"
+            type="button"
+            onclick="HandoffsTab.setView('active')"
+          >Active <span class="handoff-filter-count">${active.length}</span></button>
+          <button
+            class="handoff-filter-pill ${view === 'archive' ? 'on' : ''}"
+            type="button"
+            onclick="HandoffsTab.setView('archive')"
+          >Archived <span class="handoff-filter-count">${archived.length}</span></button>
+        </div>
+        <span class="handoffs-stats-visible"><b>${visible}</b> visible</span>
+      </div>`;
   }
 
   function renderCommitTimeline(item) {
@@ -355,8 +390,21 @@ const HandoffsTab = (() => {
 
   function bindingLabel(item) {
     if (item.thread_tag) return item.thread_tag;
-    if (item.repo) return shortPath(item.repo);
+    if (item.repo) return projectTitle(item.repo);
     return item.slug;
+  }
+
+  /**
+   * Project title for a repo-bound handoff: the basename of the repo path.
+   * Falls back to "shortPath" when the path is rootless. Used in the card
+   * project-name badge and as bindingLabel for project handoffs.
+   * @param {string} value
+   */
+  function projectTitle(value) {
+    const cleaned = String(value || '').replace(/\\/g, '/').replace(/\/+$/, '');
+    if (!cleaned) return '';
+    const last = cleaned.split('/').filter(Boolean).pop();
+    return last || cleaned;
   }
 
   function sourceLabel(item) {
@@ -426,6 +474,7 @@ const HandoffsTab = (() => {
     render,
     select,
     setView,
+    setLayout,
     save,
     archive,
     restore,

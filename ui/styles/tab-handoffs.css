@@ -146,8 +146,118 @@
   margin-top: auto;
 }
 
+/* Stats row carries the active/archive filter pills (relocated from the
+   toolbar, where layout-toggle buttons now live) plus a visible-count. */
 .handoffs-stats {
-  display: none;
+  display: block;
+  padding: 12px 24px 0;
+}
+
+.handoffs-stats-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.handoffs-filter-pills {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.handoff-filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--soft-line);
+  border-radius: var(--r-full);
+  background: var(--bg-elevated);
+  color: var(--text-3);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.handoff-filter-pill:hover {
+  border-color: var(--alpha-purple-35);
+  color: var(--text);
+}
+
+.handoff-filter-pill.on {
+  border-color: var(--alpha-purple-55);
+  background: var(--alpha-purple-12);
+  color: var(--text);
+}
+
+.handoff-filter-count {
+  padding: 1px 6px;
+  border-radius: var(--r-full);
+  background: var(--bg-recessed);
+  color: var(--text-4);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.handoff-filter-pill.on .handoff-filter-count {
+  background: var(--alpha-purple-20);
+  color: var(--accent-hi);
+}
+
+.handoffs-stats-visible {
+  color: var(--text-4);
+  font-size: 11px;
+}
+
+/* Layout variants. Grid is the default (existing 320px auto-fill); list
+   mode collapses to single-column dense rows. */
+.handoffs-results-scroll.handoffs-layout-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.handoffs-results-scroll.handoffs-layout-list .handoff-card {
+  min-height: 0;
+  padding: 10px 14px;
+}
+
+.handoffs-results-scroll.handoffs-layout-list .handoff-card-top {
+  align-items: center;
+}
+
+.handoffs-results-scroll.handoffs-layout-list .handoff-preview {
+  -webkit-line-clamp: 2;
+}
+
+/* Project name badge — surfaces the repo basename so a user scanning the
+   active list can tell handoffs apart by project, not just title. */
+.handoff-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.handoff-project-badge {
+  flex: 0 0 auto;
+  padding: 3px 8px;
+  border: 1px solid var(--alpha-purple-35);
+  border-radius: var(--r-full);
+  background: var(--alpha-purple-08);
+  color: var(--accent-hi);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 40%;
 }
 
 .handoff-add-open {
