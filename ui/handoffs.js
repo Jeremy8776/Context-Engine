@@ -56,8 +56,6 @@ const HandoffsTab = (() => {
 
   function renderCard(item) {
     const isActive = item.slug === selected ? ' active' : '';
-    const commits = item.staleness?.commits_past_head;
-    const commitLabel = commits === null || commits === undefined ? 'No git signal' : `${commits} commits`;
     // Project-bound handoffs surface the project name (basename of the repo
     // path) as a prominent badge so a user scanning the list can tell
     // "context-engine" handoffs apart from "comfyui-deploy" handoffs at a
@@ -66,6 +64,19 @@ const HandoffsTab = (() => {
     const projectBadge = projectName
       ? `<span class="handoff-project-badge" title="${esc(item.repo)}">${projectName}</span>`
       : '';
+    // Meta info (binding, age, optional commit count) used to render as a
+    // row of three pill chips below the preview. At list-view density the
+    // pill chrome read as visual noise and the small mono text inside each
+    // chip lost legibility. Following Memory's pattern: render title + a
+    // single preview line. Meta becomes a thin subtitle prefix on the
+    // preview, plain text, no chrome.
+    const commits = item.staleness?.commits_past_head;
+    const commitLabel =
+      typeof commits === 'number' ? `${commits} commit${commits === 1 ? '' : 's'} past head` : '';
+    const subtitle = [bindingLabel(item), ageLabel(item.last_touched), commitLabel]
+      .filter(Boolean)
+      .join(' · ');
+    const previewText = preview(item.body);
     return `
       <button class="handoff-card${isActive}" onclick="HandoffsTab.select('${esc(item.slug)}')">
         <span class="handoff-card-top">
@@ -75,12 +86,8 @@ const HandoffsTab = (() => {
           </span>
           <span class="handoff-type">${esc(typeLabel(item.type))}</span>
         </span>
-        <span class="handoff-preview">${esc(preview(item.body))}</span>
-        <span class="handoff-meta">
-          <span>${esc(bindingLabel(item))}</span>
-          <span>${esc(ageLabel(item.last_touched))}</span>
-          <span>${esc(commitLabel)}</span>
-        </span>
+        <span class="handoff-subtitle">${esc(subtitle)}</span>
+        ${previewText ? `<span class="handoff-preview">${esc(previewText)}</span>` : ''}
       </button>`;
   }
 

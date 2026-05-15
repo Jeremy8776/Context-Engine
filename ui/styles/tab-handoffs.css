@@ -113,8 +113,11 @@
   white-space: nowrap;
 }
 
+/* Pill chrome retained for the side-panel detail header only (handoff-
+   detail-meta). The list/grid cards no longer render meta as pills — the
+   meta lives in .handoff-subtitle as a single plain-text line below the
+   title, mirroring Memory's title + preview rhythm. */
 .handoff-type,
-.handoff-meta span,
 .handoff-detail-meta span {
   min-height: 24px;
   padding: 5px 8px;
@@ -132,6 +135,16 @@
   color: var(--accent-hi);
 }
 
+.handoff-subtitle {
+  color: var(--text-3);
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .handoff-preview {
   display: -webkit-box;
   overflow: hidden;
@@ -142,7 +155,6 @@
   -webkit-line-clamp: 3;
 }
 
-.handoff-meta,
 .handoff-detail-meta {
   display: flex;
   gap: 6px;
