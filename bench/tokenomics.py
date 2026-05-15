@@ -29,12 +29,22 @@ installed, falls back to a ~4-chars-per-token heuristic.
 
 CE must be running locally. Default base URL is http://127.0.0.1:3847.
 
+Quality grading (optional):
+  Pass --grade to actually run each task through Claude in smart and
+  search modes, capture the response, and grade it 1-10 via a judge
+  model. Requires ANTHROPIC_API_KEY. Defaults to Haiku for cheap runs
+  (~$0.10 per full benchmark); override with --task-model / --grader-model
+  for higher-quality measurement. Prints a combined tokens-plus-quality
+  table so you can see the trade-off.
+
 Usage:
     python bench/tokenomics.py
+    python bench/tokenomics.py --grade
     python bench/tokenomics.py --ce-url http://127.0.0.1:3847
     python bench/tokenomics.py --tasks bench/tasks.json --out bench/results.json
     python bench/tokenomics.py --max-tokens 4000   # small-context model
     python bench/tokenomics.py --search-limit 10   # MCP retrieval depth
+    python bench/tokenomics.py --grade --task-model claude-sonnet-4-5
 
 Exit codes:
     0  ran cleanly (even if some tasks failed individually)
@@ -98,6 +108,14 @@ DEFAULT_SEARCH_LIMIT = 8
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_TASKS_PATH = os.path.join(HERE, "tasks.json")
 DEFAULT_OUT_PATH = os.path.join(HERE, "results-latest.json")
+
+# Defaults for the optional --grade pass. Haiku is cheap enough that a full
+# 15-task benchmark costs ~$0.10. Override if you want a more discerning judge
+# or a stronger task-runner.
+DEFAULT_TASK_MODEL = "claude-haiku-4-5"
+DEFAULT_GRADER_MODEL = "claude-haiku-4-5"
+DEFAULT_TASK_MAX_OUTPUT = 600
+DEFAULT_GRADER_MAX_OUTPUT = 200
 
 
 # --- HTTP helpers ----------------------------------------------------------
@@ -180,7 +198,129 @@ class TaskResult:
     smart_saving_pct: float = 0.0
     search_saving_pct: float = 0.0
     latency_ms: int = 0
+    # Quality grading fields — populated only when --grade is set.
+    smart_response: str = ""
+    smart_response_input_tokens: int = 0   # what Anthropic billed (may differ from tiktoken)
+    smart_response_output_tokens: int = 0
+    smart_quality: int = 0                  # 1-10
+    smart_quality_reason: str = ""
+    search_response: str = ""
+    search_response_input_tokens: int = 0
+    search_response_output_tokens: int = 0
+    search_quality: int = 0
+    search_quality_reason: str = ""
     error: str = ""
+
+
+JUDGE_RUBRIC = """You are grading an AI assistant's response to a user task.
+
+Score the response 1-10 considering:
+- Specificity   (1=generic platitudes, 10=concrete and task-specific)
+- Actionability (1=vague, 10=clear next steps the user can follow)
+- Plausibility  (1=likely wrong, 10=appears correct + well-reasoned)
+
+Output EXACTLY two lines, nothing else:
+SCORE: <integer 1-10>
+REASON: <one short sentence explaining the score>"""
+
+
+def build_context_text(skill_ids, active_bodies: dict[str, str]) -> str:
+    """Build the system prompt section a host app would receive when given
+    a specific subset of skills in full. Each skill body is delimited so
+    the model can see the boundary between skills."""
+    parts = []
+    for sid in skill_ids:
+        body = active_bodies.get(sid, "")
+        if not body:
+            continue
+        parts.append(f"--- SKILL: {sid} ---\n{body}".rstrip())
+    return "\n\n".join(parts)
+
+
+def build_search_context_text(search_chunks) -> str:
+    """System-prompt section from MCP search results — labelled chunks
+    instead of full skills."""
+    parts = []
+    for i, chunk in enumerate(search_chunks, 1):
+        sid = chunk.get("skillId") or "?"
+        section = chunk.get("section") or "?"
+        text = chunk.get("text") or ""
+        parts.append(f"--- CHUNK {i}: skill={sid} section={section} ---\n{text}".rstrip())
+    return "\n\n".join(parts)
+
+
+def call_claude(client, model: str, system_text: str, user_text: str, max_output: int):
+    """One Anthropic call; returns text + token usage."""
+    resp = client.messages.create(
+        model=model,
+        max_tokens=max_output,
+        system=system_text,
+        messages=[{"role": "user", "content": user_text}],
+    )
+    text = ""
+    for block in resp.content:
+        if getattr(block, "type", None) == "text":
+            text += block.text
+    return {
+        "text": text.strip(),
+        "input_tokens": int(resp.usage.input_tokens),
+        "output_tokens": int(resp.usage.output_tokens),
+    }
+
+
+def grade_response(client, model: str, task_prompt: str, response_text: str):
+    """Returns (score 1-10, reason str, tokens int). Score defaults to 0 if
+    parsing fails, with the raw text preserved in reason for debugging."""
+    if not response_text.strip():
+        return 0, "(empty response)", 0
+    user = f"TASK PROMPT:\n{task_prompt}\n\nRESPONSE TO GRADE:\n{response_text}"
+    try:
+        out = call_claude(client, model, JUDGE_RUBRIC, user, DEFAULT_GRADER_MAX_OUTPUT)
+    except Exception as e:
+        return 0, f"(grader error: {e})", 0
+    score = 0
+    reason = out["text"]
+    for line in out["text"].splitlines():
+        line = line.strip()
+        if line.upper().startswith("SCORE:"):
+            digits = "".join(ch for ch in line.split(":", 1)[1] if ch.isdigit())
+            if digits:
+                score = max(1, min(10, int(digits)))
+        elif line.upper().startswith("REASON:"):
+            reason = line.split(":", 1)[1].strip()
+    return score, reason, out["input_tokens"] + out["output_tokens"]
+
+
+def grade_task(client, task_model: str, grader_model: str, task: dict,
+               smart_ctx: str, search_ctx: str) -> dict:
+    """Run the task through Claude under smart and search contexts, grade
+    each output. Returns a dict with response text + tokens + scores."""
+    prompt = task.get("prompt", "")
+    out = {
+        "smart_response": "", "smart_input_tokens": 0, "smart_output_tokens": 0,
+        "smart_quality": 0, "smart_quality_reason": "",
+        "search_response": "", "search_input_tokens": 0, "search_output_tokens": 0,
+        "search_quality": 0, "search_quality_reason": "",
+    }
+    for mode, ctx in (("smart", smart_ctx), ("search", search_ctx)):
+        if not ctx.strip():
+            continue
+        system = (
+            "You are an AI assistant. The following knowledge has been retrieved "
+            "for the user's task. Use it where relevant.\n\n" + ctx
+        )
+        try:
+            resp = call_claude(client, task_model, system, prompt, DEFAULT_TASK_MAX_OUTPUT)
+        except Exception as e:
+            out[f"{mode}_response"] = f"(call failed: {e})"
+            continue
+        out[f"{mode}_response"] = resp["text"]
+        out[f"{mode}_input_tokens"] = resp["input_tokens"]
+        out[f"{mode}_output_tokens"] = resp["output_tokens"]
+        score, reason, _ = grade_response(client, grader_model, prompt, resp["text"])
+        out[f"{mode}_quality"] = score
+        out[f"{mode}_quality_reason"] = reason
+    return out
 
 
 def benchmark_task(
@@ -191,6 +331,9 @@ def benchmark_task(
     active_bodies: dict[str, str],
     max_tokens: int,
     search_limit: int,
+    grade_client=None,
+    task_model: str = DEFAULT_TASK_MODEL,
+    grader_model: str = DEFAULT_GRADER_MODEL,
 ) -> TaskResult:
     res = TaskResult(
         task_id=task.get("id", "?"),
@@ -232,15 +375,16 @@ def benchmark_task(
     res.ce_reported_all_on = int(budget.get("allOnTokens") or 0)
 
     # MCP search path — what a host app would pull on demand.
+    search_chunks = []
     try:
         search = post_json(
             ce_url,
             "/api/search",
             {"query": res.prompt, "limit": search_limit},
         )
-        results = search.get("results") or []
-        res.search_chunk_count = len(results)
-        res.search_tokens = sum(count_tokens(r.get("text", "")) for r in results)
+        search_chunks = search.get("results") or []
+        res.search_chunk_count = len(search_chunks)
+        res.search_tokens = sum(count_tokens(r.get("text", "")) for r in search_chunks)
     except Exception as e:
         # Search needs the vector index to be built. Non-fatal — record 0
         # and keep the smart-compile numbers.
@@ -252,6 +396,25 @@ def benchmark_task(
         res.smart_saving_pct = round(100 * (1 - res.smart_tokens / raw_all_tokens), 1)
         if res.search_tokens > 0:
             res.search_saving_pct = round(100 * (1 - res.search_tokens / raw_all_tokens), 1)
+
+    # Optional quality pass: actually run the task through Claude in both
+    # smart and search modes, capture the output, and grade it 1-10 via a
+    # judge model. Skipped when grade_client is None (the default).
+    if grade_client is not None:
+        smart_ctx = build_context_text(selected, active_bodies)
+        search_ctx = build_search_context_text(search_chunks)
+        graded = grade_task(grade_client, task_model, grader_model, task,
+                            smart_ctx, search_ctx)
+        res.smart_response = graded["smart_response"]
+        res.smart_response_input_tokens = graded["smart_input_tokens"]
+        res.smart_response_output_tokens = graded["smart_output_tokens"]
+        res.smart_quality = graded["smart_quality"]
+        res.smart_quality_reason = graded["smart_quality_reason"]
+        res.search_response = graded["search_response"]
+        res.search_response_input_tokens = graded["search_input_tokens"]
+        res.search_response_output_tokens = graded["search_output_tokens"]
+        res.search_quality = graded["search_quality"]
+        res.search_quality_reason = graded["search_quality_reason"]
 
     return res
 
@@ -269,19 +432,30 @@ def _fmt_pct(p: float) -> str:
     return f"{p:.1f}%"
 
 
-def print_table(results: list[TaskResult]):
-    # Column spec: (heading, width, accessor, formatter)
-    cols = [
-        ("Task", 22, lambda r: r.task_id, str),
-        ("Category", 11, lambda r: r.category or "-", str),
-        ("Raw all", 9, lambda r: r.raw_all_tokens, _fmt_int),
-        ("Smart", 9, lambda r: r.smart_tokens, _fmt_int),
-        ("Search", 9, lambda r: r.search_tokens, _fmt_int),
-        ("Sel/Act", 9, lambda r: f"{r.selected_skill_count}/{r.active_skill_count}", str),
-        ("Smart saved", 12, lambda r: r.smart_saving_pct, _fmt_pct),
-        ("Search saved", 13, lambda r: r.search_saving_pct, _fmt_pct),
-        ("Latency", 8, lambda r: f"{r.latency_ms}ms", str),
-    ]
+def print_table(results: list[TaskResult], graded: bool):
+    if graded:
+        cols = [
+            ("Task", 22, lambda r: r.task_id, str),
+            ("Category", 11, lambda r: r.category or "-", str),
+            ("Smart tok", 10, lambda r: r.smart_tokens, _fmt_int),
+            ("Smart Q", 8, lambda r: f"{r.smart_quality}/10", str),
+            ("Search tok", 11, lambda r: r.search_tokens, _fmt_int),
+            ("Search Q", 9, lambda r: f"{r.search_quality}/10", str),
+            ("Smart saved", 12, lambda r: r.smart_saving_pct, _fmt_pct),
+            ("Search saved", 13, lambda r: r.search_saving_pct, _fmt_pct),
+        ]
+    else:
+        cols = [
+            ("Task", 22, lambda r: r.task_id, str),
+            ("Category", 11, lambda r: r.category or "-", str),
+            ("Raw all", 9, lambda r: r.raw_all_tokens, _fmt_int),
+            ("Smart", 9, lambda r: r.smart_tokens, _fmt_int),
+            ("Search", 9, lambda r: r.search_tokens, _fmt_int),
+            ("Sel/Act", 9, lambda r: f"{r.selected_skill_count}/{r.active_skill_count}", str),
+            ("Smart saved", 12, lambda r: r.smart_saving_pct, _fmt_pct),
+            ("Search saved", 13, lambda r: r.search_saving_pct, _fmt_pct),
+            ("Latency", 8, lambda r: f"{r.latency_ms}ms", str),
+        ]
     header = "  ".join(name.ljust(width) for name, width, _, _ in cols)
     print(header)
     print("-" * len(header))
@@ -296,7 +470,7 @@ def print_table(results: list[TaskResult]):
         print(line)
 
 
-def print_summary(results: list[TaskResult]):
+def print_summary(results: list[TaskResult], graded: bool = False):
     valid = [r for r in results if r.raw_all_tokens > 0 and r.smart_tokens > 0]
     if not valid:
         print("\nNo valid measurements to summarise.")
@@ -359,6 +533,48 @@ def print_summary(results: list[TaskResult]):
             print(f"  Mean ratio CE/tiktoken: {statistics.mean(ratios):.2f}x")
             print(f"  (1.0 = perfect agreement; >1 = CE over-counts, <1 = CE under-counts)")
 
+    if not graded:
+        return
+
+    # Quality (1-10) per mode + tokens-per-quality-point efficiency. The
+    # interesting question isn't "did we save tokens" but "did we save
+    # tokens AND keep answer quality". A high tokens-per-quality-point
+    # number means we paid a lot for each quality unit; lower is better.
+    smart_q = [r.smart_quality for r in valid if r.smart_quality > 0]
+    search_q = [r.search_quality for r in valid if r.search_quality > 0]
+    if smart_q or search_q:
+        print()
+        print("-" * 78)
+        print("Quality (1-10, judged by separate LLM)".center(78))
+        print("-" * 78)
+        if smart_q:
+            print(f"\nSmart-compile path:")
+            print(f"  median  {statistics.median(smart_q):>6.1f} / 10")
+            print(f"  mean    {statistics.mean(smart_q):>6.1f} / 10")
+            print(f"  min     {min(smart_q):>6}   /10")
+            print(f"  max     {max(smart_q):>6}   /10")
+        if search_q:
+            print(f"\nMCP search path:")
+            print(f"  median  {statistics.median(search_q):>6.1f} / 10")
+            print(f"  mean    {statistics.mean(search_q):>6.1f} / 10")
+            print(f"  min     {min(search_q):>6}   /10")
+            print(f"  max     {max(search_q):>6}   /10")
+
+        # Efficiency: tokens consumed per quality point. Apples-to-apples
+        # if the same task corpus was used; lower = better leverage.
+        smart_total = sum(r.smart_tokens for r in valid if r.smart_quality > 0)
+        smart_q_total = sum(r.smart_quality for r in valid if r.smart_quality > 0)
+        search_total = sum(r.search_tokens for r in valid if r.search_quality > 0)
+        search_q_total = sum(r.search_quality for r in valid if r.search_quality > 0)
+        print(f"\nTokens per quality point (lower = better leverage):")
+        if smart_q_total:
+            print(f"  Smart:  {smart_total / smart_q_total:>10,.0f}  tokens / quality point")
+        if search_q_total:
+            print(f"  Search: {search_total / search_q_total:>10,.0f}  tokens / quality point")
+        if smart_q_total and search_q_total:
+            ratio = (smart_total / smart_q_total) / (search_total / search_q_total)
+            print(f"  Search delivers {ratio:.0f}x more quality per token than smart-compile.")
+
 
 def category_breakdown(results: list[TaskResult]):
     by_cat: dict[str, list[TaskResult]] = {}
@@ -391,13 +607,44 @@ def main() -> int:
                         help="MCP search depth — how many chunks the host pulls per task.")
     parser.add_argument("--no-out", action="store_true",
                         help="Skip writing the JSON sidecar.")
+    parser.add_argument("--grade", action="store_true",
+                        help="Also run each task through Claude in smart + search "
+                             "modes and grade outputs 1-10 via a judge model. "
+                             "Requires ANTHROPIC_API_KEY.")
+    parser.add_argument("--task-model", default=DEFAULT_TASK_MODEL,
+                        help=f"Anthropic model for task runs (default {DEFAULT_TASK_MODEL}).")
+    parser.add_argument("--grader-model", default=DEFAULT_GRADER_MODEL,
+                        help=f"Anthropic model for grading (default {DEFAULT_GRADER_MODEL}).")
     args = parser.parse_args()
+
+    # Build the Anthropic client up front if --grade is on, so we fail fast
+    # rather than running all the token measurements first only to discover
+    # the API key isn't set.
+    grade_client = None
+    if args.grade:
+        try:
+            import anthropic
+        except ImportError:
+            sys.stderr.write(
+                "[!] --grade needs the `anthropic` package. Install it:\n"
+                "    python -m pip install anthropic\n"
+            )
+            return 1
+        if not os.environ.get("ANTHROPIC_API_KEY"):
+            sys.stderr.write(
+                "[!] --grade needs ANTHROPIC_API_KEY in the environment.\n"
+            )
+            return 1
+        grade_client = anthropic.Anthropic()
 
     print(f"Context Engine tokenomics benchmark")
     print(f"  CE URL:        {args.ce_url}")
     print(f"  Token counter: {'tiktoken cl100k_base' if _TIKTOKEN_AVAILABLE else 'char/4 heuristic (install tiktoken for better)'}")
     print(f"  Max tokens:    {args.max_tokens}")
     print(f"  Search depth:  {args.search_limit}")
+    if args.grade:
+        print(f"  Task model:    {args.task_model}")
+        print(f"  Grader model:  {args.grader_model}")
     print()
 
     if not reachable(args.ce_url):
@@ -449,23 +696,29 @@ def main() -> int:
     print()
 
     # Run each task
-    print(f"Running {len(tasks)} tasks...")
+    print(f"Running {len(tasks)} tasks{' (with quality grading)' if args.grade else ''}...")
     results: list[TaskResult] = []
     for i, task in enumerate(tasks, 1):
         tid = task.get("id", f"task-{i}")
         print(f"  [{i:>2}/{len(tasks)}] {tid:<28}", end=" ", flush=True)
         r = benchmark_task(args.ce_url, task, raw_all_tokens, contextmd_tokens,
-                           active_bodies, args.max_tokens, args.search_limit)
+                           active_bodies, args.max_tokens, args.search_limit,
+                           grade_client=grade_client,
+                           task_model=args.task_model,
+                           grader_model=args.grader_model)
         results.append(r)
         if r.error and r.smart_tokens == 0:
             print(f"FAIL  {r.error}")
         else:
             tail = " (search n/a)" if r.error and r.search_tokens == 0 else ""
-            print(f"smart {r.smart_saving_pct:>5.1f}% / search {r.search_saving_pct:>5.1f}%{tail}")
+            grade_tail = ""
+            if args.grade:
+                grade_tail = f" / Q smart {r.smart_quality}/10 search {r.search_quality}/10"
+            print(f"smart {r.smart_saving_pct:>5.1f}% / search {r.search_saving_pct:>5.1f}%{tail}{grade_tail}")
 
     print()
-    print_table(results)
-    print_summary(results)
+    print_table(results, graded=args.grade)
+    print_summary(results, graded=args.grade)
     category_breakdown(results)
 
     if not args.no_out:

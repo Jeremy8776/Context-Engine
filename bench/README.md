@@ -4,13 +4,15 @@ One Python script. Run it; it prints a table. That's the whole tool.
 
 ## What it measures
 
-For each task in `tasks.json`, three numbers:
+For each task in `tasks.json`, three numbers (apples-to-apples on full skill bodies, same tokenizer):
 
-- **Baseline** — tokens in `CONTEXT.md` when every active skill is compiled into the prompt. This is what a user without smart-compile or MCP would have in their system prompt.
-- **Smart** — tokens after CE's `/api/compile/smart` picks the relevant skills for this specific task.
-- **Search** — tokens an MCP host (Claude Desktop, Codex) would actually pull when it calls `context_engine_search` for this task.
+- **Raw all** — tokens a naive MCP host pulls if it loads every active skill in full. This is the **baseline**; all savings percentages are against this.
+- **Smart** — tokens after CE's `/api/compile/smart` picks the relevant skills for this specific task. Same content type as Raw all, just a subset.
+- **Search** — tokens an MCP host (Claude Desktop, Codex) actually pulls when it calls `context_engine_search` — chunks, not full skills.
 
-Both savings paths are reported as a `% reduction vs Baseline`. Lower is better.
+Reference column: `CONTEXT.md` size — CE's pre-compressed system-prompt summary, a *different* path entirely. Reported alongside so both CE delivery paths are visible without inflating the savings number by mixing content types.
+
+Optional quality column (`--grade`): for each task, actually run it through Claude in both smart and search modes, capture the response, and have a judge model score it 1-10. The summary adds tokens-per-quality-point efficiency — the real "are we saving tokens AND maintaining answer quality?" question.
 
 ## Prerequisites
 
@@ -37,7 +39,26 @@ Output goes to stdout: per-task table + summary + per-category median, plus a JS
 --no-out              Don't write the JSON sidecar
 --max-tokens N        Smart-compile token budget per task (default 16000)
 --search-limit N      How many chunks MCP search returns per task (default 8)
+--grade               Run each task through Claude and grade outputs 1-10
+--task-model NAME     Anthropic model for task runs (default claude-haiku-4-5)
+--grader-model NAME   Anthropic model for judging (default claude-haiku-4-5)
 ```
+
+### Quality grading (`--grade`)
+
+Set `ANTHROPIC_API_KEY` in the env, then:
+
+```bash
+python bench/tokenomics.py --grade
+```
+
+For each task this runs two real Claude calls (smart-context, search-context) plus one judge call. Output gains:
+
+- A `Smart Q` / `Search Q` column in the table (1-10).
+- Per-mode quality distribution (median / mean / range) in the summary.
+- A **tokens-per-quality-point** efficiency line — the load-bearing number for the "lean MCP" claim. If search delivers similar quality at a fraction of the tokens, the ratio shows it.
+
+Cost expectation at defaults (Haiku for both task + grader, 15 tasks): ~$0.10 per full benchmark. Stronger models cost proportionally more — Sonnet for the task model is ~10x, Opus more. Use `--task-model claude-sonnet-4-5` for a publishable-grade run.
 
 ## Methodology notes
 
