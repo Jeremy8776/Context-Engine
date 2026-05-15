@@ -89,9 +89,9 @@ function parseLegacyHandoff(content) {
  * Re-running is idempotent for generated legacy slugs.
  *
  * @param {{ sourceFile: string, repo?: string, keepActive?: number }} input
- * @returns {{ ok: true, imported: number, skipped: number, active: number, archived: number, entries: LegacyHandoffEntry[] } | { ok: false, error: string }}
+ * @returns {Promise<{ ok: true, imported: number, skipped: number, active: number, archived: number, entries: LegacyHandoffEntry[] } | { ok: false, error: string }>}
  */
-function migrateLegacyHandoff(input) {
+async function migrateLegacyHandoff(input) {
   const sourceFile = String(input?.sourceFile || '').trim();
   if (!sourceFile) return { ok: false, error: 'sourceFile is required' };
   let content;
@@ -112,10 +112,12 @@ function migrateLegacyHandoff(input) {
   let active = 0;
   let archived = 0;
 
-  entries.forEach((entry, index) => {
+  for (let index = 0; index < entries.length; index++) {
+    const entry = entries[index];
+    if (!entry) continue;
     if (getHandoff(entry.slug)) {
       skipped++;
-      return;
+      continue;
     }
     const result = createHandoff({
       title: entry.title,
@@ -125,16 +127,16 @@ function migrateLegacyHandoff(input) {
     });
     if (!result.ok) {
       skipped++;
-      return;
+      continue;
     }
     imported++;
     if (index < keepActive) {
       active++;
-      return;
+      continue;
     }
-    const archiveResult = archiveHandoff(result.handoff.slug);
+    const archiveResult = await archiveHandoff(result.handoff.slug);
     if (archiveResult.ok) archived++;
-  });
+  }
 
   return { ok: true, imported, skipped, active, archived, entries };
 }

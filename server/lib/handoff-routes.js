@@ -36,7 +36,7 @@ async function handleHandoffRequest(req, res, url) {
 
   if (p === '/api/handoffs/sync-project' && req.method === 'POST') {
     const data = await body(req);
-    const result = syncProjectHandoff(stringField(data?.repo) || '');
+    const result = await syncProjectHandoff(stringField(data?.repo) || '');
     if (!result.ok) return json(res, { ok: false, error: result.error, source: result.source }, 400);
     return json(res, { ok: true, handoff: result.handoff, source: result.source, created: result.created });
   }
@@ -55,21 +55,21 @@ async function handleHandoffRequest(req, res, url) {
 
   if (p.startsWith('/api/handoffs/') && p.endsWith('/archive') && req.method === 'POST') {
     const slug = decodeURIComponent(p.slice('/api/handoffs/'.length, -'/archive'.length));
-    const result = archiveHandoff(slug);
+    const result = await archiveHandoff(slug);
     if (!result.ok) return json(res, { ok: false, error: result.error }, 400);
     return json(res, { ok: true });
   }
 
   if (p.startsWith('/api/handoffs/') && p.endsWith('/restore') && req.method === 'POST') {
     const slug = decodeURIComponent(p.slice('/api/handoffs/'.length, -'/restore'.length));
-    const result = restoreHandoff(slug);
+    const result = await restoreHandoff(slug);
     if (!result.ok) return json(res, { ok: false, error: result.error }, 400);
     return json(res, { ok: true, handoff: result.handoff });
   }
 
   if (p.startsWith('/api/handoffs/') && p.endsWith('/purge') && req.method === 'POST') {
     const slug = decodeURIComponent(p.slice('/api/handoffs/'.length, -'/purge'.length));
-    const result = purgeHandoff(slug);
+    const result = await purgeHandoff(slug);
     if (!result.ok) return json(res, { ok: false, error: result.error }, 400);
     return json(res, { ok: true });
   }
@@ -86,7 +86,10 @@ async function handleHandoffRequest(req, res, url) {
     const slug = decodeURIComponent(p.replace('/api/handoffs/', ''));
     if (!slug) return json(res, { ok: false, error: 'slug is required' }, 400);
     const data = await body(req);
-    const result = updateHandoff(slug, { title: stringField(data?.title), body: stringField(data?.body) });
+    const result = await updateHandoff(slug, {
+      title: stringField(data?.title),
+      body: stringField(data?.body),
+    });
     if (!result.ok) return json(res, { ok: false, error: result.error }, 400);
     return json(res, { ok: true, handoff: result.handoff });
   }

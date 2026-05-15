@@ -57,9 +57,9 @@ function parseProjectHandoff(content, repo) {
  * handoff store. Existing titles are preserved so the UI remains human-owned.
  *
  * @param {string} repo
- * @returns {{ ok: true, handoff: import('./handoffs').Handoff, source: string, created: boolean } | { ok: false, error: string, source?: string }}
+ * @returns {Promise<{ ok: true, handoff: import('./handoffs').Handoff, source: string, created: boolean } | { ok: false, error: string, source?: string }>}
  */
-function syncProjectHandoff(repo) {
+async function syncProjectHandoff(repo) {
   const repoPath = normalizeRepo(repo);
   if (!repoPath) return { ok: false, error: 'repo is required' };
   try {
@@ -85,7 +85,7 @@ function syncProjectHandoff(repo) {
   });
 
   if (existing) {
-    const updated = updateHandoff(existing.slug, { body: parsed.body });
+    const updated = await updateHandoff(existing.slug, { body: parsed.body });
     if (!updated.ok) return { ok: false, error: updated.error, source };
     return { ok: true, handoff: updated.handoff, source, created: false };
   }

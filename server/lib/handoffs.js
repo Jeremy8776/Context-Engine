@@ -22,6 +22,13 @@ const fs = require('fs');
 const path = require('path');
 const { DATA_DIR } = require('./config');
 const { currentHeadSha, commitsPastSha, commitTimeline } = require('./handoff-git');
+const { createKeyMutex } = require('./per-key-mutex');
+
+// Per-slug mutex so a concurrent PATCH from updateHandoff can't race the
+// archive sweep that listHandoffs triggers: without the lock, PATCH could
+// write a new active file just after the sweep renamed it to archive,
+// leaving both copies on disk with diverging state.
+const slugMutex = createKeyMutex();
 
 const HANDOFFS_DIR = path.join(DATA_DIR, 'handoffs');
 const ARCHIVE_DIR = path.join(HANDOFFS_DIR, 'archive');
@@ -217,9 +224,14 @@ function readFile(file) {
 }
 
 /**
- * List active handoffs. Side effect: auto-archives any active handoff whose
- * staleness eligibility has tripped since the last list call. Also auto-
- * purges archived entries older than PURGE_THRESHOLD_DAYS.
+ * List active handoffs. Sweeps stale entries to archive and purges old
+ * archive entries as a side effect.
+ *
+ * The sweep uses atomic `fs.renameSync(active, archive)` so a concurrent
+ * `updateHandoff` either sees the active file (writes succeed) or sees it
+ * gone (ENOENT, returns "not found"). Either outcome keeps state coherent
+ * — the previous writeFileSync-then-unlinkSync pattern had a window where
+ * a PATCH could leave a duplicate file behind.
  *
  * @returns {Handoff[]}
  */
@@ -231,12 +243,13 @@ function listHandoffs() {
   /** @type {Handoff[]} */
   const out = [];
   for (const slug of slugs) {
-    const parsed = readFile(path.join(HANDOFFS_DIR, `${slug}.md`));
+    if (!isSlugSafe(slug)) continue;
+    const activePath = path.join(HANDOFFS_DIR, `${slug}.md`);
+    const parsed = readFile(activePath);
     if (!parsed) continue;
     const staleness = evaluateStaleness(parsed.fm);
     if (staleness.eligible_for_archive) {
-      // Auto-archive - move file, then skip from active list.
-      archiveBySlug(slug);
+      sweepArchive(slug, parsed.fm, parsed.body, activePath);
       continue;
     }
     out.push({ slug, ...parsed.fm, body: parsed.body, staleness });
@@ -244,6 +257,32 @@ function listHandoffs() {
   // Order by most recently touched first.
   out.sort((a, b) => (b.last_touched || '').localeCompare(a.last_touched || ''));
   return out;
+}
+
+/**
+ * Atomic-rename-based archive used by the sweep inside listHandoffs. Stamps
+ * the frontmatter with an `archived` timestamp first, then writes the new
+ * file to the archive dir and renames the active file out. Tolerant of races
+ * — if a concurrent updateHandoff already renamed/removed the file, the
+ * sweep silently skips.
+ *
+ * @param {string} slug
+ * @param {HandoffFrontmatter} fm
+ * @param {string} body
+ * @param {string} activePath
+ */
+function sweepArchive(slug, fm, body, activePath) {
+  const stampedFm = { ...fm, archived: new Date().toISOString() };
+  const archivePath = path.join(ARCHIVE_DIR, `${slug}.md`);
+  try {
+    fs.writeFileSync(archivePath, serialiseFile(stampedFm, body), 'utf8');
+    fs.unlinkSync(activePath);
+  } catch (err) {
+    const code = err && typeof err === 'object' ? /** @type {any} */ (err).code : null;
+    if (code !== 'ENOENT') {
+      console.error('handoffs: sweep archive failed', slug, err);
+    }
+  }
 }
 
 /** @returns {Handoff[]} */
@@ -336,11 +375,20 @@ function createHandoff(input) {
  *
  * @param {string} slug
  * @param {{ title?: string, body?: string }} patch
- * @returns {{ ok: true, handoff: Handoff } | { ok: false, error: string }}
+ * @returns {Promise<{ ok: true, handoff: Handoff } | { ok: false, error: string }>}
  */
-function updateHandoff(slug, patch) {
+async function updateHandoff(slug, patch) {
   ensureDirs();
   if (!isSlugSafe(slug)) return { ok: false, error: 'Invalid slug' };
+  return slugMutex(slug, async () => updateHandoffSync(slug, patch));
+}
+
+/**
+ * @param {string} slug
+ * @param {{ title?: string, body?: string }} patch
+ * @returns {{ ok: true, handoff: Handoff } | { ok: false, error: string }}
+ */
+function updateHandoffSync(slug, patch) {
   const file = path.join(HANDOFFS_DIR, `${slug}.md`);
   if (!fs.existsSync(file)) return { ok: false, error: 'Handoff not found (already archived?)' };
   const parsed = readFile(file);
@@ -359,11 +407,19 @@ function updateHandoff(slug, patch) {
  * the current ISO timestamp so PURGE_THRESHOLD_DAYS can run against it.
  *
  * @param {string} slug
- * @returns {{ ok: true } | { ok: false, error: string }}
+ * @returns {Promise<{ ok: true } | { ok: false, error: string }>}
  */
-function archiveBySlug(slug) {
+async function archiveBySlug(slug) {
   ensureDirs();
   if (!isSlugSafe(slug)) return { ok: false, error: 'Invalid slug' };
+  return slugMutex(slug, async () => archiveBySlugSync(slug));
+}
+
+/**
+ * @param {string} slug
+ * @returns {{ ok: true } | { ok: false, error: string }}
+ */
+function archiveBySlugSync(slug) {
   const file = path.join(HANDOFFS_DIR, `${slug}.md`);
   if (!fs.existsSync(file)) return { ok: false, error: 'Handoff not found' };
   const parsed = readFile(file);
@@ -380,11 +436,19 @@ function archiveBySlug(slug) {
  * resets `last_touched` so it doesn't auto-archive again on the next list.
  *
  * @param {string} slug
- * @returns {{ ok: true, handoff: Handoff } | { ok: false, error: string }}
+ * @returns {Promise<{ ok: true, handoff: Handoff } | { ok: false, error: string }>}
  */
-function restoreHandoff(slug) {
+async function restoreHandoff(slug) {
   ensureDirs();
   if (!isSlugSafe(slug)) return { ok: false, error: 'Invalid slug' };
+  return slugMutex(slug, async () => restoreHandoffSync(slug));
+}
+
+/**
+ * @param {string} slug
+ * @returns {{ ok: true, handoff: Handoff } | { ok: false, error: string }}
+ */
+function restoreHandoffSync(slug) {
   const file = path.join(ARCHIVE_DIR, `${slug}.md`);
   if (!fs.existsSync(file)) return { ok: false, error: 'Archived handoff not found' };
   const parsed = readFile(file);
@@ -412,15 +476,17 @@ function restoreHandoff(slug) {
  * handoffs - those must be archived first.
  *
  * @param {string} slug
- * @returns {{ ok: true } | { ok: false, error: string }}
+ * @returns {Promise<{ ok: true } | { ok: false, error: string }>}
  */
-function purgeHandoff(slug) {
+async function purgeHandoff(slug) {
   ensureDirs();
   if (!isSlugSafe(slug)) return { ok: false, error: 'Invalid slug' };
-  const file = path.join(ARCHIVE_DIR, `${slug}.md`);
-  if (!fs.existsSync(file)) return { ok: false, error: 'Archived handoff not found' };
-  fs.unlinkSync(file);
-  return { ok: true };
+  return slugMutex(slug, async () => {
+    const file = path.join(ARCHIVE_DIR, `${slug}.md`);
+    if (!fs.existsSync(file)) return { ok: false, error: 'Archived handoff not found' };
+    fs.unlinkSync(file);
+    return { ok: true };
+  });
 }
 
 /** Auto-purge archived handoffs older than PURGE_THRESHOLD_DAYS. */

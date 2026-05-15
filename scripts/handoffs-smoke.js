@@ -21,6 +21,7 @@ const {
 const { PROJECT_HANDOFF_RELATIVE, syncProjectHandoff } = require('../server/lib/handoff-project-sync');
 const { parseLegacyHandoff, migrateLegacyHandoff } = require('../server/lib/handoff-migration');
 
+(async () => {
 const active = createHandoff({
   title: 'Thread resume',
   thread_tag: 'thread-resume',
@@ -40,7 +41,7 @@ fs.writeFileSync(
 assert.strictEqual(listHandoffs().length, 0, 'idle thread handoff should auto-archive');
 assert.strictEqual(listArchived().length, 1, 'archived list should include stale thread handoff');
 
-const restored = restoreHandoff('thread-resume');
+const restored = await restoreHandoff('thread-resume');
 assert.strictEqual(restored.ok, true, 'expected archived handoff to restore');
 assert.strictEqual(listHandoffs().length, 1, 'restored handoff should be active again');
 
@@ -63,7 +64,7 @@ assert(
   'dual-bound handoff should archive when thread is idle even if commit count is unavailable',
 );
 
-const purged = purgeHandoff('dual-stale-thread');
+const purged = await purgeHandoff('dual-stale-thread');
 assert.strictEqual(purged.ok, true, 'expected purge of archived handoff');
 assert(!fs.existsSync(path.join(ARCHIVE_DIR, 'dual-stale-thread.md')), 'purged handoff should be deleted');
 
@@ -101,7 +102,7 @@ assert.strictEqual(timelineHandoff.staleness.commits_past_head, 2, 'expected two
 // resets and the entry stays active.
 const projectArchiveTarget = listHandoffs().find((h) => h.slug === 'project-timeline');
 assert(projectArchiveTarget, 'project handoff should exist before forced archive');
-const archiveResult = require('../server/lib/handoffs').archiveHandoff('project-timeline');
+const archiveResult = await require('../server/lib/handoffs').archiveHandoff('project-timeline');
 assert.strictEqual(archiveResult.ok, true, 'project handoff should archive on demand');
 // Advance the repo so commits_past_head against the old sha is > threshold.
 for (let i = 0; i < 6; i++) {
@@ -109,7 +110,7 @@ for (let i = 0; i < 6; i++) {
   git(['add', 'notes.txt']);
   git(['commit', '-m', `extra ${i}`]);
 }
-const restoredProject = restoreHandoff('project-timeline');
+const restoredProject = await restoreHandoff('project-timeline');
 assert.strictEqual(restoredProject.ok, true, 'archived project handoff should restore');
 // After restore + auto-sweep, the handoff must still be active (i.e. head_sha
 // was refreshed; the commit counter is now zero against the new head).
@@ -151,7 +152,7 @@ fs.writeFileSync(
   ].join('\n'),
   'utf8',
 );
-const synced = syncProjectHandoff(repoDir);
+const synced = await syncProjectHandoff(repoDir);
 assert.strictEqual(synced.ok, true, 'expected project handoff file to sync');
 assert.strictEqual(synced.created, true, 'expected first project file sync to create a handoff');
 assert.strictEqual(synced.handoff.thread_tag, 'host-sync');
@@ -169,7 +170,7 @@ fs.writeFileSync(
   ].join('\n'),
   'utf8',
 );
-const resynced = syncProjectHandoff(repoDir);
+const resynced = await syncProjectHandoff(repoDir);
 assert.strictEqual(resynced.ok, true, 'expected project handoff file to resync');
 assert.strictEqual(resynced.created, false, 'expected second project file sync to update existing handoff');
 assert.strictEqual(
@@ -224,7 +225,7 @@ assert(firstLegacy, 'expected first parsed legacy entry');
 assert.strictEqual(firstLegacy.title, 'Current feature');
 assert(firstLegacy.body.includes('Details stay'), 'expected body continuation to stay with entry');
 
-const migrated = migrateLegacyHandoff({ sourceFile: legacySource, repo: tmpRoot, keepActive: 1 });
+const migrated = await migrateLegacyHandoff({ sourceFile: legacySource, repo: tmpRoot, keepActive: 1 });
 assert.strictEqual(migrated.ok, true, 'expected legacy migration to succeed');
 assert.strictEqual(migrated.imported, 2, 'expected two imported legacy entries');
 assert.strictEqual(migrated.active, 1, 'expected newest legacy entry to stay active');
@@ -233,3 +234,7 @@ assert(fs.existsSync(path.join(HANDOFFS_DIR, 'legacy-2026-05-12-current-feature.
 assert(fs.existsSync(path.join(ARCHIVE_DIR, 'legacy-2026-05-10-older-work.md')));
 
 console.log('handoffs smoke ok');
+})().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

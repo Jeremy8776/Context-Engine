@@ -56,7 +56,6 @@ const {
   computeSyncDiff: computeSkillSyncDiff,
   applySyncDiff: applySkillSyncDiff,
   readManifest: readSkillImportManifest,
-  forgetImport: forgetSkillImport,
 } = require('./lib/skill-import');
 const { markIndexStale } = require('./lib/vectorstore');
 const { handleHandoffRequest, handoffRouteDocs } = require('./lib/handoff-routes');
@@ -189,7 +188,7 @@ async function handleRequest(req, res, url) {
 
   if (p === '/api/skill-sources' && req.method === 'POST') {
     const data = await body(req);
-    const result = addSkillSource({ path: data?.path, label: data?.label });
+    const result = await addSkillSource({ path: data?.path, label: data?.label });
     if (!result.ok) return json(res, { ok: false, error: result.error }, 400);
     invalidateSkillCache();
     markIndexStale('Linked a new skill source');
@@ -241,12 +240,11 @@ async function handleRequest(req, res, url) {
   if (p.startsWith('/api/skill-sources/') && req.method === 'DELETE') {
     const id = decodeURIComponent(p.replace('/api/skill-sources/', ''));
     if (!id || id === 'scan') return json(res, { ok: false, error: 'id is required' }, 400);
-    const result = removeSkillSource(id);
+    // removeSkillSource is async and routes through the per-source mutex so
+    // unlink waits for any in-flight import/sync on the same id; the manifest
+    // forget happens inside the same lock to avoid orphan trees.
+    const result = await removeSkillSource(id);
     if (!result.ok) return json(res, { ok: false, error: result.error }, 400);
-    // If the source was imported, drop its manifest so future re-links of the
-    // same path start fresh. The imported tree itself stays — the user chose
-    // to materialise those files; tearing them down on unlink would surprise.
-    forgetSkillImport(id);
     invalidateSkillCache();
     markIndexStale('Unlinked a skill source');
     return json(res, { ok: true });

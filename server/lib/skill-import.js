@@ -38,11 +38,13 @@ const IMPORTED_TREE = path.join(SKILLS_DIR, 'imported');
  * @property {ImportFileEntry[]} files
  */
 
-// Concurrency: at most one import/sync per sourceId in-flight at a time.
-// Process-memory map; resets on server restart (safe — partial imports are
+// Concurrency: at most one mutating operation per sourceId at a time. The
+// mutex is shared with skill-sources.js's removeSource so an unlink racing
+// an in-flight import won't leave an orphan tree at skills/imported/<id>/.
+// Process-memory only; resets on server restart (safe — partial imports are
 // detectable by manifest absence + destPath existence).
-/** @type {Map<string, Promise<unknown>>} */
-const inFlight = new Map();
+const { createKeyMutex } = require('./per-key-mutex');
+const sourceMutex = createKeyMutex();
 
 /** @param {string} sourceId */
 function manifestPath(sourceId) {
@@ -243,30 +245,17 @@ function aggregateStrategyOf(files) {
 }
 
 /**
- * Acquire the in-flight slot for a source. Subsequent callers wait until the
- * existing operation completes.
+ * Acquire the in-flight slot for a source. Delegates to the shared per-key
+ * mutex so cross-module callers (skill-sources.removeSource → forgetImport)
+ * serialise against import/sync operations on the same id.
  *
  * @template T
  * @param {string} sourceId
  * @param {() => Promise<T>} fn
  * @returns {Promise<T>}
  */
-async function withMutex(sourceId, fn) {
-  const prior = inFlight.get(sourceId);
-  if (prior) {
-    try {
-      await prior;
-    } catch {
-      /* ignore — we run our own attempt next */
-    }
-  }
-  const promise = (async () => fn())();
-  inFlight.set(sourceId, promise);
-  try {
-    return await promise;
-  } finally {
-    if (inFlight.get(sourceId) === promise) inFlight.delete(sourceId);
-  }
+function withMutex(sourceId, fn) {
+  return sourceMutex(sourceId, fn);
 }
 
 /**
@@ -644,4 +633,9 @@ module.exports = {
   applySyncDiff,
   readManifest,
   forgetImport,
+  /**
+   * Exposed so skill-sources.removeSource can serialise unlinks against
+   * in-flight import/sync operations on the same source id.
+   */
+  withSourceMutex: withMutex,
 };

@@ -14,8 +14,14 @@ const path = require('path');
 const os = require('os');
 const { DATA_DIR, SKILLS_DIR, HOMEDIR } = require('./config');
 const { checkSafeWritePath } = require('./security');
+const { createKeyMutex } = require('./per-key-mutex');
 
 const SOURCES_FILE = path.join(DATA_DIR, 'skill-sources.json');
+
+// Registry-level mutex. Every read-modify-write of skill-sources.json funnels
+// through this so two parallel addSource/removeSource calls can't drop one
+// of each other's writes. Always invoked with the constant key 'registry'.
+const registryMutex = createKeyMutex();
 
 /**
  * @typedef {Object} SkillSource
@@ -95,10 +101,13 @@ function uniqueId(seed, taken) {
  * Validate and register an external skill source. Returns the new record or
  * an Error-shaped result with a user-readable reason.
  *
+ * Async + registry-mutexed so two parallel POSTs don't read-modify-write the
+ * same baseline and drop one of each other's writes.
+ *
  * @param {{ path: string, label?: string }} input
- * @returns {{ ok: true, source: SkillSource } | { ok: false, error: string }}
+ * @returns {Promise<{ ok: true, source: SkillSource } | { ok: false, error: string }>}
  */
-function addSource(input) {
+async function addSource(input) {
   const rawPath = String(input?.path || '').trim();
   if (!rawPath) return { ok: false, error: 'path is required' };
 
@@ -163,48 +172,74 @@ function addSource(input) {
     return { ok: false, error: 'Path is already inside Context Engine\'s skills directory' };
   }
 
-  const stored = readStored();
+  // Registry mutex: read-modify-write to skill-sources.json must be atomic
+  // against any other in-flight addSource/removeSource.
+  return registryMutex('registry', async () => {
+    const stored = readStored();
 
-  // Refuse duplicate paths. Case-insensitive on Windows since the filesystem
-  // is case-preserving but case-insensitive (C:\Foo === c:\foo on disk).
-  const isWin = process.platform === 'win32';
-  /** @param {string} p */
-  const norm = (p) => (isWin ? path.resolve(p).toLowerCase() : path.resolve(p));
-  if (stored.some((s) => norm(s.path) === norm(realResolved))) {
-    return { ok: false, error: 'This source is already linked' };
-  }
+    // Refuse duplicate paths. Case-insensitive on Windows since the filesystem
+    // is case-preserving but case-insensitive (C:\Foo === c:\foo on disk).
+    const isWin = process.platform === 'win32';
+    /** @param {string} p */
+    const norm = (p) => (isWin ? path.resolve(p).toLowerCase() : path.resolve(p));
+    if (stored.some((s) => norm(s.path) === norm(realResolved))) {
+      return { ok: false, error: 'This source is already linked' };
+    }
 
-  const taken = new Set(stored.map((s) => s.id));
-  taken.add('internal');
-  const label = String(input?.label || '').trim() || path.basename(resolved) || 'External skills';
-  const id = uniqueId(label, taken);
+    const taken = new Set(stored.map((s) => s.id));
+    taken.add('internal');
+    const label = String(input?.label || '').trim() || path.basename(resolved) || 'External skills';
+    const id = uniqueId(label, taken);
 
-  /** @type {SkillSource} */
-  const source = {
-    id,
-    label,
-    path: realResolved,
-    type: 'external',
-    writable: false,
-    added: new Date().toISOString(),
-    lastSeen: new Date().toISOString(),
-  };
+    /** @type {SkillSource} */
+    const source = {
+      id,
+      label,
+      path: realResolved,
+      type: 'external',
+      writable: false,
+      added: new Date().toISOString(),
+      lastSeen: new Date().toISOString(),
+    };
 
-  writeStored([...stored, source]);
-  return { ok: true, source };
+    writeStored([...stored, source]);
+    return { ok: true, source };
+  });
 }
 
 /**
+ * Async + double-locked: holds the per-source mutex (shared with skill-import
+ * so an in-flight import/sync against the same id is awaited) AND the registry
+ * mutex (so the read-modify-write of skill-sources.json is atomic). The
+ * manifest-forget for an imported source happens inside this lock so the
+ * imported tree never orphans relative to the registry record.
+ *
  * @param {string} id
- * @returns {{ ok: true } | { ok: false, error: string }}
+ * @returns {Promise<{ ok: true } | { ok: false, error: string }>}
  */
-function removeSource(id) {
+async function removeSource(id) {
   if (id === 'internal') return { ok: false, error: 'Cannot remove the internal source' };
-  const stored = readStored();
-  const filtered = stored.filter((s) => s.id !== id);
-  if (filtered.length === stored.length) return { ok: false, error: 'Source not found' };
-  writeStored(filtered);
-  return { ok: true };
+  // Lazy-required to avoid the cyclic load (skill-import requires
+  // skill-sources for getSource).
+  const { withSourceMutex, forgetImport } = require('./skill-import');
+  return withSourceMutex(id, async () =>
+    registryMutex('registry', async () => {
+      const stored = readStored();
+      const filtered = stored.filter((s) => s.id !== id);
+      if (filtered.length === stored.length) return { ok: false, error: 'Source not found' };
+      writeStored(filtered);
+      // Drop the manifest while we still hold the per-source lock so a
+      // concurrent re-add can't observe an orphan-import state.
+      try {
+        forgetImport(id);
+      } catch (err) {
+        // Manifest housekeeping is best-effort; the registry record is what
+        // the rest of CE keys off, and we've already updated that.
+        console.error('skill-sources: forgetImport failed', id, err);
+      }
+      return { ok: true };
+    }),
+  );
 }
 
 /**

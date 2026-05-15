@@ -10,7 +10,8 @@ const sourceFile = path.join(APP_DIR, 'docs', 'llm-handoff.md');
 const keepActiveArg = process.argv.find((arg) => arg.startsWith('--keep-active='));
 const keepActive = keepActiveArg ? Number(keepActiveArg.split('=')[1]) || 0 : 0;
 
-const result = migrateLegacyHandoff({
+void (async () => {
+const result = await migrateLegacyHandoff({
   sourceFile,
   repo: APP_DIR,
   keepActive,
@@ -59,3 +60,7 @@ console.log(
     2,
   ),
 );
+})().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
