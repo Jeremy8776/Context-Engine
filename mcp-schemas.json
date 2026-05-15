@@ -1,6 +1,6 @@
 {
   "name": "context-engine",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "tools": [
     {
       "name": "context_engine_search",

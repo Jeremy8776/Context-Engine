@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "context-engine",
   "display_name": "Context Engine",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Connect Claude Desktop to the local Context Engine broker.",
   "long_description": "Runs locally in Claude Desktop and forwards MCP tool calls to Context Engine on your machine. Use this when Context Engine is running locally and you want Claude Desktop to access skills, memory, and index status without an HTTPS tunnel.",
   "author": {

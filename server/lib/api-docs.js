@@ -3,7 +3,7 @@
 /** @param {Array<{ method: string, path: string, description: string }>} extra */
 function apiDocs(extra = []) {
   return {
-    version: '0.3.0',
+    version: '0.3.1',
     endpoints: [
       { method: 'GET', path: '/api/skills', description: 'List all discovered skills' },
       {

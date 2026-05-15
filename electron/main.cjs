@@ -14,16 +14,127 @@
 const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
 const fs = require('fs');
 const path = require('path');
-const { PORT, ROOT, UI_DIR } = require('../server/lib/config');
+
+// CRITICAL: route the server's writable root to the OS user-data directory
+// when running as a packaged Electron app. Without this, server/lib/config.js
+// falls back to __dirname/../../.. — which resolves INSIDE the asar archive
+// for a packaged install. Writes either fail silently or land in a location
+// that gets wiped on every auto-update, so onboarding completion never
+// persists and the user gets re-onboarded on every release.
+//
+// In dev mode (app.isPackaged === false, npm run desktop), leave CE_ROOT
+// unset so config.js continues to resolve to the repo root.
+//
+// MUST run BEFORE require('../server/lib/config') below — that module
+// captures ROOT at load time from a top-level const.
+const smokeMode = process.env.CE_ELECTRON_SMOKE === '1';
+const newUserProfile =
+  process.env.CE_NEW_USER_PROFILE === '1' || process.argv.some((arg) => arg === '--ce-new-user');
+
+if (newUserProfile) {
+  // Test isolation: keep both userData AND the writable CE_ROOT under the
+  // repo so a smoke run never leaks into a real user's data.
+  const userDataPath = path.join(__dirname, '..', '..', '.electron-user-data');
+  fs.mkdirSync(userDataPath, { recursive: true });
+  app.setPath('userData', userDataPath);
+  if (!process.env.CE_ROOT) process.env.CE_ROOT = userDataPath;
+  console.log(`[ce-electron] isolated userData: ${userDataPath}`);
+} else if (app.isPackaged && !process.env.CE_ROOT) {
+  const userData = app.getPath('userData');
+  fs.mkdirSync(userData, { recursive: true });
+  process.env.CE_ROOT = userData;
+  console.log(`[ce-electron] CE_ROOT pinned to userData for packaged build: ${userData}`);
+}
+
+// One-time migration of legacy data from <install>/resources/data/ to the
+// userData CE_ROOT. v0.2.x and v0.3.0 wrote data alongside the asar archive
+// (visible to electron-updater's install-dir wipe on every update), which is
+// why onboarding kept re-prompting after auto-update. From v0.3.1 onwards
+// data lives in userData; this migration grabs any leftover data the old
+// install path happens to still have.
+//
+// Marker file at <CE_ROOT>/.ce-data-migrated stamps the result so we never
+// re-run, even if the user clears their userData/data dir intentionally.
+function migrateLegacyDataIfNeeded() {
+  if (!app.isPackaged) return;
+  const ceRoot = process.env.CE_ROOT;
+  if (!ceRoot) return;
+  const marker = path.join(ceRoot, '.ce-data-migrated');
+  try {
+    if (fs.existsSync(marker)) return;
+  } catch {
+    return;
+  }
+  const userDataDir = path.join(ceRoot, 'data');
+  const stampMarker = () => {
+    try {
+      fs.writeFileSync(marker, new Date().toISOString(), 'utf8');
+    } catch {
+      /* best-effort — re-running migration is idempotent */
+    }
+  };
+  try {
+    if (fs.existsSync(path.join(userDataDir, 'onboarding.json'))) {
+      stampMarker();
+      return;
+    }
+  } catch {
+    /* fall through and try the migration */
+  }
+  const legacyData = path.join(process.resourcesPath, 'data');
+  try {
+    if (!fs.existsSync(legacyData) || !fs.statSync(legacyData).isDirectory()) {
+      stampMarker();
+      return;
+    }
+    fs.mkdirSync(userDataDir, { recursive: true });
+    fs.cpSync(legacyData, userDataDir, { recursive: true, errorOnExist: false });
+    stampMarker();
+    console.log(`[ce-electron] migrated legacy data ${legacyData} → ${userDataDir}`);
+  } catch (err) {
+    console.error('[ce-electron] legacy data migration failed', err);
+  }
+}
+migrateLegacyDataIfNeeded();
+
+// Seed bundled skills into the writable CE_ROOT on first run after an
+// install or update. Skills ship asarUnpacked under app.asar.unpacked/skills
+// (see package.json build.asarUnpack); we copy that read-only tree into
+// <CE_ROOT>/skills/ once so ingest + edit operations have somewhere
+// writable to land. Subsequent runs find skills/ already populated and
+// skip — they never re-overwrite user edits.
+function seedBundledSkillsIfNeeded() {
+  if (!app.isPackaged) return;
+  const ceRoot = process.env.CE_ROOT;
+  if (!ceRoot) return;
+  const userSkillsDir = path.join(ceRoot, 'skills');
+  try {
+    if (fs.existsSync(userSkillsDir)) return; // already seeded — leave user content alone
+  } catch {
+    return;
+  }
+  // For asarUnpack: ["skills/**/*"] entries, electron-builder writes them
+  // to <resourcesPath>/app.asar.unpacked/<rel>. Read from there, not from
+  // inside the asar where files are shadowed.
+  const bundledSkills = path.join(process.resourcesPath, 'app.asar.unpacked', 'skills');
+  try {
+    if (!fs.existsSync(bundledSkills)) return;
+    fs.mkdirSync(userSkillsDir, { recursive: true });
+    fs.cpSync(bundledSkills, userSkillsDir, { recursive: true, force: false, errorOnExist: false });
+    console.log(`[ce-electron] seeded bundled skills → ${userSkillsDir}`);
+  } catch (err) {
+    console.error('[ce-electron] failed to seed bundled skills', err);
+  }
+}
+seedBundledSkillsIfNeeded();
+
+const { PORT, UI_DIR } = require('../server/lib/config');
 const { startServer } = require('../server/server');
 const { startAutoUpdate } = require('./updater.cjs');
 
 let mainWindow = null;
 let server = null;
-const smokeMode = process.env.CE_ELECTRON_SMOKE === '1';
 const hotReload = process.env.CE_HOT_RELOAD === '1';
-const newUserProfile =
-  process.env.CE_NEW_USER_PROFILE === '1' || process.argv.some((arg) => arg === '--ce-new-user');
 const windowBackground = '#000000';
 const appIconPath = path.join(__dirname, '..', 'ui', 'assets', 'brand', 'icon.ico');
 
@@ -48,12 +159,8 @@ if (process.platform === 'win32') {
   app.setAppUserModelId('com.datacert.context-engine');
 }
 
-if (newUserProfile) {
-  const userDataPath = path.join(ROOT, '.electron-user-data');
-  fs.mkdirSync(userDataPath, { recursive: true });
-  app.setPath('userData', userDataPath);
-  console.log(`[ce-electron] isolated userData: ${userDataPath}`);
-}
+// newUserProfile userData isolation now happens at the top of the file,
+// before config.js loads, so CE_ROOT is in sync with app.getPath('userData').
 
 function createWindow() {
   mainWindow = new BrowserWindow({
