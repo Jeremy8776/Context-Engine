@@ -6,24 +6,23 @@
   inset: 0;
   z-index: 90;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--s-4);
-  background: var(--dram-backdrop);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 0;
+  background: var(--dram-card-bg);
 }
 
 .onboarding-dialog {
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 760px;
-  max-height: 90vh;
+  height: 100%;
+  max-width: none;
+  max-height: none;
   overflow: hidden;
   background: var(--dram-card-bg);
-  border: 1px solid var(--dram-card-border);
-  border-radius: var(--r-3);
+  border: 0;
+  border-radius: 0;
 }
 
 /* Header */
@@ -150,13 +149,19 @@
 .onboarding-body {
   flex: 1;
   min-height: 0;
-  padding: var(--s-5);
+  padding: var(--s-6) var(--s-5);
   overflow-y: auto;
 }
 
+/* Cap step content width on wide viewports so prose + cards stay readable.
+   The dialog itself fills the viewport (full-screen), but the step body
+   centers its content within a comfortable line-length. */
 .onboarding-step-body {
   display: grid;
   gap: var(--s-4);
+  width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
 }
 
 .onboarding-step-head {
@@ -306,6 +311,68 @@
 
 .onboarding-inline-action {
   justify-self: start;
+}
+
+/* In-flight progress card shown while DS.indexSkills is running. Replaces
+   the Build button so the user can see something is happening; without
+   this the click-to-API-return gap (10-60s for 100+ skills via Ollama)
+   reads as "the button didn't do anything". role="status" + aria-live so
+   screen readers announce the change. */
+.onboarding-progress-card {
+  display: flex;
+  gap: var(--s-3);
+  align-items: center;
+  padding: var(--s-3) var(--s-4);
+  background: var(--dram-bg-recessed);
+  border: 1px solid var(--dram-line-subtle);
+  border-radius: var(--r-2);
+}
+
+.onboarding-progress-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.onboarding-progress-text strong {
+  color: var(--text);
+  font-size: var(--fs-03);
+}
+
+.onboarding-progress-text span {
+  color: var(--text-3);
+  font-size: var(--fs-02);
+  line-height: 1.45;
+}
+
+.onboarding-spinner {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 2px solid var(--dram-line-subtle);
+  border-top-color: var(--accent);
+  animation: onboarding-spin 0.9s linear infinite;
+}
+
+@keyframes onboarding-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Footer error band — shown when Finish setup couldn't get an ack from
+   the server-side completion endpoint. Spans the footer's full width
+   above the action buttons so the user has clear retry/Skip options. */
+.onboarding-footer-error {
+  flex: 1 1 100%;
+  order: -1;
+  padding: var(--s-2) var(--s-3);
+  background: var(--err-bg);
+  border-left: 2px solid var(--err);
+  border-radius: var(--r-1);
+  color: var(--text);
+  font-size: var(--fs-02);
 }
 
 /* Step 2: skill sources sub-section */
@@ -645,6 +712,7 @@
   gap: var(--s-2);
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   padding: var(--s-4) var(--s-5);
   border-top: 1px solid var(--dram-line-subtle);
 }

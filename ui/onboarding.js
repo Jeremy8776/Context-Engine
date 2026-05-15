@@ -31,6 +31,12 @@ const Onboarding = (() => {
   /** @type {Map<string, 'import' | 'sync' | 'apply'>} */
   const pendingOp = new Map();
   let mounted = false;
+  /** Tracks in-flight long-running operations so the UI can show progress
+   *  feedback instead of leaving the user staring at an unchanged button. */
+  let indexing = false;
+  let finishing = false;
+  /** @type {string} */
+  let finishError = '';
 
   function root() {
     let el = document.getElementById('onboarding-root');
@@ -189,12 +195,37 @@ const Onboarding = (() => {
         <span class="onboarding-card-desc">${esc(activeNames.length ? activeNames.join(', ') : 'No active skills yet')}</span>
       </div>
       ${renderSourcesSection()}
-      ${
-        showBuildAction
-          ? `<button class="fb onboarding-inline-action" type="button" onclick="Onboarding.buildIndex()">${esc(buildLabel)}</button>`
-          : ''
-      }
+      ${renderIndexBuildAction(showBuildAction, buildLabel, ctx)}
     </section>`;
+  }
+
+  /**
+   * Renders the "Build vector index" affordance — either the action button,
+   * an in-flight progress card while indexing is running, or nothing when
+   * the index is already ready. Embedding embeddings can take 10-30s on
+   * 100+ skills, so the in-flight state is the load-bearing UX: without
+   * it the user clicks the button, the API stays open, nothing visible
+   * changes, and they assume it broke.
+   *
+   * @param {boolean} show
+   * @param {string} label
+   * @param {{ totalSkills?: number }} ctx
+   */
+  function renderIndexBuildAction(show, label, ctx) {
+    if (indexing) {
+      const total = Number(ctx?.totalSkills || 0);
+      const totalLabel = total ? `${total} skills` : 'active skills';
+      return `
+        <div class="onboarding-progress-card" role="status" aria-live="polite">
+          <div class="onboarding-spinner" aria-hidden="true"></div>
+          <div class="onboarding-progress-text">
+            <strong>Building vector index</strong>
+            <span>Embedding ${esc(totalLabel)} via Ollama. This usually takes 10-60 seconds; please don't close the window.</span>
+          </div>
+        </div>`;
+    }
+    if (!show) return '';
+    return `<button class="fb onboarding-inline-action" type="button" onclick="Onboarding.buildIndex()">${esc(label)}</button>`;
   }
 
   function renderSourcesSection() {
@@ -413,11 +444,7 @@ const Onboarding = (() => {
         ${healthCard('Active skills', (ctx.activeSkills || 0) > 0, `${ctx.activeSkills || 0} active`)}
         ${healthCard('Vector search', indexReady, indexReady ? `${index.chunks || 0} chunks` : 'Build recommended')}
       </div>
-      ${
-        indexReady
-          ? ''
-          : `<button class="fb onboarding-inline-action" type="button" onclick="Onboarding.buildIndex()">Build vector index</button>`
-      }
+      ${renderIndexBuildAction(!indexReady, 'Build vector index', ctx)}
     </section>`;
   }
 
@@ -431,13 +458,18 @@ const Onboarding = (() => {
   function renderFooter() {
     const isFirst = step === 1;
     const isLast = step === 4;
-    const next = isLast ? 'Finish setup' : 'Continue';
+    const nextLabel = isLast ? (finishing ? 'Finishing…' : 'Finish setup') : 'Continue';
     const nextAction = isLast ? 'finish' : `go(${step + 1})`;
+    const disabledAttr = isLast && finishing ? 'disabled' : '';
+    const errorBlock = finishError
+      ? `<div class="onboarding-footer-error" role="alert">${esc(finishError)}</div>`
+      : '';
     return `<footer class="onboarding-footer">
-      <button class="fb" type="button" onclick="Onboarding.skip()">Skip for now</button>
+      ${errorBlock}
+      <button class="fb" type="button" ${finishing ? 'disabled' : ''} onclick="Onboarding.skip()">Skip for now</button>
       <div class="onboarding-footer-end">
-        ${isFirst ? '' : `<button class="fb" type="button" onclick="Onboarding.go(${step - 1})">Back</button>`}
-        <button class="save-btn" type="button" onclick="Onboarding.${nextAction}">${esc(next)}</button>
+        ${isFirst ? '' : `<button class="fb" type="button" ${finishing ? 'disabled' : ''} onclick="Onboarding.go(${step - 1})">Back</button>`}
+        <button class="save-btn" type="button" ${disabledAttr} onclick="Onboarding.${nextAction}">${esc(nextLabel)}</button>
       </div>
     </footer>`;
   }
@@ -615,14 +647,34 @@ const Onboarding = (() => {
   }
 
   async function buildIndex() {
-    const result = await DS.indexSkills();
-    if (result?.ok) Toast.success(`Indexed ${result.chunks || 0} chunks`);
-    await refresh();
+    if (indexing) return;
+    indexing = true;
+    render();
+    try {
+      const result = await DS.indexSkills();
+      if (result && result.ok !== false) {
+        const chunks = Number(result?.chunks || 0);
+        Toast.success(chunks ? `Indexed ${chunks} chunks` : 'Vector index built');
+      } else if (result && result.ok === false) {
+        Toast.error(result.error || 'Index build failed');
+      }
+    } catch (err) {
+      console.error('onboarding: buildIndex failed', err);
+      Toast.error('Index build failed');
+    } finally {
+      indexing = false;
+      await refresh();
+    }
   }
 
   async function finish() {
-    // Apply pending host connections that the user selected but hasn't manually
-    // wired. Best-effort — failures surface as toasts, but don't block finish.
+    if (finishing) return;
+    finishing = true;
+    finishError = '';
+    render();
+    // Apply pending host connections the user selected but hasn't manually
+    // wired. Best-effort — failures get logged but don't block finish, so
+    // a flaky host config write can't trap the user inside onboarding.
     const pending = (summary?.hosts || []).filter(
       (host) => host.supported && selectedHosts.has(host.id) && host.status !== 'connected',
     );
@@ -633,17 +685,47 @@ const Onboarding = (() => {
         console.error('onboarding: install host failed', host.id, err);
       }
     }
-    const result = await apiFetch('/onboarding/complete', 'POST', {});
-    if (result?.ok) {
-      close();
-      Toast.success('Setup complete');
-      if (typeof DashboardTab !== 'undefined') await DashboardTab.init();
+    let completed = false;
+    try {
+      const result = await apiFetch('/onboarding/complete', 'POST', {});
+      completed = !!(result && result.ok !== false);
+    } catch (err) {
+      console.error('onboarding: complete POST threw', err);
     }
+    if (completed) {
+      Toast.success('Setup complete');
+      close();
+      if (typeof DashboardTab !== 'undefined') {
+        try {
+          await DashboardTab.init();
+        } catch (err) {
+          console.error('onboarding: post-complete DashboardTab.init failed', err);
+        }
+      }
+      return;
+    }
+    // Stayed open because the server-side completion didn't acknowledge.
+    // Surface a clear error so the user can retry or use Skip.
+    finishing = false;
+    finishError = 'Could not mark setup complete. Retry or use Skip for now.';
+    render();
   }
 
   async function skip() {
-    const result = await apiFetch('/onboarding/complete', 'POST', {});
-    if (result?.ok) close();
+    let result = null;
+    try {
+      result = await apiFetch('/onboarding/complete', 'POST', {});
+    } catch (err) {
+      console.error('onboarding: skip POST threw', err);
+    }
+    // Even if completion didn't register server-side, close the modal so
+    // the user isn't trapped. They'll see the prompt again on next launch.
+    if (result && result.ok !== false) {
+      close();
+    } else {
+      Toast.warn('Could not save onboarding state, but proceeding.');
+      close();
+    }
   }
 
   return {
