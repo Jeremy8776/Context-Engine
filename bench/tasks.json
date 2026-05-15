@@ -1,0 +1,77 @@
+[
+  {
+    "id": "pc-cpu-hog",
+    "category": "system-ops",
+    "prompt": "What is using my CPU right now and how do I find the worst offender?"
+  },
+  {
+    "id": "pc-morning-routine",
+    "category": "system-ops",
+    "prompt": "Set up a morning startup routine that opens Slack, VS Code, and ChatGPT in the right order."
+  },
+  {
+    "id": "comfy-prompt-fantasy",
+    "category": "image-gen",
+    "prompt": "Write a ComfyUI prompt for a moody fantasy landscape with rolling fog and warm sunset."
+  },
+  {
+    "id": "comfy-workflow-upscale",
+    "category": "image-gen",
+    "prompt": "Build me a ComfyUI workflow that upscales photos to 4K with a refiner pass."
+  },
+  {
+    "id": "prompt-library-save",
+    "category": "image-gen",
+    "prompt": "Save my current ComfyUI prompt as a reusable template named 'cinematic portrait v3'."
+  },
+  {
+    "id": "claude-api-tooluse",
+    "category": "claude-api",
+    "prompt": "Show me how to wire up a Claude tool-use call for a weather lookup API in Python."
+  },
+  {
+    "id": "claude-api-migrate",
+    "category": "claude-api",
+    "prompt": "Migrate this Claude 4.5 chat completion code to use the 4.6 model with prompt caching."
+  },
+  {
+    "id": "brand-poster",
+    "category": "design",
+    "prompt": "Create an A3 poster for a developer workshop in Anthropic's brand style."
+  },
+  {
+    "id": "theme-slides",
+    "category": "design",
+    "prompt": "Make a slide deck about my Q2 plans using the Dieter Rams theme from theme-factory."
+  },
+  {
+    "id": "internal-release-note",
+    "category": "comms",
+    "prompt": "Draft a Slack announcement for shipping Context Engine v0.3.1 with the data persistence fix."
+  },
+  {
+    "id": "email-security-patch",
+    "category": "comms",
+    "prompt": "Write an internal email to the team about the symlink-escape security patch we shipped."
+  },
+  {
+    "id": "health-step-streak",
+    "category": "health",
+    "prompt": "Analyse my last 30 days of step data and tell me whether I'm on track."
+  },
+  {
+    "id": "file-cleanup-downloads",
+    "category": "system-ops",
+    "prompt": "Audit my Downloads folder, flag stale files older than 90 days, and propose a cleanup plan."
+  },
+  {
+    "id": "memory-consolidate",
+    "category": "meta",
+    "prompt": "Do a reflective consolidation pass over my memory files — merge duplicates, prune stale entries."
+  },
+  {
+    "id": "brainstorm-startup",
+    "category": "product",
+    "prompt": "Help me brainstorm a startup idea around personal AI assistants for photographers."
+  }
+]
