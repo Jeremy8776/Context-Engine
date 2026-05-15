@@ -215,12 +215,10 @@
   font-size: 11px;
 }
 
-/* Layout variants. Grid is the default (auto-fill 320px); list mode is a
+/* Layout variants. Grid is the default (auto-fill 320px). List mode is a
    true row layout — each card becomes a flat grid row, the inner wrappers
    use `display: contents` so their children participate directly in the
-   row's columns. Preview is hidden (no room and not useful at row density).
-   The bottom keyline separates rows; the card's own border is dropped so
-   it doesn't double up. */
+   row's columns. Preview hides; meta resets pill chrome to plain text. */
 .handoffs-results-scroll.handoffs-layout-list {
   display: flex;
   flex-direction: column;
@@ -230,21 +228,30 @@
 
 .handoffs-results-scroll.handoffs-layout-list .handoff-card {
   display: grid;
-  grid-template-columns: minmax(180px, 1.6fr) auto minmax(0, 1.2fr) auto auto;
+  /* Title cell is generous (badge + title together); type pill auto-sizes;
+     binding gets fluid space; age + commits are compact mono cells. */
+  grid-template-columns: minmax(220px, 2fr) auto minmax(140px, 1.4fr) 96px 110px;
   align-items: center;
-  gap: 14px;
-  min-height: 0;
-  padding: 9px 14px;
+  gap: 18px;
+  min-height: 44px;
+  padding: 12px 18px;
   border: 0;
   border-bottom: 1px solid var(--soft-line);
   border-radius: 0;
   background: transparent;
 }
 
-.handoffs-results-scroll.handoffs-layout-list .handoff-card:hover,
-.handoffs-results-scroll.handoffs-layout-list .handoff-card.active {
+.handoffs-results-scroll.handoffs-layout-list .handoff-card:first-child {
+  border-top: 1px solid var(--soft-line);
+}
+
+.handoffs-results-scroll.handoffs-layout-list .handoff-card:hover {
   background: var(--alpha-purple-06);
-  border-bottom-color: var(--alpha-purple-35);
+}
+
+.handoffs-results-scroll.handoffs-layout-list .handoff-card.active {
+  background: var(--alpha-purple-08);
+  border-bottom-color: var(--alpha-purple-45);
 }
 
 .handoffs-results-scroll.handoffs-layout-list .handoff-card-top,
@@ -258,6 +265,17 @@
 
 .handoffs-results-scroll.handoffs-layout-list .handoff-title-row {
   min-width: 0;
+  gap: 10px;
+}
+
+.handoffs-results-scroll.handoffs-layout-list .handoff-title {
+  font-size: 14px;
+}
+
+.handoffs-results-scroll.handoffs-layout-list .handoff-type {
+  /* Slightly tighter pill so the type column doesn't dominate. */
+  padding: 4px 8px;
+  font-size: 10px;
 }
 
 .handoffs-results-scroll.handoffs-layout-list .handoff-meta span {
@@ -270,7 +288,10 @@
   color: var(--text-3);
   font-family: var(--mono);
   font-size: 11px;
+  line-height: 1.3;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Project name badge — surfaces the repo basename so a user scanning the
