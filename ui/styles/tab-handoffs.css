@@ -217,21 +217,21 @@
 
 /* Layout variants. Mirrors the Skills + Memory tab pattern: the SAME
    .handoff-card renders in both modes. Only the parent container's display
-   flips — grid auto-fill columns for grid mode, single-column flex stack for
-   list mode. No card-level overrides; whatever the card looks like in grid
-   is what it looks like in list, just one-per-row. */
+   flips — grid auto-fill columns for grid mode, single-column flex stack
+   for list mode. No bespoke per-mode card chrome. */
 .handoffs-results-scroll.handoffs-layout-list {
   display: flex;
   flex-direction: column;
-  gap: var(--s-2);
+  gap: var(--s-3);
 }
 
-/* Critical: the card has min-height: 148px so grid rows feel uniform. In
-   list mode that would waste vertical space on every entry — drop it. The
-   card still sizes to its content (title + preview clamp + meta), matching
-   how memory-card behaves across modes. */
+/* Grid mode wants tall uniform cards (min-height: 148px). List mode wants
+   each card to feel like a real list row — drop the grid's tall minimum
+   and pin to the DRAM list-row token Skills already uses, so legacy
+   handoffs with empty bodies still feel substantial rather than collapsing
+   to title height. */
 .handoffs-results-scroll.handoffs-layout-list .handoff-card {
-  min-height: 0;
+  min-height: var(--dram-list-row-h);
 }
 
 /* Project name badge — surfaces the repo basename so a user scanning the
