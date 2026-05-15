@@ -63,3 +63,5 @@ out/
 *.dmg
 *.AppImage
 *.deb
+__pycache__/
+bench/results-latest.json
