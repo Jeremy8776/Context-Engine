@@ -103,7 +103,11 @@
   overflow: hidden;
   color: var(--text);
   font-size: 15px;
-  font-weight: 750;
+  /* 750 was producing a faux-bold ghost in list view because the loaded
+     font only ships 400/500/600/700/800. Browsers synthesise the rest
+     by stroke-doubling, which reads as a smudged shadow at small sizes.
+     Stick to a real weight the font actually provides. */
+  font-weight: 700;
   line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -211,25 +215,62 @@
   font-size: 11px;
 }
 
-/* Layout variants. Grid is the default (existing 320px auto-fill); list
-   mode collapses to single-column dense rows. */
+/* Layout variants. Grid is the default (auto-fill 320px); list mode is a
+   true row layout — each card becomes a flat grid row, the inner wrappers
+   use `display: contents` so their children participate directly in the
+   row's columns. Preview is hidden (no room and not useful at row density).
+   The bottom keyline separates rows; the card's own border is dropped so
+   it doesn't double up. */
 .handoffs-results-scroll.handoffs-layout-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0;
+  padding: 0 24px 24px;
 }
 
 .handoffs-results-scroll.handoffs-layout-list .handoff-card {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.6fr) auto minmax(0, 1.2fr) auto auto;
+  align-items: center;
+  gap: 14px;
   min-height: 0;
-  padding: 10px 14px;
+  padding: 9px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--soft-line);
+  border-radius: 0;
+  background: transparent;
 }
 
-.handoffs-results-scroll.handoffs-layout-list .handoff-card-top {
-  align-items: center;
+.handoffs-results-scroll.handoffs-layout-list .handoff-card:hover,
+.handoffs-results-scroll.handoffs-layout-list .handoff-card.active {
+  background: var(--alpha-purple-06);
+  border-bottom-color: var(--alpha-purple-35);
+}
+
+.handoffs-results-scroll.handoffs-layout-list .handoff-card-top,
+.handoffs-results-scroll.handoffs-layout-list .handoff-meta {
+  display: contents;
 }
 
 .handoffs-results-scroll.handoffs-layout-list .handoff-preview {
-  -webkit-line-clamp: 2;
+  display: none;
+}
+
+.handoffs-results-scroll.handoffs-layout-list .handoff-title-row {
+  min-width: 0;
+}
+
+.handoffs-results-scroll.handoffs-layout-list .handoff-meta span {
+  /* Reset the pill chrome from grid view — list rows show the meta as
+     plain text in their grid columns so the row reads as one line. */
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-3);
+  font-family: var(--mono);
+  font-size: 11px;
+  white-space: nowrap;
 }
 
 /* Project name badge — surfaces the repo basename so a user scanning the
