@@ -444,6 +444,11 @@ body.side-panel-active #skills-tab .grid-mode .skills-container {
   bottom: 0;
   background: var(--bg-raised);
   border: 0;
+  /* Top keyline aligns the panel with the title-bar bottom edge so the
+     join reads as one continuous horizontal divider instead of an
+     untermined floating rail. Plus the left keyline that separates the
+     panel from the underlying tab content. */
+  border-top: 1px solid var(--line);
   border-left: 1px solid var(--line);
   border-radius: 0;
   box-shadow: none;
