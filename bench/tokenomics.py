@@ -619,7 +619,10 @@ def main() -> int:
 
     # Build the Anthropic client up front if --grade is on, so we fail fast
     # rather than running all the token measurements first only to discover
-    # the API key isn't set.
+    # auth isn't set. The SDK accepts an explicit API key, OAuth tokens via
+    # ANTHROPIC_AUTH_TOKEN, or falls back to ANTHROPIC_API_KEY in env. We
+    # try them in that order so this works under Claude Code (OAuth) and
+    # under a plain API key install.
     grade_client = None
     if args.grade:
         try:
@@ -630,12 +633,23 @@ def main() -> int:
                 "    python -m pip install anthropic\n"
             )
             return 1
-        if not os.environ.get("ANTHROPIC_API_KEY"):
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        auth_token = os.environ.get("ANTHROPIC_AUTH_TOKEN")
+        try:
+            if api_key:
+                grade_client = anthropic.Anthropic(api_key=api_key)
+            elif auth_token:
+                grade_client = anthropic.Anthropic(auth_token=auth_token)
+            else:
+                # Last-resort: let the SDK try to auto-discover. Some hosts
+                # (Claude Code, Bedrock proxies) inject auth in other ways.
+                grade_client = anthropic.Anthropic()
+        except Exception as e:
             sys.stderr.write(
-                "[!] --grade needs ANTHROPIC_API_KEY in the environment.\n"
+                f"[!] --grade could not initialise the Anthropic client: {e}\n"
+                "    Set ANTHROPIC_API_KEY or ANTHROPIC_AUTH_TOKEN.\n"
             )
             return 1
-        grade_client = anthropic.Anthropic()
 
     print(f"Context Engine tokenomics benchmark")
     print(f"  CE URL:        {args.ce_url}")
