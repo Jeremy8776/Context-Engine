@@ -3,7 +3,7 @@
 /** @param {Array<{ method: string, path: string, description: string }>} extra */
 function apiDocs(extra = []) {
   return {
-    version: '0.2.0',
+    version: '0.2.3',
     endpoints: [
       { method: 'GET', path: '/api/skills', description: 'List all discovered skills' },
       {
@@ -11,6 +11,19 @@ function apiDocs(extra = []) {
         path: '/api/skills/:id',
         description: 'Get one skill (record + body + section index). Optional ?section= for a slice.',
       },
+      { method: 'POST', path: '/api/skills/ingest', description: 'Clone a skill repo into skills/ingested (allowlisted hosts only)' },
+      { method: 'GET', path: '/api/skills/ingest/:jobId', description: 'Poll an in-flight ingest job' },
+      { method: 'POST', path: '/api/skills/parse', description: 'LLM-parse skill descriptions for unparsed entries' },
+      { method: 'POST', path: '/api/skills/organise', description: 'Tidy skill library (move/remove/review)' },
+      { method: 'POST', path: '/api/skills/review-similar', description: 'LLM review of similar skills' },
+      // Skill sources (Phase 1 + 2 — Link + Import + Sync)
+      { method: 'GET', path: '/api/skill-sources', description: 'List registered skill sources + implicit internal' },
+      { method: 'POST', path: '/api/skill-sources', description: 'Link an external skill directory' },
+      { method: 'DELETE', path: '/api/skill-sources/:id', description: 'Unlink a source (manifest dropped; imported tree kept)' },
+      { method: 'GET', path: '/api/skill-sources/scan', description: 'Probe known host-app skill paths' },
+      { method: 'POST', path: '/api/skill-sources/:id/import', description: 'Hard-link or copy a source into <CE_ROOT>/skills/imported/<id>/' },
+      { method: 'GET', path: '/api/skill-sources/:id/sync', description: 'Diff source vs imported tree (added/removed/modified/localEdits/conflicts)' },
+      { method: 'POST', path: '/api/skill-sources/:id/sync/apply', description: 'Apply sync diff. Body { mode: "append" | "overwrite" }' },
       { method: 'GET', path: '/api/memory', description: 'Get memory entries' },
       { method: 'POST', path: '/api/memory', description: 'Update memory (validated)' },
       { method: 'GET', path: '/api/rules', description: 'Get rules configuration' },
@@ -30,6 +43,9 @@ function apiDocs(extra = []) {
       { method: 'GET', path: '/api/modes', description: 'List mode presets' },
       { method: 'POST', path: '/api/modes/apply', description: 'Apply mode preset (transactional)' },
       ...extra,
+      { method: 'GET', path: '/api/onboarding', description: 'First-run discovery summary (hosts + tools + context + index)' },
+      { method: 'POST', path: '/api/onboarding/complete', description: 'Mark onboarding complete (suppresses re-prompt)' },
+      { method: 'POST', path: '/api/onboarding/reset', description: 'Re-arm the onboarding flow for the next launch' },
       { method: 'GET', path: '/api/mcp/hosts', description: 'List MCP host config status and snippets' },
       {
         method: 'POST',
@@ -49,6 +65,11 @@ function apiDocs(extra = []) {
         path: '/api/workspaces/compile',
         description: 'Compile into one or all workspaces',
       },
+      { method: 'GET', path: '/api/keys/status', description: 'Check which API keys are configured' },
+      { method: 'POST', path: '/api/keys', description: 'Save an encrypted API key' },
+      { method: 'DELETE', path: '/api/keys', description: 'Remove an encrypted API key' },
+      { method: 'GET', path: '/api/llm/ollama-models', description: 'List local Ollama models if reachable' },
+      { method: 'GET', path: '/api/app-version', description: 'Report installed app version and channel' },
     ],
   };
 }

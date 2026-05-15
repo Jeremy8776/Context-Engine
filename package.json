@@ -37,6 +37,7 @@
     "test:dedup": "node scripts/dedup-smoke.js",
     "test:smart-compile": "node scripts/smart-compile-smoke.js",
     "test:handoffs": "node scripts/handoffs-smoke.js",
+    "test:skill-sources": "node scripts/skill-sources-smoke.js",
     "migrate:handoffs": "node scripts/migrate-legacy-handoff.js",
     "test:mcp-hosts": "node scripts/mcp-host-config-smoke.js",
     "mcp": "node mcp-server.mjs",
