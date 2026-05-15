@@ -45,6 +45,12 @@ assert(
   chunks.every((chunk) => chunk.sourcePath.endsWith('SKILL.md')),
   'expected source path on every chunk',
 );
+const manifestChunk = chunks.find((chunk) => chunk.section === 'Skill Manifest');
+assert(manifestChunk, 'expected skill frontmatter to be indexed as a manifest chunk');
+assert(
+  manifestChunk?.text.includes('Used for chunker smoke tests.'),
+  'expected manifest chunk to preserve searchable frontmatter description',
+);
 
 const complexChunks = chunkSkillContent({
   skillId: 'complex-skill',

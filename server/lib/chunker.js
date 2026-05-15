@@ -6,7 +6,7 @@ const fs = require('fs');
 const MAX_CHARS = 2200;
 
 /**
- * @typedef {'rule' | 'knowledge' | 'example'} ChunkType
+ * @typedef {'manifest' | 'rule' | 'knowledge' | 'example'} ChunkType
  *
  * @typedef {Object} SkillChunk
  * @property {string} id
@@ -31,9 +31,15 @@ function chunkSkill(skill) {
  * @returns {SkillChunk[]}
  */
 function chunkSkillContent(input) {
-  const content = stripFrontmatter(input.content).replace(/\r\n/g, '\n');
+  const normalized = input.content.replace(/\r\n/g, '\n');
+  const manifest = extractFrontmatterManifest(normalized);
+  const content = stripFrontmatter(normalized);
   const sections = splitSections(content);
   const chunks = [];
+
+  if (manifest) {
+    chunks.push(createChunk(input, 'Skill Manifest', manifest, 'manifest'));
+  }
 
   for (const section of sections) {
     const body = section.lines.join('\n').trim();
@@ -57,6 +63,21 @@ function chunkSkillContent(input) {
  */
 function stripFrontmatter(content) {
   return content.replace(/^---\n[\s\S]*?\n---\n?/, '');
+}
+
+/**
+ * @param {string} content
+ */
+function extractFrontmatterManifest(content) {
+  const match = content.match(/^---\n([\s\S]*?)\n---\n?/);
+  const frontmatter = match?.[1] || '';
+  if (!frontmatter) return '';
+  return frontmatter
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith('#'))
+    .join('\n')
+    .trim();
 }
 
 /**
@@ -201,4 +222,4 @@ function slug(value) {
   );
 }
 
-module.exports = { chunkSkill, chunkSkillContent, classifyChunk };
+module.exports = { chunkSkill, chunkSkillContent, classifyChunk, extractFrontmatterManifest };

@@ -4,7 +4,11 @@ const assert = require('assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { rankSkillMatches, detectProjectStack } = require('../server/lib/smart-compile');
+const {
+  rankSkillMatches,
+  detectProjectStack,
+  normalizeSmartTargets,
+} = require('../server/lib/smart-compile');
 const { resolveRegisteredWorkspace } = require('../server/lib/intelligence-routes');
 
 const ranked = rankSkillMatches([
@@ -69,6 +73,22 @@ assert(stack.summary.startsWith('Project stack signals:'), 'summary present');
 const empty = detectProjectStack('');
 assert.strictEqual(empty.tags.length, 0, 'no path → no tags');
 assert.strictEqual(empty.summary, '', 'no summary when empty');
+
+assert.deepStrictEqual(
+  normalizeSmartTargets(undefined),
+  ['agents'],
+  'missing smart-compile targets should consistently default to agents only',
+);
+assert.deepStrictEqual(
+  normalizeSmartTargets([]),
+  ['agents'],
+  'empty smart-compile targets should consistently default to agents only',
+);
+assert.deepStrictEqual(
+  normalizeSmartTargets(['claude', 'codex']),
+  ['claude', 'codex'],
+  'explicit smart-compile targets should be preserved',
+);
 
 // Workspace gate: /api/compile/smart must reject any projectPath that isn't a
 // registered workspace, so smart compile cannot become an arbitrary file-read

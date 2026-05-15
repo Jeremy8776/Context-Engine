@@ -1,7 +1,7 @@
 // @ts-check
 
 // compile-markup.js -- Connections tab markup. CE is a background broker; this
-// page shows where its shared skills, memory, and rules can sync.
+// page shows where its shared handoffs, memory, skills, and rules can sync.
 
 (() => {
   const host = document.getElementById('compile-tab');
@@ -23,7 +23,7 @@
           <div class="compile-card-head connections-host-head">
             <div>
               <h2 class="skill-sources-title">Skill sources</h2>
-              <p class="skill-sources-subtitle">Folders Context Engine reads SKILL.md files from. Link external trees read-only, or import a hard-link copy into CE for resilience against the source moving.</p>
+              <p class="skill-sources-subtitle">Folders Context Engine reads SKILL.md files from. Link external trees read-only so the same continuity layer can follow work across host apps.</p>
             </div>
             <button class="fb small" onclick="SkillSourcesPanel.refresh()">Re-scan</button>
           </div>

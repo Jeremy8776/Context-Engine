@@ -1,7 +1,7 @@
 {
   "name": "context-engine",
   "version": "0.3.1",
-  "description": "Local, offline-first dashboard for orchestrating AI agent contexts, skills, and memory.",
+  "description": "Local-first continuity layer for AI work across tools, providers, and fresh sessions.",
   "main": "electron/main.cjs",
   "bin": {
     "context-engine": "cli/index.js"

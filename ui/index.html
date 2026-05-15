@@ -156,9 +156,10 @@
               <section class="dashboard-head dashboard-hero">
                 <div>
                   <span class="eyebrow">Context Engine</span>
-                  <h1>Broker skills, memory, and rules</h1>
+                  <h1>Continue across AI tools</h1>
                   <p id="db-context-status">
-                    Checking the local source of truth that host apps can query at runtime.
+                    Checking the local source of truth that survives rate limits, fresh sessions, and tool
+                    switches.
                   </p>
                 </div>
               </section>
@@ -182,7 +183,7 @@
                 <article class="dashboard-metric">
                   <span>Base context</span>
                   <strong id="db-stat-budget">0%</strong>
-                  <small>before host lookup</small>
+                  <small>before handoff</small>
                 </article>
               </section>
 
@@ -222,7 +223,7 @@
                   <div class="dashboard-panel-head">
                     <div>
                       <span class="eyebrow">Connections</span>
-                      <h2>Sync host surfaces</h2>
+                      <h2>Keep hosts in sync</h2>
                     </div>
                   </div>
                   <div class="dashboard-smart-row">
@@ -230,10 +231,10 @@
                       class="add-input"
                       id="db-smart-task"
                       type="text"
-                      placeholder="Describe the task for smart skill selection"
-                      aria-label="Smart compile task description"
+                      placeholder="Describe the work you need to continue"
+                      aria-label="Context preview task description"
                     />
-                    <button class="fb" onclick="DashboardTab.smartCompile()">Smart Preview</button>
+                    <button class="fb" onclick="DashboardTab.smartCompile()">Preview Context</button>
                   </div>
                   <div class="dashboard-smart-result" id="db-smart-result" hidden></div>
                   <div class="dashboard-run-actions">
@@ -244,7 +245,7 @@
                     Detected host and file-sync targets will appear after the first scan.
                   </p>
                   <div class="dashboard-token-list" id="db-output-tokens">
-                    <div class="db-empty">Token estimates appear after preview</div>
+                    <div class="db-empty">Context size appears after preview</div>
                   </div>
                 </section>
               </div>
@@ -681,13 +682,14 @@
             ><span>Repo path</span><input class="add-input" id="handoff-modal-repo"
           /></label>
           <label class="modal-field handoff-modal-body-field"
-            ><span>Body</span><textarea
+            ><span>Body</span
+            ><textarea
               class="add-input handoff-modal-body-input"
               id="handoff-modal-body"
               rows="6"
               placeholder="Where you are, what's next, anchors and references. Markdown welcome."
-            ></textarea
-          ></label>
+            ></textarea>
+          </label>
         </div>
         <div class="memory-modal-actions">
           <button class="fb" onclick="HandoffsTab.closeAddModal()">Cancel</button>

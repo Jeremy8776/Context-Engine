@@ -1,8 +1,8 @@
 # Context Engine
 
-**The local context broker for AI host apps and coding agents.**
+**Local-first continuity for AI work across tools, providers, and fresh sessions.**
 
-Run a local source of truth for skills, memory, rules, and modes. Host apps such as Claude Desktop, Codex, Cursor, and ChatGPT-style connectors can pull the right context at runtime, while legacy tools still get compiled instruction files.
+When Claude rate-limits you, Cursor loses the thread, or you switch to Codex mid-task, Context Engine keeps the working state on your machine and makes it available to the next AI tool you open. Memory, handoffs, rules, skills, and modes live in one local source of truth. Host apps can query that source through MCP, while older IDE and CLI tools still receive generated instruction files.
 
 [![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D22-brightgreen.svg)](https://nodejs.org/)
@@ -12,15 +12,17 @@ Run a local source of truth for skills, memory, rules, and modes. Host apps such
 
 ## What is Context Engine?
 
-AI host apps need context in two different ways: runtime tools for chat-style apps, and instruction files for older IDE/CLI agents. Context Engine is the local broker behind both paths. The Electron app is the admin panel; the real work still happens in Claude Desktop, Codex, Cursor, ChatGPT-style connectors, and other host apps.
+AI work breaks whenever the session resets, the provider caps you, or the next tool cannot see the decisions already made. Context Engine is the local continuity layer behind that work. The Electron app is the admin panel; the real work still happens in Claude Desktop, Codex, Cursor, ChatGPT-style connectors, and other host apps.
 
-- Write modular **skills** (reusable instruction files)
-- Toggle them on/off per task with **modes**
-- Expose context through **MCP tools** for runtime lookup
-- Compile fallback files for **22 AI tools**
-- Track your **context budget** before it reaches the host
+- Preserve **handoffs** so a fresh session can resume from the last useful state
+- Store durable **memory**, **rules**, **skills**, and **modes** locally
+- Expose the same truth through **MCP tools** for runtime lookup
+- Generate native instruction files for **22 AI tools**
+- Track context size as an operational guardrail, not a quality claim
 
 No cloud. No accounts. No API keys required. Runs entirely on your machine.
+
+The short version: your AI memory belongs to you, not to one provider.
 
 ---
 
@@ -28,13 +30,13 @@ No cloud. No accounts. No API keys required. Runs entirely on your machine.
 
 Pre-built installers for the current release, **v0.3.1**. Installed builds auto-update from this channel — the desktop app checks GitHub Releases 8 seconds after launch, then every 6 hours, and shows a toast when a new build is ready.
 
-| Platform                  | Installer                                                                                                                       | Notes                              |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| **Windows** (x64)         | [Setup .exe](https://github.com/Jeremy8776/Context-Engine/releases/download/v0.3.1/Context-Engine-0.3.1-setup-x64.exe)          | NSIS installer with auto-update    |
-| **Windows** (portable)    | [Portable .exe](https://github.com/Jeremy8776/Context-Engine/releases/download/v0.3.1/Context-Engine-0.3.1-portable-x64.exe)    | Single-file, no install            |
-| **macOS** (Apple Silicon) | [.dmg](https://github.com/Jeremy8776/Context-Engine/releases/download/v0.3.1/Context-Engine-0.3.1-arm64.dmg)                    | Unsigned — see note below          |
-| **Linux** (AppImage)      | [.AppImage](https://github.com/Jeremy8776/Context-Engine/releases/download/v0.3.1/Context-Engine-0.3.1.AppImage)                | Universal, `chmod +x` then run     |
-| **Linux** (Debian/Ubuntu) | [.deb](https://github.com/Jeremy8776/Context-Engine/releases/download/v0.3.1/context-engine_0.3.1_amd64.deb)                    | `sudo apt install ./<file>.deb`    |
+| Platform                  | Installer                                                                                                                    | Notes                           |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| **Windows** (x64)         | [Setup .exe](https://github.com/Jeremy8776/Context-Engine/releases/download/v0.3.1/Context-Engine-0.3.1-setup-x64.exe)       | NSIS installer with auto-update |
+| **Windows** (portable)    | [Portable .exe](https://github.com/Jeremy8776/Context-Engine/releases/download/v0.3.1/Context-Engine-0.3.1-portable-x64.exe) | Single-file, no install         |
+| **macOS** (Apple Silicon) | [.dmg](https://github.com/Jeremy8776/Context-Engine/releases/download/v0.3.1/Context-Engine-0.3.1-arm64.dmg)                 | Unsigned — see note below       |
+| **Linux** (AppImage)      | [.AppImage](https://github.com/Jeremy8776/Context-Engine/releases/download/v0.3.1/Context-Engine-0.3.1.AppImage)             | Universal, `chmod +x` then run  |
+| **Linux** (Debian/Ubuntu) | [.deb](https://github.com/Jeremy8776/Context-Engine/releases/download/v0.3.1/context-engine_0.3.1_amd64.deb)                 | `sudo apt install ./<file>.deb` |
 
 Browse all releases at [github.com/Jeremy8776/Context-Engine/releases](https://github.com/Jeremy8776/Context-Engine/releases).
 
@@ -51,18 +53,18 @@ Context Engine is one part of a three-repo local AI stack:
 | System             | Role                                                                                                                     |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------ |
 | **AI Model DB**    | Registry and directory for models, providers, capabilities, MCP servers, skills, and install metadata                    |
-| **Context Engine** | Local context broker for memory, rules, skills, modes, MCP tools, and compiled file fallbacks                            |
+| **Context Engine** | Local continuity layer for handoffs, memory, rules, skills, modes, MCP tools, and compiled file fallbacks                |
 | **DRAM**           | Runtime orchestration layer for API daemons, local models, hosted model calls, routing, logs, queues, and process health |
 
 Short version:
 
-> AI Model DB knows what exists. Context Engine brokers what context is active. DRAM runs and routes the systems that execute it.
+> AI Model DB knows what exists. Context Engine keeps working context portable. DRAM runs and routes the systems that execute it.
 
 See [docs/ECOSYSTEM.md](docs/ECOSYSTEM.md) for the system boundaries.
 
 ---
 
-## Supported Tools
+## Where Your Context Can Go
 
 | Tool                     | Format                            | Global | Project |
 | ------------------------ | --------------------------------- | ------ | ------- |
@@ -93,23 +95,26 @@ See [docs/ECOSYSTEM.md](docs/ECOSYSTEM.md) for the system boundaries.
 
 ## Features
 
-### Skills Management
+### Handoffs
 
-- Auto-discovers `SKILL.md` files from your filesystem
-- Parses YAML frontmatter for descriptions and trigger phrases
-- Toggle active/inactive per skill with instant context regeneration
-- Import skill packs from GitHub repos (Anthropic, OpenAI, community)
-- Group by source — see Custom, Anthropic, OpenAI skills separately
+Handoffs are the practical answer to rate limits and tool switches:
 
-### Modes
+- Capture where the work is, what changed, and what the next session should do
+- Bind handoffs to a thread, a project, or a repository
+- Track commit drift so stale handoffs are visible before they mislead an agent
+- Archive old handoffs without losing the audit trail
 
-- Save curated stacks of skills for specific workflows
-- Switch between "Heavy Coding", "Creative", "Lean Mode" in one click
-- Create, edit, and delete modes from the admin panel
+### Source of Truth
+
+- Persistent memory entries with categories (identity, preference, project, general)
+- Editable coding rules, general rules, and personality/soul configuration
+- Modular skills discovered from local `SKILL.md` folders
+- Modes for repeatable work contexts such as coding, research, or creative work
+- JSON storage that is portable, inspectable, and version-controllable
 
 ### Runtime Bridge
 
-Four read-only MCP tools (`context_engine_search`, `context_engine_list_skills`, `context_engine_get_skill`, `context_engine_status`) exposed across three transports, all sharing the same contract from a single `mcp-schemas.json`:
+MCP gives host apps a live way to ask for context instead of hoping they read the right file. Context Engine exposes read-only tools such as `context_engine_search`, `context_engine_list_skills`, `context_engine_get_skill`, `context_engine_handoffs`, and `context_engine_status` across shared transports from a single `mcp-schemas.json`:
 
 - **Local stdio** (`mcp-server.mjs`) — Claude Desktop, Codex CLI, Cursor, and compatible MCP hosts spawn this directly. The Outputs tab generates the snippet and writes the host config for you, preserving existing entries.
 - **Claude Desktop extension** (`mcpb/context-engine`) — Blender-style local connector. Build with `npm run mcpb:pack`; users install the `.mcpb` and only configure a port.
@@ -117,27 +122,29 @@ Four read-only MCP tools (`context_engine_search`, `context_engine_list_skills`,
 
 ### Onboarding
 
-A first-run discovery flow detects installed MCP hosts, summarizes skill/memory state, walks through connecting selected hosts, and offers to build the vector index. The result writes `data/onboarding.json` so subsequent launches skip straight to the dashboard.
+A first-run discovery flow detects installed MCP hosts, summarizes handoff/skill/memory state, walks through connecting selected hosts, and offers to build the vector index. The result writes `data/onboarding.json` so subsequent launches skip straight to the dashboard.
 
 ### File Output Fallback
 
 - Auto-detects which AI tools are installed on your system
-- Compiles your context to each tool's native format
+- Writes your source of truth to each tool's native instruction format
 - Deploys globally or per-project for hosts that still rely on files
 - One source of truth, 22 generated outputs
 
-### Memory & Rules
-
-- Persistent memory entries with categories (identity, preference, project, general)
-- Editable coding rules, general rules, and personality/soul configuration
-- Optional `sessionStart` rule — injected at the top of every compiled output so AI agents know where to look first when resuming work (e.g. point them at a handoff doc instead of letting them fish through the repo)
-- All stored as JSON — version-controllable, portable
-
 ### Context Budgeting
 
-- Real-time token estimates for your active context
-- See what will be available to runtime tools and compiled outputs
-- Admin panel: active skills, host connections, modes, token counts
+- Real-time token estimates for the context each host may receive
+- Context Preview shows token reduction and selected skills without claiming quality uplift
+- Vector search helps hosts retrieve only the relevant slice when they can call CE live
+- Admin panel: active skills, host connections, modes, handoffs, token counts
+
+### Skills Management
+
+- Auto-discovers `SKILL.md` files from your filesystem
+- Parses YAML frontmatter for descriptions and trigger phrases
+- Toggle active/inactive per skill with instant context regeneration
+- Import skill packs from GitHub repos (Anthropic, OpenAI, community)
+- Group by source - see Custom, Anthropic, OpenAI skills separately
 
 ### Security
 
@@ -207,7 +214,7 @@ Auto-updates pull from the [GitHub Releases](https://github.com/Jeremy8776/Conte
 
 ### MCP bridge
 
-Context Engine can also run as an MCP server so host apps can pull relevant skill context on demand instead of relying on compiled project files:
+Context Engine can also run as an MCP server so host apps can pull handoffs, memory, rules, and skill context on demand instead of relying only on compiled project files:
 
 ```bash
 npm run mcp                # start stdio MCP bridge
@@ -324,6 +331,8 @@ The server exposes a REST API on port 3847. The full live list is at `GET /api/d
 | POST   | `/api/skills/parse`         | LLM-parse skill descriptions                               |
 | GET    | `/api/memory`               | Get memory entries                                         |
 | POST   | `/api/memory`               | Save memory entries                                        |
+| GET    | `/api/handoffs`             | List active work handoffs                                  |
+| POST   | `/api/handoffs`             | Save a handoff for later resume                            |
 | GET    | `/api/rules`                | Get rules and soul                                         |
 | POST   | `/api/rules`                | Save rules and soul                                        |
 | GET    | `/api/states`               | Get skill active/inactive states                           |

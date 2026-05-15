@@ -19,6 +19,7 @@ const { compile, buildContext, estimateTokens, ADAPTERS } = require('../compiler
 async function smartCompile(input, deps) {
   const task = String(input.task || '').trim();
   if (!task) return { ok: false, error: 'task is required', status: 400 };
+  const targets = normalizeSmartTargets(input.targets);
   const store = loadVectorStore();
   if (!store.records.length)
     return { ok: false, error: 'Index is empty. Run /api/index first.', status: 400 };
@@ -30,15 +31,15 @@ async function smartCompile(input, deps) {
 
   const matches = searchVectors(store, embedded.vectors[0] || [], { limit: 60 });
   const rankedSkills = rankSkillMatches(matches);
-  const selectedSkillIds = fitSkillsToBudget(rankedSkills, input, deps);
+  const selectedSkillIds = fitSkillsToBudget(rankedSkills, input, deps, targets);
   const result = compile({
     dataDir: DATA_DIR,
     skillsDir: SKILLS_DIR,
     scanSkills: deps.scanSkills,
-    targets: input.targets?.length ? input.targets : undefined,
+    targets,
     selectedSkillIds,
   });
-  const allOn = estimateAllOn(input, deps);
+  const allOn = estimateAllOn(deps, targets);
   const selectedTokens = Object.values(result.results || {}).reduce(
     (sum, item) => sum + (Number(item.tokens) || 0),
     0,
@@ -83,10 +84,10 @@ function rankSkillMatches(matches) {
  * @param {SmartSkillMatch[]} rankedSkills
  * @param {SmartCompileInput} input
  * @param {{ scanSkills: () => Record<string, any> }} deps
+ * @param {string[]} targets
  */
-function fitSkillsToBudget(rankedSkills, input, deps) {
+function fitSkillsToBudget(rankedSkills, input, deps, targets) {
   const maxTokens = input.maxTokens || 32000;
-  const targets = input.targets?.length ? input.targets : ['agents'];
   const selected = [];
   for (const match of rankedSkills) {
     selected.push(match.skillId);
@@ -120,13 +121,19 @@ function previewTokens(selectedSkillIds, targets, deps) {
 }
 
 /**
- * @param {SmartCompileInput} input
  * @param {{ scanSkills: () => Record<string, any> }} deps
+ * @param {string[]} targets
  */
-function estimateAllOn(input, deps) {
+function estimateAllOn(deps, targets) {
   const allSkillIds = Object.keys(deps.scanSkills());
-  const targets = input.targets?.length ? input.targets : ['agents'];
   return { tokens: previewTokens(allSkillIds, targets, deps), skills: allSkillIds.length };
+}
+
+/** @param {unknown} targets */
+function normalizeSmartTargets(targets) {
+  if (!Array.isArray(targets) || !targets.length) return ['agents'];
+  const normalized = targets.map((target) => String(target).trim()).filter(Boolean);
+  return normalized.length ? normalized : ['agents'];
 }
 
 /** @param {string} projectPath */
@@ -160,4 +167,4 @@ function detectProjectStack(projectPath) {
   };
 }
 
-module.exports = { smartCompile, detectProjectStack, rankSkillMatches };
+module.exports = { smartCompile, detectProjectStack, rankSkillMatches, normalizeSmartTargets };

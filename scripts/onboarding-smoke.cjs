@@ -64,26 +64,33 @@ async function run() {
 
     await win.loadURL(`http://127.0.0.1:${PORT}/`);
     await waitFor(win, `(() => document.getElementById('loader')?.classList.contains('hidden'))()`);
-    await waitFor(win, `(() => document.querySelector('.onboarding-root'))()`);
+    await waitFor(win, `(() => document.getElementById('onboarding-root'))()`);
 
     const discovery = await js(
       win,
       `(() => ({
-        heading: document.querySelector('.onboarding-panel h1')?.textContent || '',
+        heading: document.querySelector('#onboarding-title')?.textContent || '',
         hosts: document.querySelectorAll('.onboarding-host').length,
-        metrics: document.querySelectorAll('.onboarding-metric').length,
+        stats: document.querySelectorAll('.onboarding-stat').length,
       }))()`,
     );
-    assert(/found your working setup/i.test(discovery.heading), 'Discovery heading is missing');
-    assert(discovery.hosts >= 2, 'Expected detected host cards');
-    assert(discovery.metrics >= 4, 'Expected context metrics');
+    assert(/Welcome to Context Engine/i.test(discovery.heading), 'Onboarding heading is missing');
+    assert(discovery.hosts >= 1, 'Expected detected host cards');
 
-    await js(win, `Onboarding.go('connect')`);
-    await waitFor(win, `(() => /Wire CE/.test(document.body.innerText))()`);
-    await js(win, `Onboarding.go('health')`);
-    await waitFor(win, `(() => /Prove the bridge/.test(document.body.innerText))()`);
-    await js(win, `Onboarding.finish()`);
-    await waitFor(win, `(() => !document.querySelector('.onboarding-root'))()`);
+    await js(win, `Onboarding.go(2)`);
+    await waitFor(win, `(() => document.querySelectorAll('.onboarding-stat').length >= 4)()`);
+    await js(win, `Onboarding.go(4)`);
+    await waitFor(win, `(() => /Final health check/.test(document.body.innerText))()`);
+    await js(
+      win,
+      `(() => {
+      const buttons = [...document.querySelectorAll('.onboarding-footer .save-btn')];
+      const finish = buttons.find((button) => /Finish setup/.test(button.textContent || ''));
+      if (!finish) throw new Error('Finish setup button missing');
+      finish.click();
+    })()`,
+    );
+    await waitFor(win, `(() => !document.getElementById('onboarding-root'))()`);
 
     const statePath = path.join(PROFILE_ROOT, 'data', 'onboarding.json');
     assert(fs.existsSync(statePath), 'onboarding.json was not written');

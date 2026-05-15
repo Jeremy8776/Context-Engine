@@ -84,7 +84,7 @@ const DashboardTab = (() => {
     if (aEl && typeof animateCount !== 'undefined') animateCount(aEl, active);
     if (status) {
       const inactive = Math.max(total - active, 0);
-      status.textContent = `${active} skills are active from ${total} discovered. Memory and rules stay shared, then Context Engine syncs the right package to each host surface.`;
+      status.textContent = `${active} skills are active from ${total} discovered. Memory, handoffs, and rules stay shared so the next host can pick up the work.`;
     }
   }
 
@@ -104,7 +104,7 @@ const DashboardTab = (() => {
       ).length;
       if (connEl && typeof animateCount !== 'undefined') animateCount(connEl, connCount);
       if (outputStatus) {
-        outputStatus.textContent = `${connCount} sync surfaces are available. ${globalCount} can inherit global context and ${projectCount} can receive workspace context.`;
+        outputStatus.textContent = `${connCount} host surfaces are available. ${globalCount} can inherit global context and ${projectCount} can receive workspace context.`;
       }
     } catch {}
 
@@ -171,7 +171,7 @@ const DashboardTab = (() => {
   async function loadOutputTokens() {
     const container = document.getElementById('db-output-tokens');
     if (!container) return;
-    container.innerHTML = '<div class="db-empty">Estimating tool-specific outputs...</div>';
+    container.innerHTML = '<div class="db-empty">Estimating host-specific context...</div>';
     try {
       const toolData = await DS.detectTools();
       const targets = Object.entries(toolData || {})
@@ -197,7 +197,7 @@ const DashboardTab = (() => {
       .filter(([, result]) => Number.isFinite(result.tokens))
       .sort((a, b) => b[1].tokens - a[1].tokens);
     if (!rows.length) {
-      container.innerHTML = '<div class="db-empty">No token estimates yet</div>';
+      container.innerHTML = '<div class="db-empty">No context estimates yet</div>';
       return;
     }
     const firstRow = rows[0];
@@ -272,16 +272,16 @@ const DashboardTab = (() => {
     }
     result.hidden = false;
     result.innerHTML = '<div class="db-empty">Selecting skills for this task&hellip;</div>';
-    Toast.info('Running smart compile...');
+    Toast.info('Previewing portable context...');
     const data = await DS.smartCompile({ task });
     if (!data || data.ok === false) {
-      const msg = (data && data.error) || 'Smart compile failed';
+      const msg = (data && data.error) || 'Context preview failed';
       result.innerHTML = `<div class="db-empty">${esc(msg)}</div>`;
       Toast.warn(msg);
       return;
     }
     renderSmartResult(result, data);
-    Toast.success(`Smart compile picked ${data.selectedSkillIds?.length || 0} skills`);
+    Toast.success(`Context preview picked ${data.selectedSkillIds?.length || 0} skills`);
   }
 
   /**
@@ -308,7 +308,7 @@ const DashboardTab = (() => {
       : '';
     host.innerHTML = `
       <div class="smart-budget">
-        <div><span class="ct-badge ct-installed">Smart</span><strong>${sel.toLocaleString()} tokens</strong> selected</div>
+        <div><span class="ct-badge ct-installed">Preview</span><strong>${sel.toLocaleString()} tokens</strong> selected</div>
         <div class="smart-budget-meta">vs <strong>${all.toLocaleString()}</strong> all on${saved > 0 ? `, saving <strong>${saved.toLocaleString()}</strong>` : ''} (${pct}% of full)</div>
       </div>
       ${tagRow}
@@ -352,7 +352,7 @@ const DashboardTab = (() => {
     if (statB) statB.textContent = pct + '%';
     if (manifest) manifest.textContent = `${(d.contextMdChars || 0).toLocaleString()} chars`;
     if (compileStatus) {
-      compileStatus.textContent = `${(d.memoryChars || 0).toLocaleString()} memory chars and ${(d.rulesChars || 0).toLocaleString()} rule chars are in the shared manifest.`;
+      compileStatus.textContent = `${(d.memoryChars || 0).toLocaleString()} memory chars and ${(d.rulesChars || 0).toLocaleString()} rule chars are ready for host handoff.`;
     }
   }
 

@@ -144,7 +144,7 @@ const Onboarding = (() => {
     return `<section class="onboarding-step-body" data-step="1">
       <header class="onboarding-step-head">
         <h3>Connect your AI hosts</h3>
-        <p>Pick the apps that should call Context Engine live. Selected hosts will be wired up in the next step. You can change this any time from Connections.</p>
+        <p>Pick the apps that should inherit your local context when a session resets, a rate limit hits, or you switch tools. You can change this any time from Connections.</p>
       </header>
       <div class="onboarding-host-list">
         ${hosts.length ? hosts.map(hostCard).join('') : '<p class="onboarding-empty">No supported hosts detected on this machine yet.</p>'}
@@ -182,7 +182,7 @@ const Onboarding = (() => {
     return `<section class="onboarding-step-body" data-step="2">
       <header class="onboarding-step-head">
         <h3>Available context</h3>
-        <p>This is what host apps will be able to query through Context Engine. Build the vector index to enable semantic search.</p>
+        <p>This is the local source of truth host apps can query through Context Engine. Build the vector index to enable semantic search.</p>
       </header>
       <div class="onboarding-stat-grid">
         ${statCard('Skills found', ctx.totalSkills || 0)}
@@ -322,7 +322,8 @@ const Onboarding = (() => {
     const inFlight = pendingOp.get(sourceId);
     const localEdits = diff.localEdits || [];
     const conflicts = diff.conflicts || [];
-    const total = diff.added.length + diff.removed.length + diff.modified.length + localEdits.length + conflicts.length;
+    const total =
+      diff.added.length + diff.removed.length + diff.modified.length + localEdits.length + conflicts.length;
     if (total === 0) {
       return `<div class="onboarding-diff-panel">
         <span class="onboarding-card-desc">No changes detected. The imported tree matches the source.</span>
@@ -403,7 +404,7 @@ const Onboarding = (() => {
     return `<section class="onboarding-step-body" data-step="3">
       <header class="onboarding-step-head">
         <h3>IDE and file-output surfaces</h3>
-        <p>Tools that don't call Context Engine through MCP can still receive compiled instruction files. CE can write to these as a fallback.</p>
+        <p>Tools that don't call Context Engine through MCP can still receive generated instruction files from the same source of truth.</p>
       </header>
       ${
         visible.length
@@ -437,7 +438,7 @@ const Onboarding = (() => {
     return `<section class="onboarding-step-body" data-step="4">
       <header class="onboarding-step-head">
         <h3>Final health check</h3>
-        <p>Confirm Context Engine has something useful to serve before you start using it from a host app.</p>
+        <p>Confirm Context Engine has useful continuity context before you start using it from a host app.</p>
       </header>
       <div class="onboarding-health-grid">
         ${healthCard('Host connections', connected > 0, connected > 0 ? `${connected} connected` : 'Connect at least one host')}
@@ -459,7 +460,7 @@ const Onboarding = (() => {
     const isFirst = step === 1;
     const isLast = step === 4;
     const nextLabel = isLast ? (finishing ? 'Finishing…' : 'Finish setup') : 'Continue';
-    const nextAction = isLast ? 'finish' : `go(${step + 1})`;
+    const nextAction = isLast ? 'finish()' : `go(${step + 1})`;
     const disabledAttr = isLast && finishing ? 'disabled' : '';
     const errorBlock = finishError
       ? `<div class="onboarding-footer-error" role="alert">${esc(finishError)}</div>`

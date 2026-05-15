@@ -1,8 +1,8 @@
 # MCP Bridge
 
-Context Engine exposes its skill index to AI host apps through a shared read-only tool contract. The first transport is local MCP over stdio: Claude Desktop, Codex CLI, Cursor, and compatible desktop/IDE hosts spawn `mcp-server.mjs` as a child process, and the MCP server forwards each tool call to the local CE HTTP server on `127.0.0.1:3847`.
+Context Engine exposes its local continuity layer to AI host apps through a shared read-only tool contract. The first transport is local MCP over stdio: Claude Desktop, Codex CLI, Cursor, and compatible desktop/IDE hosts spawn `mcp-server.mjs` as a child process, and the MCP server forwards each tool call to the local CE HTTP server on `127.0.0.1:3847`.
 
-This means CE works inside local chat-style apps that don't read project files (CLAUDE.md, AGENTS.md, etc.) — the host calls into CE on demand instead of being preloaded with a giant compiled context.
+This means CE works inside local chat-style apps that don't read project files (CLAUDE.md, AGENTS.md, etc.). When a session resets, a provider rate-limits you, or you switch tools mid-task, the next host can ask CE for handoffs, memory, skills, and status instead of making you re-explain the work.
 
 Claude Desktop has two local paths:
 
@@ -28,9 +28,10 @@ ChatGPT app support is a separate transport, not a different reading of the same
 | `context_engine_search`      | Vector search over indexed skill chunks. Top-k ranked results.    |
 | `context_engine_list_skills` | Manifest of all skills (id, name, category, description, active). |
 | `context_engine_get_skill`   | Full skill body, optionally a single `## section` slice.          |
+| `context_engine_handoffs`    | Active work bookmarks for thread/project resume after a switch.   |
 | `context_engine_status`      | Index health: chunk count, model, last-indexed timestamp.         |
 
-The expected usage pattern is **status → list/search → get_skill**: a model calls `context_engine_status` to confirm the index is fresh, narrows candidates with `context_engine_search` or `context_engine_list_skills`, then pulls full text for the one or two skills that matter via `context_engine_get_skill`. This is the token-saver: nothing irrelevant ever enters the context window.
+The expected usage pattern is **status -> handoffs -> list/search -> get_skill**: a model confirms CE is ready, checks whether there is an active handoff for the thread or repo, narrows candidates with `context_engine_search` or `context_engine_list_skills`, then pulls full text for the one or two skills that matter via `context_engine_get_skill`. Token reduction is a consequence of that continuity path, not the headline claim.
 
 ---
 
@@ -79,7 +80,7 @@ Add a `mcpServers` entry. Replace `<ABSOLUTE_PATH_TO_APP>` with the absolute pat
 }
 ```
 
-Restart Claude Desktop. The four tools should appear in the tools menu. If they don't, check Claude Desktop's MCP log — typical issues are an absolute path with the wrong slashes on Windows (use forward slashes or escape backslashes) or a stale Node version.
+Restart Claude Desktop. The Context Engine tools should appear in the tools menu. If they don't, check Claude Desktop's MCP log — typical issues are an absolute path with the wrong slashes on Windows (use forward slashes or escape backslashes) or a stale Node version.
 
 ---
 
@@ -110,6 +111,7 @@ The ChatGPT app path is not covered by local stdio MCP. Current ChatGPT custom M
 - `context_engine_search`
 - `context_engine_list_skills`
 - `context_engine_get_skill`
+- `context_engine_handoffs`
 - `context_engine_status`
 
 Run it locally:
