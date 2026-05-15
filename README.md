@@ -26,15 +26,15 @@ No cloud. No accounts. No API keys required. Runs entirely on your machine.
 
 ## Download
 
-Pre-built installers for the current release, **v0.2.3**. Installed builds auto-update from this channel — the desktop app checks GitHub Releases 8 seconds after launch, then every 6 hours, and shows a toast when a new build is ready.
+Pre-built installers for the current release, **v0.3.0**. Installed builds auto-update from this channel — the desktop app checks GitHub Releases 8 seconds after launch, then every 6 hours, and shows a toast when a new build is ready.
 
 | Platform                  | Installer                                                                                                                       | Notes                              |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| **Windows** (x64)         | [Setup .exe](https://github.com/Jeremy8776/Context-Engine/releases/download/v0.2.3/Context-Engine-0.2.3-setup-x64.exe)          | NSIS installer with auto-update    |
-| **Windows** (portable)    | [Portable .exe](https://github.com/Jeremy8776/Context-Engine/releases/download/v0.2.3/Context-Engine-0.2.3-portable-x64.exe)    | Single-file, no install            |
-| **macOS** (Apple Silicon) | [.dmg](https://github.com/Jeremy8776/Context-Engine/releases/download/v0.2.3/Context-Engine-0.2.3-arm64.dmg)                    | Unsigned — see note below          |
-| **Linux** (AppImage)      | [.AppImage](https://github.com/Jeremy8776/Context-Engine/releases/download/v0.2.3/Context-Engine-0.2.3.AppImage)                | Universal, `chmod +x` then run     |
-| **Linux** (Debian/Ubuntu) | [.deb](https://github.com/Jeremy8776/Context-Engine/releases/download/v0.2.3/context-engine_0.2.3_amd64.deb)                    | `sudo apt install ./<file>.deb`    |
+| **Windows** (x64)         | [Setup .exe](https://github.com/Jeremy8776/Context-Engine/releases/download/v0.3.0/Context-Engine-0.3.0-setup-x64.exe)          | NSIS installer with auto-update    |
+| **Windows** (portable)    | [Portable .exe](https://github.com/Jeremy8776/Context-Engine/releases/download/v0.3.0/Context-Engine-0.3.0-portable-x64.exe)    | Single-file, no install            |
+| **macOS** (Apple Silicon) | [.dmg](https://github.com/Jeremy8776/Context-Engine/releases/download/v0.3.0/Context-Engine-0.3.0-arm64.dmg)                    | Unsigned — see note below          |
+| **Linux** (AppImage)      | [.AppImage](https://github.com/Jeremy8776/Context-Engine/releases/download/v0.3.0/Context-Engine-0.3.0.AppImage)                | Universal, `chmod +x` then run     |
+| **Linux** (Debian/Ubuntu) | [.deb](https://github.com/Jeremy8776/Context-Engine/releases/download/v0.3.0/context-engine_0.3.0_amd64.deb)                    | `sudo apt install ./<file>.deb`    |
 
 Browse all releases at [github.com/Jeremy8776/Context-Engine/releases](https://github.com/Jeremy8776/Context-Engine/releases).
 
