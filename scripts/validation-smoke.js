@@ -55,9 +55,35 @@ assert.ok(memIdx.error && memIdx.error.includes('Entry 0'), 'error references co
 
 // ---- validateRules ----
 
-// GIVEN valid rules data
+// GIVEN valid rules data (legacy flat-string format)
 const rulesOk = validateRules({ coding: 'Use strict mode', general: 'Be helpful', soul: 'Curious' });
-assert.strictEqual(rulesOk.valid, true, 'valid rules passes');
+assert.strictEqual(rulesOk.valid, true, 'valid flat rules passes');
+
+// GIVEN valid rules data (new priority-object format)
+const rulesPriorityOk = validateRules({
+  coding: { hard: 'No unused vars', preference: 'Use strict mode', style: 'K&R braces' },
+  general: { hard: 'Be truthful', preference: 'Be helpful', style: '' },
+  soul: { preference: 'Curious and direct' },
+});
+assert.strictEqual(rulesPriorityOk.valid, true, 'valid priority rules passes');
+
+// GIVEN soul with invalid priority
+const rulesSoulBad = validateRules({ coding: '', general: '', soul: { hard: 'not allowed' } });
+assert.strictEqual(rulesSoulBad.valid, false, 'soul with hard priority fails');
+assert.ok(rulesSoulBad.error && rulesSoulBad.error.includes('soul'), 'error mentions soul');
+
+// GIVEN coding with invalid priority
+const rulesCodingBad = validateRules({
+  coding: { hard: 'ok', preference: 'ok', style: 'ok', urgent: 'not allowed' },
+  general: '',
+  soul: '',
+});
+assert.strictEqual(rulesCodingBad.valid, false, 'coding with invalid priority fails');
+assert.ok(rulesCodingBad.error && rulesCodingBad.error.includes('coding'), 'error mentions coding');
+
+// GIVEN mixed flat and object
+const rulesMixed = validateRules({ coding: 'text', general: { preference: 'text' }, soul: '' });
+assert.strictEqual(rulesMixed.valid, true, 'mixed flat and object rules passes');
 
 // GIVEN missing one of the required keys
 const rulesMissing = validateRules({ coding: 'x', general: 'y' });
@@ -67,6 +93,10 @@ assert.ok(rulesMissing.error && rulesMissing.error.includes('soul'), 'error ment
 // GIVEN key with wrong type
 const rulesWrongType = validateRules({ coding: 42, general: '', soul: '' });
 assert.strictEqual(rulesWrongType.valid, false, 'numeric coding value fails');
+
+// GIVEN array instead of object for coding
+const rulesArray = validateRules({ coding: ['a', 'b'], general: '', soul: '' });
+assert.strictEqual(rulesArray.valid, false, 'array coding value fails');
 
 // GIVEN null input
 assert.strictEqual(validateRules(null).valid, false, 'null rules fails');

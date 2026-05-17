@@ -20,8 +20,28 @@ function validateMemory(data) {
 function validateRules(data) {
   if (!data || typeof data !== 'object') return { valid: false, error: 'Must be a JSON object' };
   if (data._parseError) return { valid: false, error: 'Invalid JSON in request body' };
-  for (const key of ['coding', 'general', 'soul']) {
-    if (typeof data[key] !== 'string') return { valid: false, error: `Missing or invalid "${key}" string` };
+  const codingPriorities = ['hard', 'preference', 'style'];
+  const generalPriorities = ['hard', 'preference', 'style'];
+  const soulPriorities = ['preference'];
+  const sections = [
+    { key: 'coding', allowed: codingPriorities },
+    { key: 'general', allowed: generalPriorities },
+    { key: 'soul', allowed: soulPriorities },
+  ];
+  for (const { key, allowed } of sections) {
+    const val = data[key];
+    if (typeof val === 'string') continue;
+    if (!val || typeof val !== 'object' || Array.isArray(val)) {
+      return { valid: false, error: `Missing or invalid "${key}" section` };
+    }
+    for (const [pkey, pval] of Object.entries(val)) {
+      if (!allowed.includes(pkey)) {
+        return { valid: false, error: `"${key}" does not allow priority "${pkey}"` };
+      }
+      if (typeof pval !== 'string') {
+        return { valid: false, error: `"${key}.${pkey}" must be a string` };
+      }
+    }
   }
   return { valid: true, error: null };
 }
