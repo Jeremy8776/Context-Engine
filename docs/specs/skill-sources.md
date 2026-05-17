@@ -61,13 +61,13 @@ A registered external directory CE reads `SKILL.md` files from. Stored in `data/
 - `removeSource(id)` → deletes by id. Refuses if id is `internal`.
 - `scanHostSkillPaths()` → probes known locations, returns `{ path, label, exists, skillCount }[]`. Probed paths:
 
-  | Path                                  | Label                       |
-  | ------------------------------------- | --------------------------- |
-  | `~/.claude/skills`                    | Claude Code (global)        |
-  | `<CWD>/.claude/skills`                | Claude Code (current project)|
-  | `<CWD>/.clinerules`                   | Cline / Roo rules           |
-  | `<CWD>/.continue/rules`               | Continue.dev rules          |
-  | `~/.opencode/skills`                  | OpenCode (global)           |
+  | Path                    | Label                         |
+  | ----------------------- | ----------------------------- |
+  | `~/.claude/skills`      | Claude Code (global)          |
+  | `<CWD>/.claude/skills`  | Claude Code (current project) |
+  | `<CWD>/.clinerules`     | Cline / Roo rules             |
+  | `<CWD>/.continue/rules` | Continue.dev rules            |
+  | `~/.opencode/skills`    | OpenCode (global)             |
 
   Each entry returns the resolved absolute path, a friendly label, `exists` boolean, and skill count if any.
 
@@ -99,13 +99,13 @@ The denylist is reused but **inverted** for this case: we're reading, not writin
 
 ### New endpoints
 
-| Method | Path                          | Description                                                                    |
-| ------ | ----------------------------- | ------------------------------------------------------------------------------ |
-| GET    | `/api/skill-sources`          | List registered sources + implicit internal. Returns skill counts per source.  |
-| POST   | `/api/skill-sources`          | Add an external source. Body: `{ path, label? }`. Validates + denylist-checks. |
-| DELETE | `/api/skill-sources/:id`      | Remove a source. Refuses on `internal`.                                        |
-| GET    | `/api/skill-sources/scan`     | Probe known host-skill paths. Returns the candidates with counts.              |
-| POST   | `/api/skill-sources/import`   | Phase 2 — copy a source's contents into `<CE_ROOT>/skills/imported/<id>/`.     |
+| Method | Path                        | Description                                                                    |
+| ------ | --------------------------- | ------------------------------------------------------------------------------ |
+| GET    | `/api/skill-sources`        | List registered sources + implicit internal. Returns skill counts per source.  |
+| POST   | `/api/skill-sources`        | Add an external source. Body: `{ path, label? }`. Validates + denylist-checks. |
+| DELETE | `/api/skill-sources/:id`    | Remove a source. Refuses on `internal`.                                        |
+| GET    | `/api/skill-sources/scan`   | Probe known host-skill paths. Returns the candidates with counts.              |
+| POST   | `/api/skill-sources/import` | Phase 2 — copy a source's contents into `<CE_ROOT>/skills/imported/<id>/`.     |
 
 ## UI
 
@@ -167,6 +167,7 @@ A new "Sources" affordance in the Skills tab header — a small select/expander 
 ## Phase 2 detailed design (2026-05-11)
 
 Locked decisions:
+
 - **Import action lives on the linked row.** Link is the cheap commitment, Import is the heavier one; forcing Link-then-Import is the right progression. No Import button on candidate rows.
 - **Manual Sync only.** No filesystem watching; a Sync button on imported rows triggers the diff. Keeps the user in control of when CE walks their dirs.
 
@@ -175,6 +176,7 @@ Locked decisions:
 Three states for a registered source: `external` (linked, read from original), `imported` (linked + a copy/hard-link tree has been written into `<CE_ROOT>/skills/imported/<sourceId>/`), `internal` (implicit, never stored).
 
 Transitions:
+
 ```
 external --[POST /api/skill-sources/:id/import]--> imported
 imported --[POST /api/skill-sources/:id/sync/apply]--> imported (manifest rewritten)
@@ -187,6 +189,7 @@ Unlinking an imported source intentionally **keeps** the imported tree. The user
 ### Import strategy: hard-link + copy fallback
 
 File-level `fs.linkSync` is the primary strategy. Fall back to `fs.copyFileSync` per-file on:
+
 - `EXDEV` — cross-volume on Windows. NTFS hard-links are intra-volume only.
 - `EPERM` / `EACCES` — source permissions.
 - Non-link-capable filesystems (FAT/exFAT).
@@ -205,9 +208,7 @@ One file per imported source at `data/skill-imports/<sourceId>.json`:
   "importedAt": "2026-05-11T15:00:00Z",
   "lastSyncedAt": "2026-05-11T15:00:00Z",
   "aggregateStrategy": "link",
-  "files": [
-    { "rel": "react/SKILL.md", "size": 2341, "mtimeMs": 1715000000000, "strategy": "link" }
-  ]
+  "files": [{ "rel": "react/SKILL.md", "size": 2341, "mtimeMs": 1715000000000, "strategy": "link" }]
 }
 ```
 
@@ -226,11 +227,13 @@ One file per imported source at `data/skill-imports/<sourceId>.json`:
 ```
 
 Definitions:
+
 - **Added**: in source, absent from manifest.
 - **Removed**: in manifest, absent from source.
 - **Modified**: in both, but `size` or `mtimeMs` differs **and** the per-file strategy is `copy`. Hard-linked files can't drift in content (shared inode), so we don't list them as modified even if mtime moved on the source.
 
 `POST /api/skill-sources/:id/sync/apply` body `{ mode: 'append' | 'overwrite' }`:
+
 - `append`: adds new files only. Removed and modified are left.
 - `overwrite`: applies all three categories — add new, delete removed, re-link/re-copy modified.
 
@@ -238,11 +241,11 @@ Manifest is rewritten after successful apply.
 
 ### Endpoints (Phase 2)
 
-| Method | Path                                            | Description                                                                |
-| ------ | ----------------------------------------------- | -------------------------------------------------------------------------- |
-| POST   | `/api/skill-sources/:id/import`                 | Walk source + write imported tree + manifest. Idempotent: refuses if already imported. |
-| GET    | `/api/skill-sources/:id/sync`                   | Compute diff without applying.                                             |
-| POST   | `/api/skill-sources/:id/sync/apply`             | Body `{ mode }`. Apply diff + rewrite manifest.                            |
+| Method | Path                                | Description                                                                            |
+| ------ | ----------------------------------- | -------------------------------------------------------------------------------------- |
+| POST   | `/api/skill-sources/:id/import`     | Walk source + write imported tree + manifest. Idempotent: refuses if already imported. |
+| GET    | `/api/skill-sources/:id/sync`       | Compute diff without applying.                                                         |
+| POST   | `/api/skill-sources/:id/sync/apply` | Body `{ mode }`. Apply diff + rewrite manifest.                                        |
 
 ### UI placement (Phase 2)
 
@@ -306,6 +309,7 @@ Verification (direct node script): linking a fixture with both an `app-launcher`
 - `conflicts`: dest AND source both diverged. Overwrite discards the local edit.
 
 Apply behaviour:
+
 - `append` ignores both.
 - `overwrite` re-places `modified` + `localEdits` + `conflicts` (excluding conflicts whose source file no longer exists; those flow through `removed`).
 

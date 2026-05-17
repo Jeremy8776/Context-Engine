@@ -83,11 +83,12 @@ function getSource(id) {
  * @param {Set<string>} taken
  */
 function uniqueId(seed, taken) {
-  const base = String(seed)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 40) || 'source';
+  const base =
+    String(seed)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40) || 'source';
   if (base === 'internal') return uniqueId(base + '-ext', taken);
   let candidate = base;
   let n = 2;
@@ -161,7 +162,11 @@ async function addSource(input) {
   // Refuse paths inside CE's own skills tree — that's already the internal source.
   // Compare against the realpath form so a symlink into SKILLS_DIR is caught.
   const skillsDirReal = (() => {
-    try { return fs.realpathSync(SKILLS_DIR); } catch { return SKILLS_DIR; }
+    try {
+      return fs.realpathSync(SKILLS_DIR);
+    } catch {
+      return SKILLS_DIR;
+    }
   })();
   if (
     realResolved === skillsDirReal ||
@@ -169,7 +174,7 @@ async function addSource(input) {
     realResolved.toLowerCase() === skillsDirReal.toLowerCase() ||
     realResolved.toLowerCase().startsWith(skillsDirReal.toLowerCase() + path.sep)
   ) {
-    return { ok: false, error: 'Path is already inside Context Engine\'s skills directory' };
+    return { ok: false, error: "Path is already inside Context Engine's skills directory" };
   }
 
   // Registry mutex: read-modify-write to skill-sources.json must be atomic

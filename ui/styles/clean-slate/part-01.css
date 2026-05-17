@@ -258,10 +258,10 @@ body::after,
 .cmd-k-hint {
   min-height: 34px;
   padding: 0 12px;
-  border: 1px solid var(--line-2);
+  border: 1px solid var(--accent-line);
   border-radius: var(--r-1);
-  background: var(--bg-raised);
-  color: var(--text);
+  background: var(--accent-bg);
+  color: var(--accent-hi);
   font-family: var(--sans);
   font-size: 13px;
   font-weight: 600;
@@ -277,8 +277,9 @@ body::after,
 
 .save-btn.ghost,
 .fb {
-  background: var(--bg-raised);
-  color: var(--text);
+  background: var(--accent-bg);
+  border-color: var(--accent-line);
+  color: var(--accent-hi);
 }
 
 .save-btn:hover,
@@ -287,7 +288,8 @@ body::after,
 .mem-btn:hover,
 .cmd-k-hint:hover {
   transform: none;
-  border-color: var(--text);
+  border-color: var(--accent);
+  color: var(--text);
   box-shadow: none;
 }
 

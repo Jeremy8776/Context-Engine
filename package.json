@@ -1,6 +1,6 @@
 {
   "name": "context-engine",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Local-first continuity layer for AI work across tools, providers, and fresh sessions.",
   "main": "electron/main.cjs",
   "bin": {
@@ -40,6 +40,14 @@
     "test:skill-sources": "node scripts/skill-sources-smoke.js",
     "migrate:handoffs": "node scripts/migrate-legacy-handoff.js",
     "test:mcp-hosts": "node scripts/mcp-host-config-smoke.js",
+    "test:modes": "node scripts/mode-apply-smoke.js",
+    "test:projects": "node scripts/projects-smoke.js",
+    "test:crypto": "node scripts/crypto-smoke.js",
+    "test:security": "node scripts/security-smoke.js",
+    "test:validation": "node scripts/validation-smoke.js",
+    "test:backup": "node scripts/backup-smoke.js",
+    "test:ranking": "node scripts/ranking-smoke.js",
+    "test:mutex": "node scripts/mutex-smoke.js",
     "mcp": "node mcp-server.mjs",
     "mcp:http": "node mcp-http-server.mjs",
     "mcpb:pack": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/pack-mcpb.ps1",

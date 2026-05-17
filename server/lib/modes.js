@@ -61,15 +61,19 @@ function applyMode(modeId) {
   /** @type {Record<string, boolean>} */
   const stateMap = { ...(states.states || {}) };
 
+  // Ensure every discovered skill has an entry in the state map.
+  // New skills default to active so they remain visible and available.
   Object.keys(SKILL_MAP).forEach((/** @type {string} */ id) => {
-    stateMap[id] = false;
+    if (!(id in stateMap)) stateMap[id] = true;
   });
 
   if (mode.id === 'all') {
     Object.keys(SKILL_MAP).forEach((/** @type {string} */ id) => {
       stateMap[id] = true;
     });
-  } else {
+  } else if (mode.skills.length > 0) {
+    // Only activate skills the mode explicitly lists; leave all others at
+    // their current state so skills never disappear when a mode is applied.
     mode.skills.forEach((/** @type {string} */ id) => {
       if (SKILL_MAP[id]) stateMap[id] = true;
     });

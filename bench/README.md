@@ -10,7 +10,7 @@ For each task in `tasks.json`, three numbers (apples-to-apples on full skill bod
 - **Smart** — tokens after CE's `/api/compile/smart` picks the relevant skills for this specific task. Same content type as Raw all, just a subset.
 - **Search** — tokens an MCP host (Claude Desktop, Codex) actually pulls when it calls `context_engine_search` — chunks, not full skills.
 
-Reference column: `CONTEXT.md` size — CE's pre-compressed system-prompt summary, a *different* path entirely. Reported alongside so both CE delivery paths are visible without inflating the savings number by mixing content types.
+Reference column: `CONTEXT.md` size — CE's pre-compressed system-prompt summary, a _different_ path entirely. Reported alongside so both CE delivery paths are visible without inflating the savings number by mixing content types.
 
 Optional quality column (`--grade`): for each task, actually run it through Claude in both smart and search modes, capture the response, and have a judge model score it 1-10. The summary adds tokens-per-quality-point efficiency — the real "are we saving tokens AND maintaining answer quality?" question.
 
@@ -64,7 +64,7 @@ Cost expectation at defaults (Haiku for both task + grader, 15 tasks): ~$0.10 pe
 
 - **Tokenizer**: tiktoken `cl100k_base` (the BPE GPT-3.5/4 uses). It's within ~5% of Anthropic's own tokenizer on prose. Same encoding is used for baseline + smart + search counts, so the percentages are internally consistent.
 - **Baseline definition**: only **active** skills (per `data/skill-states.json`) — that's the realistic ceiling. Including inactive skills would inflate the saving artificially.
-- **Search realism**: simulates a host calling `context_engine_search` *once* per task and pulling N chunks. Real host apps may call it multiple times or fall back to `context_engine_get_skill` for full bodies, so this is a lower-bound on what they actually consume.
+- **Search realism**: simulates a host calling `context_engine_search` _once_ per task and pulling N chunks. Real host apps may call it multiple times or fall back to `context_engine_get_skill` for full bodies, so this is a lower-bound on what they actually consume.
 - **Smart-compile token budget**: defaults to 16k. Run with `--max-tokens 4000` to see how aggressive selection becomes for small-context models, or `--max-tokens 64000` to see what large-context users get.
 - **Cross-check**: the summary prints CE's own estimator's ratio vs tiktoken's count. If those diverge a lot, CE's internal budget UI is over- or under-stating.
 

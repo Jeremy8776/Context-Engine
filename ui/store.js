@@ -242,12 +242,22 @@ const SS = {
     const data = await apiFetch('/states');
     if (data) {
       const states = data.states || data;
+      // Backfill any skills the server knows about but are missing from
+      // the saved states — they default to active so they stay visible.
+      for (const skill of SKILL_DATA) {
+        if (!(skill.id in states)) states[skill.id] = true;
+      }
       this._cache = states;
       localStorage.setItem('ce_ss', JSON.stringify(states));
     }
   },
   /** @param {Record<string, boolean>} states */
   applyServerStates(states) {
+    // Backfill any skills the UI knows about that are missing from server
+    // states so they remain visible and default to active.
+    for (const skill of SKILL_DATA) {
+      if (!(skill.id in states)) states[skill.id] = true;
+    }
     this._cache = states;
     localStorage.setItem('ce_ss', JSON.stringify(states));
   },
@@ -502,15 +512,27 @@ const DS = {
   },
   /** @param {string} id */
   async importSkillSource(id) {
-    return await apiFetch(`/skill-sources/${encodeURIComponent(id)}/import`, 'POST', {}, { returnErrors: true });
+    return await apiFetch(
+      `/skill-sources/${encodeURIComponent(id)}/import`,
+      'POST',
+      {},
+      { returnErrors: true },
+    );
   },
   /** @param {string} id */
   async syncSkillSource(id) {
-    return await apiFetch(`/skill-sources/${encodeURIComponent(id)}/sync`, 'GET', null, { returnErrors: true });
+    return await apiFetch(`/skill-sources/${encodeURIComponent(id)}/sync`, 'GET', null, {
+      returnErrors: true,
+    });
   },
   /** @param {string} id @param {'append' | 'overwrite'} mode */
   async applySkillSourceSync(id, mode) {
-    return await apiFetch(`/skill-sources/${encodeURIComponent(id)}/sync/apply`, 'POST', { mode }, { returnErrors: true });
+    return await apiFetch(
+      `/skill-sources/${encodeURIComponent(id)}/sync/apply`,
+      'POST',
+      { mode },
+      { returnErrors: true },
+    );
   },
   async getCompileTargets() {
     return await apiFetch('/compile/targets');
@@ -544,6 +566,21 @@ const DS = {
   /** @param {string[]} targets @param {string | null} workspacePath */
   async compileWorkspaces(targets, workspacePath) {
     return await apiFetch('/workspaces/compile', 'POST', { targets, workspacePath });
+  },
+  async getProjects() {
+    return await apiFetch('/projects');
+  },
+  /** @param {string} name @param {string} projectPath */
+  async createProject(name, projectPath) {
+    return await apiFetch('/projects', 'POST', { name, path: projectPath || '' });
+  },
+  /** @param {string} slug @param {Record<string, unknown>} patch */
+  async updateProject(slug, patch) {
+    return await apiFetch(`/projects/${encodeURIComponent(slug)}`, 'PATCH', patch);
+  },
+  /** @param {string} slug */
+  async deleteProject(slug) {
+    return await apiFetch(`/projects/${encodeURIComponent(slug)}`, 'DELETE');
   },
 };
 

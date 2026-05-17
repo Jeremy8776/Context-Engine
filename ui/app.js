@@ -102,6 +102,7 @@ async function boot() {
   SkillsTab.init();
   MemoryTab.init();
   if (typeof HandoffsTab !== 'undefined') await HandoffsTab.init();
+  if (typeof ProjectsTab !== 'undefined') await ProjectsTab.init();
   ConfigTab.init();
   await ModesTab.init();
   if (typeof CompileTab !== 'undefined') await CompileTab.init();

@@ -87,6 +87,20 @@
                   <path d="M9.5 20v-6h5v6" /></svg></span
               ><span class="nav-text">Context</span>
             </button>
+            <button
+              class="tab-btn"
+              data-label="Projects"
+              title="Projects"
+              onclick="switchTab('projects', this)"
+            >
+              <span class="nav-icon"
+                ><svg viewBox="0 0 24 24">
+                  <path d="M3 7h7v4H3z" />
+                  <path d="M3 13h7v4H3z" />
+                  <path d="M14 7h7v4h-7z" />
+                  <path d="M14 13h7v4h-7z" /></svg></span
+              ><span class="nav-text">Projects</span>
+            </button>
             <button class="tab-btn" data-label="Skills" title="Skills" onclick="switchTab('skills', this)">
               <span class="nav-icon"
                 ><svg viewBox="0 0 24 24">
@@ -661,6 +675,35 @@
           </div>
         </div>
         <div id="compile-tab" class="tab-panel"></div>
+        <div id="projects-tab" class="tab-panel">
+          <div class="simple-page">
+            <div class="simple-inner wide">
+              <div class="section-hdr">
+                <h2>Projects</h2>
+                <p>
+                  Scope memory, rules, and handoffs per project. Each project gets its own data directory.
+                </p>
+              </div>
+              <div class="handoffs-toolbar">
+                <div class="handoffs-search">
+                  <input
+                    class="search"
+                    id="projects-search-input"
+                    type="search"
+                    placeholder="Search projects"
+                  />
+                </div>
+                <div class="handoffs-toolbar-actions">
+                  <button class="save-btn" onclick="ProjectsTab.openAddModal()" title="Add project">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                    <span>Add</span>
+                  </button>
+                </div>
+              </div>
+              <div id="projects-list" class="handoffs-list"></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="modal-overlay" id="handoff-modal-overlay" onclick="HandoffsTab.closeAddModal(event)">
@@ -676,11 +719,17 @@
             ><span>Title</span><input class="add-input" id="handoff-modal-title"
           /></label>
           <label class="modal-field"
-            ><span>Thread tag</span><input class="add-input" id="handoff-modal-thread"
+            ><span>Tags</span><input class="add-input" id="handoff-modal-thread"
           /></label>
           <label class="modal-field"
-            ><span>Repo path</span><input class="add-input" id="handoff-modal-repo"
-          /></label>
+            ><span>Repo path</span>
+            <div class="local-folder-row">
+              <input class="add-input" id="handoff-modal-repo" />
+              <button class="fb local-browse-btn" type="button" onclick="HandoffsTab.browseRepoPath()">
+                Browse&hellip;
+              </button>
+            </div>
+          </label>
           <label class="modal-field handoff-modal-body-field"
             ><span>Body</span
             ><textarea
@@ -694,6 +743,34 @@
         <div class="memory-modal-actions">
           <button class="fb" onclick="HandoffsTab.closeAddModal()">Cancel</button>
           <button class="save-btn" onclick="HandoffsTab.createFromModal()">Create</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-overlay" id="project-modal-overlay" onclick="ProjectsTab.closeAddModal(event)">
+      <div class="memory-modal" onclick="event.stopPropagation()">
+        <div class="memory-modal-head">
+          <h3>New Project</h3>
+          <button class="icon-btn" onclick="ProjectsTab.closeAddModal()" title="Close" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          </button>
+        </div>
+        <div class="memory-modal-body handoff-modal-grid">
+          <label class="modal-field"
+            ><span>Name</span><input class="add-input" id="project-modal-name" placeholder="My Project"
+          /></label>
+          <label class="modal-field"
+            ><span>Folder</span>
+            <div class="local-folder-row">
+              <input class="add-input" id="project-modal-path" placeholder="C:\dev\my-project" />
+              <button class="fb local-browse-btn" type="button" onclick="ProjectsTab.browsePath()">
+                Browse&hellip;
+              </button>
+            </div>
+          </label>
+        </div>
+        <div class="memory-modal-actions">
+          <button class="fb" onclick="ProjectsTab.closeAddModal()">Cancel</button>
+          <button class="save-btn" onclick="ProjectsTab.createFromModal()">Create</button>
         </div>
       </div>
     </div>
@@ -720,6 +797,7 @@
     <script src="skills-maintenance.js"></script>
     <script src="memory.js"></script>
     <script src="handoffs.js"></script>
+    <script src="projects.js"></script>
     <script src="config.js"></script>
     <script src="rules-lab.js"></script>
     <script src="dashboard.js"></script>

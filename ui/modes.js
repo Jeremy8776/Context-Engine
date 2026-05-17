@@ -508,7 +508,7 @@ const ModesTab = (() => {
     const skills = mode.skills || [];
     const ok = await AppDialog.confirm({
       title: `Apply ${mode.label}`,
-      message: `This will turn on ${skills.length} skills for this preset and disable the rest. You can adjust manually afterwards.`,
+      message: `This will activate ${skills.length} skill(s) for this preset. Other skills keep their current state. You can adjust manually afterwards.`,
       confirmText: 'Apply mode',
     });
     if (!ok) return;

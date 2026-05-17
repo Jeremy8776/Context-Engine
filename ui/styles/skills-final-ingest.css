@@ -4,6 +4,31 @@
   width: min(680px, 100%);
 }
 
+.modal-divider {
+  height: 1px;
+  margin: var(--s-5) 0;
+  background: var(--soft-line);
+}
+
+.local-folder-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.local-folder-row .add-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.local-folder-row .fb {
+  white-space: nowrap;
+}
+
+.local-browse-btn[hidden] {
+  display: none;
+}
+
 .repo-preset-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

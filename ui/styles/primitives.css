@@ -66,9 +66,9 @@
   font-family: var(--mono);
   font-size: var(--fs-02);
   font-weight: 500;
-  color: var(--text-2);
-  background: transparent;
-  border: 1px solid var(--line);
+  color: var(--accent-hi);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-line);
   border-radius: var(--r-1);
   letter-spacing: var(--tr-wide);
   text-transform: uppercase;
@@ -79,8 +79,8 @@
 }
 .fb:hover {
   color: var(--text);
-  background: var(--bg-hover);
-  border-color: var(--line-2);
+  background: var(--accent-bg);
+  border-color: var(--accent);
 }
 .fb.on,
 .fb.active {

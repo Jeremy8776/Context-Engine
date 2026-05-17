@@ -329,9 +329,6 @@ function createHandoff(input) {
 
   const repo = input?.repo ? String(input.repo).trim() : '';
   const tag = input?.thread_tag ? String(input.thread_tag).trim() : '';
-  if (!repo && !tag) {
-    return { ok: false, error: 'At least one of repo or thread_tag is required' };
-  }
 
   /** @type {'project' | 'thread' | 'dual'} */
   const type = repo && tag ? 'dual' : repo ? 'project' : 'thread';

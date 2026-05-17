@@ -95,3 +95,79 @@ assert(
 );
 
 console.log(`chunker smoke ok: ${chunks.length + complexChunks.length} chunks`);
+
+// ---- Edge cases ----
+
+// GIVEN empty content
+// WHEN chunked
+const emptyChunks = chunkSkillContent({ skillId: 'empty', sourcePath: 'empty/SKILL.md', content: '' });
+assert.deepStrictEqual(emptyChunks, [], 'empty content produces zero chunks');
+
+// GIVEN content with no frontmatter
+const noFrontmatterChunks = chunkSkillContent({
+  skillId: 'no-fm',
+  sourcePath: 'no-fm/SKILL.md',
+  content: '# No Frontmatter\n\nJust a plain skill with no YAML block.\n',
+});
+assert(
+  !noFrontmatterChunks.some((c) => c.section === 'Skill Manifest'),
+  'no manifest chunk when frontmatter absent',
+);
+assert(
+  noFrontmatterChunks.some((c) => c.section === 'No Frontmatter'),
+  'heading section is still produced',
+);
+
+// GIVEN empty frontmatter (---\n---)
+const emptyFmChunks = chunkSkillContent({
+  skillId: 'empty-fm',
+  sourcePath: 'empty-fm/SKILL.md',
+  content: '---\n---\n\n# Hello\n\nBody text.\n',
+});
+assert(
+  !emptyFmChunks.some((c) => c.section === 'Skill Manifest'),
+  'empty frontmatter produces no manifest chunk',
+);
+
+// GIVEN CRLF line endings
+const crlfChunks = chunkSkillContent({
+  skillId: 'crlf',
+  sourcePath: 'crlf/SKILL.md',
+  content:
+    '---\r\nname: CRLF Skill\r\ndescription: Windows line endings.\r\n---\r\n\r\n# CRLF Section\r\n\r\nAlways use CRLF.\r\n',
+});
+assert(
+  crlfChunks.some((c) => c.section === 'CRLF Section'),
+  'CRLF content is parsed correctly',
+);
+assert(
+  crlfChunks.some((c) => c.type === 'rule'),
+  'CRLF content with "Always" is classified as rule',
+);
+
+// GIVEN oversized content (> 2200 chars)
+const longParagraph = 'A'.repeat(3000);
+const oversizedChunks = chunkSkillContent({
+  skillId: 'oversize',
+  sourcePath: 'oversize/SKILL.md',
+  content: `# Big Section\n\n${longParagraph}\n\n## Next\n\nSmall content.\n`,
+});
+assert(
+  oversizedChunks.some((c) => c.section === 'Big Section'),
+  'oversized section is still chunked',
+);
+assert(
+  oversizedChunks.some((c) => c.section === 'Next'),
+  'section after oversized is preserved',
+);
+
+// GIVEN content with multiple code blocks in one section
+const multiCodeChunks = chunkSkillContent({
+  skillId: 'multi-code',
+  sourcePath: 'multi-code/SKILL.md',
+  content: `# Examples\n\n\`\`\`js\nconsole.log('first');\n\`\`\`\n\n\`\`\`python\nprint('second')\n\`\`\`\n`,
+});
+const exampleChunks = multiCodeChunks.filter((c) => c.type === 'example');
+assert.ok(exampleChunks.length >= 2, 'multiple code blocks produce multiple example chunks');
+
+console.log('chunker smoke ok');

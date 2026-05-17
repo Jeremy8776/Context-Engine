@@ -122,7 +122,6 @@ async function migrateLegacyHandoff(input) {
     const result = createHandoff({
       title: entry.title,
       repo,
-      thread_tag: entry.slug,
       body: entry.body,
     });
     if (!result.ok) {

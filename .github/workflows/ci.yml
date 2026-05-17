@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [master, main]
+  push:
+    branches: [master, main]
+
+jobs:
+  lint-and-typecheck:
+    name: Lint & Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npm run check
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - name: Pure unit tests
+        run: |
+          npm run test:chunker
+          npm run test:vectorstore
+          npm run test:dedup
+          npm run test:smart-compile
+          npm run test:skill-sources
+          npm run test:mcp-hosts
+          npm run test:modes
+          npm run test:crypto
+          npm run test:security
+          npm run test:validation
+          npm run test:backup
+          npm run test:ranking
+          npm run test:mutex
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - name: Server + HTTP tests
+        run: |
+          npm run smoke
+          npm run test:handoffs
+          npm run test:projects

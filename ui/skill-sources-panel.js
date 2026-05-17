@@ -125,7 +125,8 @@ const SkillSourcesPanel = (() => {
     const inFlight = ops.get(sourceId);
     const localEdits = diff.localEdits || [];
     const conflicts = diff.conflicts || [];
-    const total = diff.added.length + diff.removed.length + diff.modified.length + localEdits.length + conflicts.length;
+    const total =
+      diff.added.length + diff.removed.length + diff.modified.length + localEdits.length + conflicts.length;
     if (total === 0) {
       return `<div class="onboarding-diff-panel">
         <span class="onboarding-card-desc">No changes detected. The imported tree matches the source.</span>

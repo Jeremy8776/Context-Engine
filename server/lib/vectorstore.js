@@ -23,11 +23,15 @@ function markIndexStale(reason) {
     }
     fs.writeFileSync(
       INDEX_STALE_FILE,
-      JSON.stringify({
-        stale: true,
-        reason: reason || 'Skill set changed',
-        since: new Date().toISOString(),
-      }, null, 2),
+      JSON.stringify(
+        {
+          stale: true,
+          reason: reason || 'Skill set changed',
+          since: new Date().toISOString(),
+        },
+        null,
+        2,
+      ),
       'utf8',
     );
   } catch {
