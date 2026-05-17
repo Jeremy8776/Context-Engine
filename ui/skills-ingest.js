@@ -113,6 +113,7 @@ const SkillsIngest = (() => {
     }
     const localPath = document.getElementById('link-local-path');
     if (localPath) localPath.value = '';
+    SkillsIngest._localPath = '';
     const localMsg = document.getElementById('link-local-message');
     if (localMsg) localMsg.textContent = '';
     const browseBtn = overlay.querySelector('.local-browse-btn');

@@ -86,15 +86,19 @@ function deleteProject(slug) {
   if (!Array.isArray(reg.projects)) return { ok: false, error: 'No projects' };
   const idx = reg.projects.findIndex((p) => p.slug === slug);
   if (idx === -1) return { ok: false, error: 'Project not found' };
+
+  const projectDir = path.join(PROJECTS_DIR, slug);
+  let dirError = null;
+  try {
+    fs.rmSync(projectDir, { recursive: true, force: true });
+  } catch (e) {
+    dirError = e instanceof Error ? e.message : String(e);
+  }
+
   reg.projects.splice(idx, 1);
   writeRegistry(reg);
 
-  const projectDir = path.join(PROJECTS_DIR, slug);
-  try {
-    fs.rmSync(projectDir, { recursive: true, force: true });
-  } catch {
-    // directory may already be gone
-  }
+  if (dirError) return { ok: true, warning: `Directory removal failed: ${dirError}` };
   return { ok: true };
 }
 

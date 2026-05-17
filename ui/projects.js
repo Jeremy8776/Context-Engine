@@ -95,7 +95,12 @@ const ProjectsTab = (() => {
   }
 
   async function removeProject(slug) {
-    if (!AppDialog.confirm(`Delete project "${slug}" and all its data?`)) return;
+    const ok = await AppDialog.confirm({
+      message: `Delete project "${slug}" and all its data?`,
+      confirmText: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
     const result = await DS.deleteProject(slug);
     if (result?.ok) {
       projects = projects.filter((p) => p.slug !== slug);

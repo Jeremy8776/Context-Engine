@@ -249,6 +249,35 @@ fs.rmSync(path.join(projects.PROJECTS_DIR, slugAlreadyGone), { recursive: true, 
 const dAlreadyGone = projects.deleteProject(slugAlreadyGone);
 check(dAlreadyGone.ok === true, 'deleteProject succeeds even when directory already removed');
 
+// WHEN we delete a project whose directory cannot be removed (locked/permission)
+const rLocked = projects.createProject({ name: 'Locked Project' });
+const slugLocked = /** @type {{ slug: string }} */ (rLocked.project).slug;
+const lockedDir = path.join(projects.PROJECTS_DIR, slugLocked);
+if (process.platform !== 'win32') {
+  fs.chmodSync(lockedDir, 0o444);
+}
+const dLocked = projects.deleteProject(slugLocked);
+check(dLocked.ok === true, 'deleteProject still removes project from registry on dir failure');
+if (process.platform !== 'win32') {
+  check(typeof dLocked.warning === 'string', 'deleteProject returns warning when directory removal fails');
+  try {
+    fs.chmodSync(lockedDir, 0o755);
+    fs.rmSync(lockedDir, { recursive: true, force: true });
+  } catch {
+    // best effort cleanup
+  }
+}
+
+// WHEN we delete a valid project, directory is removed before registry update
+const rOrder = projects.createProject({ name: 'Order Test' });
+const slugOrder = /** @type {{ slug: string }} */ (rOrder.project).slug;
+const orderDir = path.join(projects.PROJECTS_DIR, slugOrder);
+check(fs.existsSync(orderDir), 'project directory exists before delete');
+const dOrder = projects.deleteProject(slugOrder);
+check(dOrder.ok === true, 'deleteProject succeeds for order test');
+check(!fs.existsSync(orderDir), 'project directory removed on delete');
+check(!dOrder.warning, 'no warning when directory removal succeeds');
+
 // ===================================================================
 // SECTION 2: HTTP-level integration tests
 // ===================================================================
