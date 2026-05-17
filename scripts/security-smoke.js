@@ -81,16 +81,19 @@ assert.strictEqual(
   'null path is rejected',
 );
 
-// GIVEN Windows system directories
-const sysResult = checkSafeWritePath('C:\\Windows\\System32\\drivers');
-assert.ok(sysResult !== null, 'Windows system dir is blocked');
-assert.ok(
-  sysResult && sysResult.includes('Refusing to write into protected location'),
-  'error mentions protected location',
-);
+// GIVEN Windows system directories (only meaningful on win32 where path.resolve
+// produces an absolute Windows path that matches DEFAULT_DENY_ABSOLUTE entries)
+if (process.platform === 'win32') {
+  const sysResult = checkSafeWritePath('C:\\Windows\\System32\\drivers');
+  assert.ok(sysResult !== null, 'Windows system dir is blocked');
+  assert.ok(
+    sysResult && sysResult.includes('Refusing to write into protected location'),
+    'error mentions protected location',
+  );
 
-const pfResult = checkSafeWritePath('C:\\Program Files\\MyApp');
-assert.ok(pfResult !== null, 'Program Files is blocked');
+  const pfResult = checkSafeWritePath('C:\\Program Files\\MyApp');
+  assert.ok(pfResult !== null, 'Program Files is blocked');
+}
 
 // GIVEN SSH directory
 const homeSsh = path.join(require('os').homedir(), '.ssh');
@@ -114,7 +117,7 @@ assert.strictEqual(
 
 // GIVEN a UNC path
 assert.strictEqual(
-  checkSafeWritePath('\\\\server\\share\\path'),
+  checkSafeWritePath(process.platform === 'win32' ? '\\\\server\\share\\path' : '//server/share/path'),
   'Refusing to use UNC / network-share paths',
   'UNC path is blocked',
 );
