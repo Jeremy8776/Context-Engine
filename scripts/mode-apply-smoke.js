@@ -12,8 +12,14 @@ const skillsDir = path.join(testRoot, 'skills');
 fs.mkdirSync(dataDir, { recursive: true });
 fs.mkdirSync(path.join(skillsDir, 'skill-a'), { recursive: true });
 fs.mkdirSync(path.join(skillsDir, 'skill-b'), { recursive: true });
-fs.writeFileSync(path.join(skillsDir, 'skill-a', 'SKILL.md'), '---\nname: skill-a\ndescription: Skill A\n---\n# A');
-fs.writeFileSync(path.join(skillsDir, 'skill-b', 'SKILL.md'), '---\nname: skill-b\ndescription: Skill B\n---\n# B');
+fs.writeFileSync(
+  path.join(skillsDir, 'skill-a', 'SKILL.md'),
+  '---\nname: skill-a\ndescription: Skill A\n---\n# A',
+);
+fs.writeFileSync(
+  path.join(skillsDir, 'skill-b', 'SKILL.md'),
+  '---\nname: skill-b\ndescription: Skill B\n---\n# B',
+);
 fs.writeFileSync(path.join(dataDir, 'rules.json'), JSON.stringify({ coding: '', general: '', soul: '' }));
 
 // Override CE_ROOT before requiring modules
@@ -77,7 +83,10 @@ console.log('States after only-a mode:', JSON.stringify(onlyAStates));
 // THEN: skill-a should be active, skill-b should keep its previous state (not be force-disabled)
 assert(onlyAStates['skill-a'] === true, 'skill-a should be active in only-a mode');
 // skill-b was true from the "all" mode apply above — it should remain true
-assert(onlyAStates['skill-b'] !== false, 'skill-b should NOT be force-disabled by a mode that only lists skill-a');
+assert(
+  onlyAStates['skill-b'] !== false,
+  'skill-b should NOT be force-disabled by a mode that only lists skill-a',
+);
 
 // GIVEN: fresh skills with an explicitly disabled skill
 invalidateSkillCache();
@@ -96,7 +105,9 @@ writeData('skill-states.json', {
 invalidateSkillCache();
 const afterToggleResult = applyMode('only-a');
 assert(afterToggleResult, 'after-toggle only-a mode should return a result');
-const afterToggleStates = /** @type {Record<string, boolean>} */ (afterToggleResult.states || afterToggleResult);
+const afterToggleStates = /** @type {Record<string, boolean>} */ (
+  afterToggleResult.states || afterToggleResult
+);
 console.log('States after only-a with skill-b previously off:', JSON.stringify(afterToggleStates));
 
 // THEN: skill-a should be active, skill-b should stay off (its last explicit state)

@@ -301,7 +301,10 @@ const MemoryTab = (() => {
     const selectedValue = explicit && explicit !== 'general' ? explicit : 'auto';
     const options = ['auto', ...Object.keys(categoryLabels)]
       .map((key) => {
-        const label = key === 'auto' ? `Auto (${categoryLabels[item.category] || item.category})` : categoryLabels[key] || key;
+        const label =
+          key === 'auto'
+            ? `Auto (${categoryLabels[item.category] || item.category})`
+            : categoryLabels[key] || key;
         const sel = key === selectedValue ? ' selected' : '';
         return `<option value="${esc(key)}"${sel}>${esc(label)}</option>`;
       })
@@ -381,7 +384,11 @@ const MemoryTab = (() => {
     }
     // "auto" means "defer to inferCategory" — represented on disk as no
     // category field (or an empty string). Any other selection sticks.
-    const chosen = catSel ? String(catSel.value || '').trim().toLowerCase() : 'auto';
+    const chosen = catSel
+      ? String(catSel.value || '')
+          .trim()
+          .toLowerCase()
+      : 'auto';
     const explicit = chosen && chosen !== 'auto' ? chosen : '';
     if (typeof entries[i] === 'string') {
       entries[i] = explicit ? { content: text, category: explicit } : text;

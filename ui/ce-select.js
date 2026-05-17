@@ -207,8 +207,7 @@
       for (const m of mutations) {
         m.addedNodes.forEach((node) => {
           if (node instanceof HTMLElement) {
-            if (node.matches?.('select.add-input') && node instanceof HTMLSelectElement)
-              enhance(node);
+            if (node.matches?.('select.add-input') && node instanceof HTMLSelectElement) enhance(node);
             enhanceAll(node);
           }
         });

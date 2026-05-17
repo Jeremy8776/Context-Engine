@@ -54,8 +54,14 @@ void (async () => {
 
   // ---- listSources ----
   const listed = sourcesMod.listSources();
-  assert(listed.some((s) => s.id === 'internal'), 'listSources should always include the internal source');
-  assert(listed.some((s) => s.id === sourceId), 'listSources should include the linked source');
+  assert(
+    listed.some((s) => s.id === 'internal'),
+    'listSources should always include the internal source',
+  );
+  assert(
+    listed.some((s) => s.id === sourceId),
+    'listSources should include the linked source',
+  );
 
   // ---- importSource ----
   const imported = await importMod.importSource(sourceId);
@@ -78,16 +84,15 @@ void (async () => {
 
   // Add a new file to source.
   fs.mkdirSync(path.join(fixture, 'gamma'));
-  fs.writeFileSync(
-    path.join(fixture, 'gamma', 'SKILL.md'),
-    '---\nname: gamma\n---\n# Gamma\n',
-    'utf8',
-  );
+  fs.writeFileSync(path.join(fixture, 'gamma', 'SKILL.md'), '---\nname: gamma\n---\n# Gamma\n', 'utf8');
   const addedDiff = importMod.computeSyncDiff(sourceId);
   assert(addedDiff.ok, 'addedDiff should succeed');
   assert.strictEqual(addedDiff.diff.added.length, 1, 'diff should detect the new gamma file');
   const firstAdded = addedDiff.diff.added[0];
-  assert(firstAdded && firstAdded.rel.includes('gamma/SKILL.md'), 'diff added entry should reference gamma path');
+  assert(
+    firstAdded && firstAdded.rel.includes('gamma/SKILL.md'),
+    'diff added entry should reference gamma path',
+  );
 
   // ---- applySyncDiff: append picks up added only ----
   const appended = await importMod.applySyncDiff(sourceId, 'append');

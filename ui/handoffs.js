@@ -151,10 +151,14 @@ const HandoffsTab = (() => {
   }
 
   async function save(slug) {
-    const title = /** @type {HTMLInputElement|null} */ (document.getElementById('handoff-edit-title'))?.value.trim();
+    const title = /** @type {HTMLInputElement|null} */ (
+      document.getElementById('handoff-edit-title')
+    )?.value.trim();
     if (!title) return Toast.error('Title is required');
     // Body is optional; pass through even when empty so users can clear it.
-    const body = /** @type {HTMLTextAreaElement|null} */ (document.getElementById('handoff-edit-body'))?.value ?? undefined;
+    const body =
+      /** @type {HTMLTextAreaElement|null} */ (document.getElementById('handoff-edit-body'))?.value ??
+      undefined;
     const patch = { title };
     if (body !== undefined) patch.body = body;
     const result = await apiFetch(`/handoffs/${encodeURIComponent(slug)}`, 'PATCH', patch);
@@ -360,10 +364,12 @@ const HandoffsTab = (() => {
   function openAddModal() {
     const overlay = document.getElementById('handoff-modal-overlay');
     if (!overlay) return;
-    ['handoff-modal-title', 'handoff-modal-thread', 'handoff-modal-repo', 'handoff-modal-body'].forEach((id) => {
-      const el = document.getElementById(id);
-      if (el) /** @type {HTMLInputElement|HTMLTextAreaElement} */ (el).value = '';
-    });
+    ['handoff-modal-title', 'handoff-modal-thread', 'handoff-modal-repo', 'handoff-modal-body'].forEach(
+      (id) => {
+        const el = document.getElementById(id);
+        if (el) /** @type {HTMLInputElement|HTMLTextAreaElement} */ (el).value = '';
+      },
+    );
     const browseBtn = overlay.querySelector('.local-browse-btn');
     if (browseBtn) browseBtn.hidden = !window.contextEngineDesktop?.selectFolder;
     overlay.classList.add('open');
@@ -391,10 +397,17 @@ const HandoffsTab = (() => {
   }
 
   async function createFromModal() {
-    const title = /** @type {HTMLInputElement|null} */ (document.getElementById('handoff-modal-title'))?.value.trim();
-    const thread_tag = /** @type {HTMLInputElement|null} */ (document.getElementById('handoff-modal-thread'))?.value.trim();
-    const repo = /** @type {HTMLInputElement|null} */ (document.getElementById('handoff-modal-repo'))?.value.trim();
-    const body = /** @type {HTMLTextAreaElement|null} */ (document.getElementById('handoff-modal-body'))?.value || '';
+    const title = /** @type {HTMLInputElement|null} */ (
+      document.getElementById('handoff-modal-title')
+    )?.value.trim();
+    const thread_tag = /** @type {HTMLInputElement|null} */ (
+      document.getElementById('handoff-modal-thread')
+    )?.value.trim();
+    const repo = /** @type {HTMLInputElement|null} */ (
+      document.getElementById('handoff-modal-repo')
+    )?.value.trim();
+    const body =
+      /** @type {HTMLTextAreaElement|null} */ (document.getElementById('handoff-modal-body'))?.value || '';
     if (!title) return Toast.error('Title is required');
     const result = await apiFetch('/handoffs', 'POST', { title, thread_tag, repo, body });
     if (!result?.ok) return;
@@ -424,7 +437,9 @@ const HandoffsTab = (() => {
    * @param {string} value
    */
   function projectTitle(value) {
-    const cleaned = String(value || '').replace(/\\/g, '/').replace(/\/+$/, '');
+    const cleaned = String(value || '')
+      .replace(/\\/g, '/')
+      .replace(/\/+$/, '');
     if (!cleaned) return '';
     const last = cleaned.split('/').filter(Boolean).pop();
     return last || cleaned;

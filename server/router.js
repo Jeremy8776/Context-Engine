@@ -444,7 +444,11 @@ async function handleRequest(req, res, url) {
     for (const id of Object.keys(SKILL_MAP)) {
       if (!(id in merged)) merged[id] = true;
     }
-    return json(res, { version: states.version || '1.0', last_updated: states.last_updated || '', states: merged });
+    return json(res, {
+      version: states.version || '1.0',
+      last_updated: states.last_updated || '',
+      states: merged,
+    });
   }
   if (p === '/api/states' && req.method === 'POST') {
     const data = await body(req);

@@ -345,7 +345,7 @@ ipcMain.on('window:close', () => {
 ipcMain.handle('dialog:select-folder', async (_event, options) => {
   const dialogOptions = {
     properties: ['openDirectory'],
-    title: (options && typeof options.title === 'string' ? options.title : 'Pick a folder'),
+    title: options && typeof options.title === 'string' ? options.title : 'Pick a folder',
   };
   const result = await dialog.showOpenDialog(mainWindow || undefined, dialogOptions);
   if (result.canceled || !result.filePaths?.length) return null;
