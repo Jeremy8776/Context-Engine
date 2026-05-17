@@ -47,6 +47,17 @@ const nonArrayResult = projects.listProjects();
 check(Array.isArray(nonArrayResult), 'listProjects returns array when projects key is not array');
 check(nonArrayResult.length === 0, 'listProjects returns empty array when projects key is not array');
 
+// GIVEN a registry that is valid JSON but not an object (e.g. an array)
+fs.writeFileSync(projects.PROJECTS_FILE, JSON.stringify([]), 'utf8');
+const arrayRegistryResult = projects.listProjects();
+check(Array.isArray(arrayRegistryResult), 'listProjects returns array when registry is valid JSON array');
+check(arrayRegistryResult.length === 0, 'listProjects returns empty array for array registry');
+
+// GIVEN a project created after registry normalization
+const rNorm = projects.createProject({ name: 'After Normalize' });
+check(rNorm.ok === true, 'createProject succeeds after registry normalization');
+check(projects.listProjects().length === 1, 'project is persisted after creating on normalized registry');
+
 // GIVEN a corrupted projects.json
 fs.writeFileSync(projects.PROJECTS_FILE, 'NOT JSON', 'utf8');
 const corruptResult = projects.listProjects();
@@ -228,6 +239,11 @@ const uMiss = projects.updateProject('no-such-slug', { name: 'X' });
 check(uMiss.ok === false, 'updateProject fails for non-existent slug');
 check(uMiss.error === 'Project not found', 'error message is "Project not found"');
 
+// WHEN we update with whitespace-only name
+const uBlank = projects.updateProject('my-app', { name: '   ' });
+check(uBlank.ok === false, 'updateProject rejects whitespace-only name');
+check(uBlank.error === 'name cannot be empty', 'error message is "name cannot be empty"');
+
 // ---- deleteProject ----
 
 const d1 = projects.deleteProject('has-path');
@@ -257,15 +273,19 @@ if (process.platform !== 'win32') {
   fs.chmodSync(lockedDir, 0o444);
 }
 const dLocked = projects.deleteProject(slugLocked);
-check(dLocked.ok === true, 'deleteProject still removes project from registry on dir failure');
 if (process.platform !== 'win32') {
-  check(typeof dLocked.warning === 'string', 'deleteProject returns warning when directory removal fails');
+  check(dLocked.ok === false, 'deleteProject fails when directory removal fails');
+  check(typeof dLocked.error === 'string', 'deleteProject returns error when directory removal fails');
+  // Registry entry should NOT be removed on failure
+  check(projects.getProject(slugLocked) !== null, 'project remains in registry when directory removal fails');
   try {
     fs.chmodSync(lockedDir, 0o755);
     fs.rmSync(lockedDir, { recursive: true, force: true });
   } catch {
     // best effort cleanup
   }
+} else {
+  check(dLocked.ok === true, 'deleteProject succeeds on Windows where chmod is not restrictive');
 }
 
 // WHEN we delete a valid project, directory is removed before registry update
@@ -276,7 +296,7 @@ check(fs.existsSync(orderDir), 'project directory exists before delete');
 const dOrder = projects.deleteProject(slugOrder);
 check(dOrder.ok === true, 'deleteProject succeeds for order test');
 check(!fs.existsSync(orderDir), 'project directory removed on delete');
-check(!dOrder.warning, 'no warning when directory removal succeeds');
+check(!dOrder.error, 'no error when directory removal succeeds');
 
 // ===================================================================
 // SECTION 2: HTTP-level integration tests
@@ -371,6 +391,14 @@ async function runHttpTests() {
     // DELETE /api/projects/:slug with non-existent slug
     const deleteMiss = await api('DELETE', '/api/projects/no-such');
     check(deleteMiss.status === 404, 'HTTP DELETE non-existent project returns 404');
+
+    // PATCH /api/projects/%E0%A4%A (malformed percent encoding)
+    const patchBad = await api('PATCH', '/api/projects/%E0%A4%A', { name: 'X' });
+    check(patchBad.status === 400, 'HTTP PATCH with malformed slug encoding returns 400');
+
+    // DELETE /api/projects/%E0%A4%A (malformed percent encoding)
+    const deleteBad = await api('DELETE', '/api/projects/%E0%A4%A');
+    check(deleteBad.status === 400, 'HTTP DELETE with malformed slug encoding returns 400');
   } finally {
     server.close();
   }

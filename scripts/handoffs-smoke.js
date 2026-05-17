@@ -255,6 +255,16 @@ const { parseLegacyHandoff, migrateLegacyHandoff } = require('../server/lib/hand
   assert.ok(collision.handoff.slug.startsWith('collision-test'), 'collision slug has prefix');
   assert.notStrictEqual(collision.handoff.slug, 'collision-test', 'collision slug has suffix');
 
+  // ---- createHandoff uses tag as slug seed when present ----
+
+  const tagSlug = createHandoff({
+    title: 'Title Different',
+    thread_tag: 'tag-based-slug',
+    body: 'Tag slug.',
+  });
+  assert.strictEqual(tagSlug.ok, true, 'createHandoff with thread_tag succeeds');
+  assert.strictEqual(tagSlug.handoff.slug, 'tag-based-slug', 'slug derives from thread_tag when present');
+
   // ---- createHandoff without title ----
 
   const noTitle = createHandoff({ title: '', body: 'No title.' });

@@ -14,11 +14,17 @@ function ensureDirs() {
 }
 
 function readRegistry() {
+  let data;
   try {
-    return JSON.parse(fs.readFileSync(PROJECTS_FILE, 'utf8'));
+    data = JSON.parse(fs.readFileSync(PROJECTS_FILE, 'utf8'));
   } catch {
     return { version: '1.0', projects: [] };
   }
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    return { version: '1.0', projects: [] };
+  }
+  if (!Array.isArray(data.projects)) data.projects = [];
+  return data;
 }
 
 function writeRegistry(data) {
@@ -55,7 +61,7 @@ function createProject(input) {
   if (!name) return { ok: false, error: 'name is required' };
 
   const reg = readRegistry();
-  const taken = new Set((reg.projects || []).map((p) => p.slug));
+  const taken = new Set(reg.projects.map((p) => p.slug));
   const slug = uniqueSlug(name, taken);
   const now = new Date().toISOString();
 
@@ -75,7 +81,6 @@ function createProject(input) {
     created: now,
     last_touched: now,
   };
-  if (!Array.isArray(reg.projects)) reg.projects = [];
   reg.projects.push(project);
   writeRegistry(reg);
   return { ok: true, project };
@@ -88,17 +93,17 @@ function deleteProject(slug) {
   if (idx === -1) return { ok: false, error: 'Project not found' };
 
   const projectDir = path.join(PROJECTS_DIR, slug);
-  let dirError = null;
-  try {
-    fs.rmSync(projectDir, { recursive: true, force: true });
-  } catch (e) {
-    dirError = e instanceof Error ? e.message : String(e);
+  if (fs.existsSync(projectDir)) {
+    try {
+      fs.rmSync(projectDir, { recursive: true, force: true });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { ok: false, error: `Failed to remove project directory: ${msg}` };
+    }
   }
 
   reg.projects.splice(idx, 1);
   writeRegistry(reg);
-
-  if (dirError) return { ok: true, warning: `Directory removal failed: ${dirError}` };
   return { ok: true };
 }
 
@@ -107,7 +112,11 @@ function updateProject(slug, patch) {
   if (!Array.isArray(reg.projects)) return { ok: false, error: 'No projects' };
   const project = reg.projects.find((p) => p.slug === slug);
   if (!project) return { ok: false, error: 'Project not found' };
-  if (patch?.name) project.name = String(patch.name).trim();
+  if (patch?.name !== undefined) {
+    const trimmed = String(patch.name).trim();
+    if (!trimmed) return { ok: false, error: 'name cannot be empty' };
+    project.name = trimmed;
+  }
   if (patch?.path !== undefined) project.path = String(patch.path).trim() || undefined;
   project.last_touched = new Date().toISOString();
   writeRegistry(reg);

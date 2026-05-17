@@ -347,7 +347,7 @@ function createHandoff(input) {
   }
 
   const taken = new Set([...readBodyDirSlugs(HANDOFFS_DIR), ...readBodyDirSlugs(ARCHIVE_DIR)]);
-  const slug = uniqueSlug(title, taken);
+  const slug = uniqueSlug(tag || title, taken);
   const now = new Date().toISOString();
   /** @type {HandoffFrontmatter} */
   const fm = {

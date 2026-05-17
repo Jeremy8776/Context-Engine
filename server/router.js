@@ -749,13 +749,23 @@ async function handleRequest(req, res, url) {
     return json(res, result, result.ok ? 200 : 400);
   }
   if (p.startsWith('/api/projects/') && req.method === 'PATCH') {
-    const slug = decodeURIComponent(p.slice('/api/projects/'.length));
+    let slug;
+    try {
+      slug = decodeURIComponent(p.slice('/api/projects/'.length));
+    } catch {
+      return json(res, { ok: false, error: 'Invalid path encoding' }, 400);
+    }
     const patch = await body(req);
     const result = updateProject(slug, patch);
     return json(res, result, result.ok ? 200 : 404);
   }
   if (p.startsWith('/api/projects/') && req.method === 'DELETE') {
-    const slug = decodeURIComponent(p.slice('/api/projects/'.length));
+    let slug;
+    try {
+      slug = decodeURIComponent(p.slice('/api/projects/'.length));
+    } catch {
+      return json(res, { ok: false, error: 'Invalid path encoding' }, 400);
+    }
     const result = deleteProject(slug);
     return json(res, result, result.ok ? 200 : 404);
   }
