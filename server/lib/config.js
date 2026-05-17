@@ -26,6 +26,8 @@ const MODES_FILE = path.join(DATA_DIR, 'modes.json');
 const KEYS_FILE = path.join(DATA_DIR, '.keys.enc');
 const SKILL_CACHE_FILE = path.join(DATA_DIR, 'skill-parse-cache.json');
 const DEDUP_FILE = path.join(DATA_DIR, 'dedup.json');
+const PROJECTS_FILE = path.join(DATA_DIR, 'projects.json');
+const PROJECTS_DIR = path.join(DATA_DIR, 'projects');
 
 const MIME = {
   '.html': 'text/html',
@@ -50,5 +52,7 @@ module.exports = {
   KEYS_FILE,
   SKILL_CACHE_FILE,
   DEDUP_FILE,
+  PROJECTS_FILE,
+  PROJECTS_DIR,
   MIME,
 };

@@ -59,6 +59,7 @@ const {
 } = require('./lib/skill-import');
 const { markIndexStale } = require('./lib/vectorstore');
 const { handleHandoffRequest, handoffRouteDocs } = require('./lib/handoff-routes');
+const { listProjects, getProject, createProject, deleteProject, updateProject } = require('./lib/projects');
 const { apiDocs } = require('./lib/api-docs');
 
 const ALLOWED_INGEST_HOSTS = new Set(['github.com', 'gitlab.com', 'codeberg.org', 'bitbucket.org']);
@@ -433,11 +434,31 @@ async function handleRequest(req, res, url) {
   }
 
   // ---- STATES ----
-  if (p === '/api/states' && req.method === 'GET') return json(res, readData('skill-states.json'));
+  if (p === '/api/states' && req.method === 'GET') {
+    const states = readData('skill-states.json') || {};
+    const stateMap = states.states || states;
+    // Ensure every discovered skill appears in the response so the UI
+    // never loses sight of a skill just because it's missing from the file.
+    const SKILL_MAP = scanSkills();
+    const merged = typeof stateMap === 'object' && !Array.isArray(stateMap) ? { ...stateMap } : {};
+    for (const id of Object.keys(SKILL_MAP)) {
+      if (!(id in merged)) merged[id] = true;
+    }
+    return json(res, { version: states.version || '1.0', last_updated: states.last_updated || '', states: merged });
+  }
   if (p === '/api/states' && req.method === 'POST') {
     const data = await body(req);
     const v = validateStates(data);
     if (!v.valid) return json(res, { ok: false, error: v.error }, 400);
+    // Merge in any discovered skills missing from the posted states so they
+    // default to active instead of vanishing from the UI.
+    const SKILL_MAP = scanSkills();
+    const incomingStates = data.states || data;
+    if (typeof incomingStates === 'object' && !Array.isArray(incomingStates)) {
+      for (const id of Object.keys(SKILL_MAP)) {
+        if (!(id in incomingStates)) incomingStates[id] = true;
+      }
+    }
     const backup = readData('skill-states.json');
     try {
       writeData('skill-states.json', data);
@@ -712,6 +733,27 @@ async function handleRequest(req, res, url) {
     fs.writeFileSync(WORKSPACES_FILE, JSON.stringify(data, null, 2), 'utf8');
     appendSession({ type: 'workspace_compile', count: Object.keys(results).length });
     return json(res, { ok: true, results, errors, workspaces: data.workspaces });
+  }
+
+  // ---- PROJECTS ----
+  if (p === '/api/projects' && req.method === 'GET') {
+    return json(res, { ok: true, projects: listProjects() });
+  }
+  if (p === '/api/projects' && req.method === 'POST') {
+    const input = await body(req);
+    const result = createProject(input);
+    return json(res, result, result.ok ? 200 : 400);
+  }
+  if (p.startsWith('/api/projects/') && req.method === 'PATCH') {
+    const slug = decodeURIComponent(p.slice('/api/projects/'.length));
+    const patch = await body(req);
+    const result = updateProject(slug, patch);
+    return json(res, result, result.ok ? 200 : 404);
+  }
+  if (p.startsWith('/api/projects/') && req.method === 'DELETE') {
+    const slug = decodeURIComponent(p.slice('/api/projects/'.length));
+    const result = deleteProject(slug);
+    return json(res, result, result.ok ? 200 : 404);
   }
 
   return null; // Not an API route

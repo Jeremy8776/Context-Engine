@@ -111,6 +111,12 @@ const SkillsIngest = (() => {
       progress.innerHTML = '';
       progress.style.display = 'none';
     }
+    const localPath = document.getElementById('link-local-path');
+    if (localPath) localPath.value = '';
+    const localMsg = document.getElementById('link-local-message');
+    if (localMsg) localMsg.textContent = '';
+    const browseBtn = overlay.querySelector('.local-browse-btn');
+    if (browseBtn) browseBtn.hidden = !window.contextEngineDesktop?.selectFolder;
     overlay.classList.add('open');
     setTimeout(() => input.focus(), 0);
   }
@@ -120,10 +126,63 @@ const SkillsIngest = (() => {
     document.getElementById('skills-connect-overlay')?.classList.remove('open');
   }
 
+  /** @param {string} value */
+  function setLocalPath(value) {
+    SkillsIngest._localPath = value;
+  }
+
+  async function linkLocalFolder() {
+    const trimmed = (SkillsIngest._localPath || '').trim();
+    if (!trimmed) return;
+    const msgEl = document.getElementById('link-local-message');
+    const result = await DS.addSkillSource({ path: trimmed });
+    if (result?.ok) {
+      if (msgEl) msgEl.textContent = '';
+      if (typeof Toast !== 'undefined') Toast.success(`Linked ${result.source?.label || trimmed}`);
+      SkillsIngest._localPath = '';
+      const localPath = document.getElementById('link-local-path');
+      if (localPath) localPath.value = '';
+      await loadSkillData();
+      if (typeof SkillsTab !== 'undefined') {
+        SkillsTab.render();
+        SkillsTab.renderStats?.();
+      }
+      if (typeof SkillSourcesPanel !== 'undefined') SkillSourcesPanel.refresh();
+    } else {
+      if (msgEl) msgEl.textContent = result?.error || 'Could not link this folder.';
+    }
+  }
+
+  async function browseLocalFolder() {
+    const picker = window.contextEngineDesktop?.selectFolder;
+    if (!picker) {
+      if (typeof Toast !== 'undefined') Toast.error('Folder picker not available in this environment');
+      return;
+    }
+    try {
+      const picked = await picker({ title: 'Pick a folder of SKILL.md files to link' });
+      if (picked) {
+        const localPath = document.getElementById('link-local-path');
+        if (localPath) {
+          localPath.value = picked;
+          SkillsIngest._localPath = picked;
+        }
+        await linkLocalFolder();
+      }
+    } catch (err) {
+      console.error('skills-ingest: folder picker failed', err);
+      const msgEl = document.getElementById('link-local-message');
+      if (msgEl) msgEl.textContent = 'Could not open folder picker.';
+    }
+  }
+
   return {
     ingest,
     quickAdd,
     openConnectModal,
     closeConnectModal,
+    linkLocalFolder,
+    browseLocalFolder,
+    _setPath: setLocalPath,
   };
 })();

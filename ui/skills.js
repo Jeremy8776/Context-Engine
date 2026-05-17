@@ -567,6 +567,7 @@ const SkillsTab = (() => {
   return {
     init,
     render,
+    renderStats,
     handleToggle,
     setFilter,
     clearFilters,
@@ -587,5 +588,8 @@ const SkillsTab = (() => {
     organiseLibrary,
     openConnectModal,
     closeConnectModal,
+    linkLocalFolder: SkillsIngest.linkLocalFolder,
+    browseLocalFolder: SkillsIngest.browseLocalFolder,
+    _setLocalPath: SkillsIngest._setPath,
   };
 })();

@@ -23,9 +23,9 @@
 .cmd-k-hint {
   min-height: 36px;
   padding: 0 var(--s-3);
-  color: var(--text);
-  background: var(--bg);
-  border: 1px solid var(--line);
+  color: var(--accent-hi);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-line);
   border-radius: var(--r-1);
   box-shadow: none;
   font-family: var(--sans);
@@ -43,13 +43,10 @@
 .save-btn:hover,
 .add-btn:hover,
 .fb:hover,
-.mem-btn:hover,
-.view-btn:hover,
-.icon-btn:hover,
-.cmd-k-hint:hover {
+.mem-btn:hover {
   transform: none;
-  background: var(--bg-elevated);
-  border-color: var(--line-hi);
+  background: var(--accent-bg);
+  border-color: var(--accent);
   color: var(--text);
   box-shadow: none;
 }
@@ -59,6 +56,16 @@
   background: var(--accent-hi);
   border-color: var(--accent-hi);
   color: var(--text-on-accent);
+}
+
+.view-btn:hover,
+.icon-btn:hover,
+.cmd-k-hint:hover {
+  transform: none;
+  background: var(--accent-bg);
+  border-color: var(--accent);
+  color: var(--text);
+  box-shadow: none;
 }
 
 .fb.on,

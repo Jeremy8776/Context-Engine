@@ -329,9 +329,6 @@ function createHandoff(input) {
 
   const repo = input?.repo ? String(input.repo).trim() : '';
   const tag = input?.thread_tag ? String(input.thread_tag).trim() : '';
-  if (!repo && !tag) {
-    return { ok: false, error: 'At least one of repo or thread_tag is required' };
-  }
 
   /** @type {'project' | 'thread' | 'dual'} */
   const type = repo && tag ? 'dual' : repo ? 'project' : 'thread';
@@ -350,7 +347,7 @@ function createHandoff(input) {
   }
 
   const taken = new Set([...readBodyDirSlugs(HANDOFFS_DIR), ...readBodyDirSlugs(ARCHIVE_DIR)]);
-  const slug = uniqueSlug(tag || title, taken);
+  const slug = uniqueSlug(title, taken);
   const now = new Date().toISOString();
   /** @type {HandoffFrontmatter} */
   const fm = {

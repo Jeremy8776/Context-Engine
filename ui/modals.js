@@ -159,9 +159,19 @@
             <button onclick="SkillsTab.quickAdd('meta-llama/llama-cookbook')"><strong>Meta</strong><span>Llama workflow examples</span></button>
           </div>
           <div id="ingest-progress" class="ingest-progress"></div>
+          <div class="modal-divider"></div>
+          <label class="modal-field">
+            <span>Local folder</span>
+            <div class="local-folder-row">
+              <input class="add-input" id="link-local-path" type="text" placeholder="C:\\path\\to\\skills" oninput="SkillsTab._setLocalPath(this.value)" />
+              <button class="fb local-browse-btn" type="button" onclick="SkillsTab.browseLocalFolder()">Browse\u2026</button>
+            </div>
+          </label>
+          <div id="link-local-message" class="onboarding-source-message"></div>
         </div>
         <div class="memory-modal-actions">
           <button class="fb" onclick="SkillsTab.closeConnectModal()">Cancel</button>
+          <button class="fb" onclick="SkillsTab.linkLocalFolder()">Link folder</button>
           <button class="save-btn" id="btn-ingest" onclick="SkillsTab.ingest()">Import skills</button>
         </div>
       </section>
