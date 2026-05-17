@@ -209,6 +209,7 @@ check(
 );
 
 const beforeTouch = projects.getProject('my-app')?.last_touched;
+Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 15);
 const uTouch = projects.updateProject('my-app', { name: 'My Updated App' });
 check(uTouch.ok === true, 'updateProject succeeds with same name');
 check(
@@ -217,10 +218,11 @@ check(
 );
 
 // WHEN we update with empty patch (no name, no path)
+Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 15);
 const uEmpty = projects.updateProject('my-app', {});
 check(uEmpty.ok === true, 'updateProject succeeds with empty patch');
 const uEmptyLastTouched = /** @type {{ last_touched: string }} */ (uEmpty.project).last_touched;
-check(uEmptyLastTouched !== beforeTouch, 'last_touched changes even with empty patch');
+check(uEmptyLastTouched !== uTouch.project.last_touched, 'last_touched changes even with empty patch');
 
 const uMiss = projects.updateProject('no-such-slug', { name: 'X' });
 check(uMiss.ok === false, 'updateProject fails for non-existent slug');

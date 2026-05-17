@@ -115,12 +115,14 @@ assert.strictEqual(
   '.aws fragment in path is blocked',
 );
 
-// GIVEN a UNC path
-assert.strictEqual(
-  checkSafeWritePath(process.platform === 'win32' ? '\\\\server\\share\\path' : '//server/share/path'),
-  'Refusing to use UNC / network-share paths',
-  'UNC path is blocked',
-);
+// GIVEN a UNC path (Windows-specific — Linux collapses // to /)
+if (process.platform === 'win32') {
+  assert.strictEqual(
+    checkSafeWritePath('\\\\server\\share\\path'),
+    'Refusing to use UNC / network-share paths',
+    'UNC path is blocked',
+  );
+}
 
 // GIVEN a path that starts with protected but is different (e.g. ".sshconfig")
 const safeButSimilar = path.join(process.cwd(), 'sshconfig-project');
