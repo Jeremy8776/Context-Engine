@@ -191,7 +191,87 @@ const ConfigTab = (() => {
     });
     if (typeof RulesLab !== 'undefined') RulesLab.init();
     loadKeyStatus();
+    loadAuthStatus();
   }
 
-  return { init, save, reset, saveApiKey, removeApiKey, toggleKeyVisibility, updateRuleMetrics };
+  async function loadAuthStatus() {
+    try {
+      const res = await fetch('/api/auth/status');
+      const data = await res.json();
+      updateAuthUI(data.configured);
+    } catch {
+      updateAuthUI(false);
+    }
+  }
+
+  function updateAuthUI(configured) {
+    const statusEl = document.getElementById('ce-auth-status');
+    const warningEl = document.getElementById('ce-auth-warning');
+    const detailEl = document.getElementById('ce-auth-detail');
+    const genBtn = document.getElementById('ce-auth-generate-btn');
+    const removeBtn = document.getElementById('ce-auth-remove-btn');
+    if (statusEl)
+      statusEl.textContent = configured ? 'Auth active: local API key configured' : 'Auth not configured';
+    if (warningEl) warningEl.hidden = !configured;
+    if (detailEl) detailEl.hidden = configured;
+    if (genBtn) genBtn.hidden = configured;
+    if (removeBtn) removeBtn.hidden = !configured;
+  }
+
+  async function generateAuthToken() {
+    try {
+      const res = await fetch('/api/auth/generate', { method: 'POST' });
+      const data = await res.json();
+      if (data.ok && data.token) {
+        localStorage.setItem('ce_auth_token', data.token);
+        const detailEl = document.getElementById('ce-auth-detail');
+        const codeEl = document.getElementById('ce-auth-token-display');
+        if (detailEl) detailEl.hidden = false;
+        if (codeEl) codeEl.textContent = data.token;
+        updateAuthUI(true);
+        Toast.success('API access token generated');
+      } else {
+        Toast.error('Failed to generate token');
+      }
+    } catch {
+      Toast.error('Failed to generate token');
+    }
+  }
+
+  async function removeAuthToken() {
+    const ok = await AppDialog.confirm({
+      title: 'Remove API access token',
+      message: 'Any local process will be able to access the API without authentication.',
+      confirmText: 'Remove token',
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      const res = await fetch('/api/auth/remove', { method: 'POST' });
+      const data = await res.json();
+      if (data.ok) {
+        localStorage.removeItem('ce_auth_token');
+        const detailEl = document.getElementById('ce-auth-detail');
+        const codeEl = document.getElementById('ce-auth-token-display');
+        if (detailEl) detailEl.hidden = true;
+        if (codeEl) codeEl.textContent = '';
+        updateAuthUI(false);
+        Toast.success('API access token removed');
+      }
+    } catch {
+      Toast.error('Failed to remove token');
+    }
+  }
+
+  return {
+    init,
+    save,
+    reset,
+    saveApiKey,
+    removeApiKey,
+    toggleKeyVisibility,
+    updateRuleMetrics,
+    generateAuthToken,
+    removeAuthToken,
+  };
 })();

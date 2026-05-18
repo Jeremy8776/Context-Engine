@@ -668,6 +668,15 @@ const DS = {
       { returnErrors: true },
     );
   },
+  async getAuthStatus() {
+    return await apiFetch('/auth/status', 'GET', null, { returnErrors: true });
+  },
+  async generateAuthToken() {
+    return await apiFetch('/auth/generate', 'POST', null, { returnErrors: true });
+  },
+  async removeAuthToken() {
+    return await apiFetch('/auth/remove', 'POST', null, { returnErrors: true });
+  },
 };
 
 // ---- DEFAULT RULES (used for reset from data.js) ----

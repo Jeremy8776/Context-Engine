@@ -597,6 +597,32 @@
         </div>
         <div id="config-tab" class="tab-panel">
           <div class="simple-page"><div class="simple-inner wide" id="rules-root"></div></div>
+          <section class="ce-auth-section" style="padding: 0 24px 16px">
+            <p id="ce-auth-status">Checking auth...</p>
+            <div id="ce-auth-warning" hidden>
+              <small
+                >Any local process on this machine can access the Context Engine API without
+                authentication.</small
+              >
+            </div>
+            <div id="ce-auth-detail" hidden>
+              <p>API access token:</p>
+              <code id="ce-auth-token-display" style="word-break: break-all"></code>
+            </div>
+            <div style="margin-top: 8px; display: flex; gap: 8px">
+              <button
+                class="save-btn"
+                id="ce-auth-generate-btn"
+                hidden
+                onclick="ConfigTab.generateAuthToken()"
+              >
+                Generate Token
+              </button>
+              <button class="fb" id="ce-auth-remove-btn" hidden onclick="ConfigTab.removeAuthToken()">
+                Remove Token
+              </button>
+            </div>
+          </section>
         </div>
         <div id="handoffs-tab" class="tab-panel">
           <div class="simple-page">
