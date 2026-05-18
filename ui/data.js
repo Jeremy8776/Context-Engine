@@ -21,8 +21,13 @@ const DEFAULT_SOUL = `Helpful, concise, and logical.
 Objective and critical thinker.`;
 
 const DEFAULT_RULES = {
-  coding: `Modular code files.
-Comment the why, not the what.`,
-  general: `Memory is a core skill. Think independently.`,
-  soul: DEFAULT_SOUL,
+  coding: {
+    hard: '',
+    soft: 'Modular code files.\nComment the why, not the what.',
+  },
+  general: {
+    hard: '',
+    soft: 'Memory is a core skill. Think independently.',
+  },
+  soul: { soft: DEFAULT_SOUL },
 };

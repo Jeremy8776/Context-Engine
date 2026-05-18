@@ -6,9 +6,21 @@ const RulesLab = (() => {
   const STORE_KEY = 'ce_rules_lab';
   const sections = ['coding', 'general', 'soul'];
   const labels = { coding: 'Coding Rules', general: 'General Rules', soul: 'Soul' };
+
+  const PRIORITY_SECTIONS = {
+    coding: ['hard', 'soft'],
+    general: ['hard', 'soft'],
+    soul: ['soft'],
+  };
+
+  const PRIORITY_LABELS = {
+    hard: 'Hard rules',
+    soft: 'Soft rules',
+  };
+
   const defaultMeta = {
     enabled: { coding: true, general: true, soul: true },
-    priority: { coding: 'hard', general: 'hard', soul: 'preference' },
+    priority: { coding: 'hard', general: 'hard', soul: 'soft' },
     profiles: {},
     history: [],
     lastSaved: null,
@@ -40,9 +52,9 @@ const RulesLab = (() => {
         </div>
       </section>
       <div class="rules-grid">
-        ${ruleEditor('coding', 'Coding Rules', 7)}
-        ${ruleEditor('general', 'General Rules', 7)}
-        ${ruleEditor('soul', 'Soul', 8, true)}
+        ${ruleEditor('coding', 'Coding Rules')}
+        ${ruleEditor('general', 'General Rules')}
+        ${ruleEditor('soul', 'Soul')}
       </div>
       <section class="rules-workbench">
         <div class="rules-workbench-head">
@@ -106,22 +118,30 @@ const RulesLab = (() => {
         </section>
         </div>
       </section>
-      `;
+       `;
   }
 
-  function ruleEditor(key, label, rows, wide = false) {
+  function ruleEditor(key, label) {
+    const priorities = PRIORITY_SECTIONS[key];
+    const isWide = key === 'soul';
+    const sectionsHtml = priorities
+      .map(
+        (p) => `
+      <div class="rules-priority-section">
+        <label class="rules-priority-label">${PRIORITY_LABELS[p]}</label>
+        <textarea class="rules-textarea" id="rules-${key}-${p}" rows="${isWide ? 5 : 3}"></textarea>
+      </div>`,
+      )
+      .join('');
     return `
-      <section class="rules-block${wide ? ' rules-block-wide' : ''}">
+      <section class="rules-block${isWide ? ' rules-block-wide' : ''}">
         <div class="rules-block-hdr"><span>${label}</span><small id="rules-${key}-count">0 words</small></div>
         <div class="rules-block-controls">
           <label><input type="checkbox" class="styled-check" id="rules-${key}-enabled" checked onchange="RulesLab.refresh()"> Enabled</label>
-          <select class="add-input" id="rules-${key}-priority" onchange="RulesLab.refresh()">
-            <option value="hard">Hard rule</option>
-            <option value="preference">Preference</option>
-            <option value="style">Style guidance</option>
-          </select>
         </div>
-        <textarea class="rules-textarea" id="rules-${key}" rows="${rows}"></textarea>
+        <div class="rules-priority-group">
+          ${sectionsHtml}
+        </div>
       </section>`;
   }
 
@@ -163,18 +183,36 @@ const RulesLab = (() => {
     localStorage.setItem(STORE_KEY, JSON.stringify(meta));
   }
 
+  /** Read current values from all priority textareas into nested rules format */
   function draft() {
-    return {
-      coding: document.getElementById('rules-coding')?.value || '',
-      general: document.getElementById('rules-general')?.value || '',
-      soul: document.getElementById('rules-soul')?.value || '',
-    };
+    const rules = {};
+    for (const key of sections) {
+      const priorities = PRIORITY_SECTIONS[key];
+      rules[key] = {};
+      for (const p of priorities) {
+        const el = document.getElementById(`rules-${key}-${p}`);
+        rules[key][p] = el?.value || '';
+      }
+    }
+    return rules;
   }
 
+  /** Set values of all priority textareas from a rules object (flat or nested) */
   function setDraft(rules) {
     sections.forEach((key) => {
-      const input = document.getElementById(`rules-${key}`);
-      if (input) input.value = rules?.[key] || '';
+      const priorities = PRIORITY_SECTIONS[key];
+      const section = rules?.[key];
+      priorities.forEach((p) => {
+        const el = document.getElementById(`rules-${key}-${p}`);
+        if (!el) return;
+        if (typeof section === 'string') {
+          el.value = p === 'soft' ? section : '';
+        } else if (section && typeof section === 'object') {
+          el.value = section[p] || '';
+        } else {
+          el.value = '';
+        }
+      });
     });
     ConfigTab.updateRuleMetrics?.();
     refresh();
@@ -183,7 +221,6 @@ const RulesLab = (() => {
   function controlsToMeta() {
     sections.forEach((key) => {
       meta.enabled[key] = document.getElementById(`rules-${key}-enabled`)?.checked !== false;
-      meta.priority[key] = document.getElementById(`rules-${key}-priority`)?.value || meta.priority[key];
     });
     saveMeta();
   }
@@ -191,9 +228,7 @@ const RulesLab = (() => {
   function applyMetaToControls() {
     sections.forEach((key) => {
       const enabled = document.getElementById(`rules-${key}-enabled`);
-      const priority = document.getElementById(`rules-${key}-priority`);
       if (enabled) enabled.checked = meta.enabled[key] !== false;
-      if (priority) priority.value = meta.priority[key] || defaultMeta.priority[key];
     });
   }
 
@@ -218,7 +253,6 @@ const RulesLab = (() => {
       ts: new Date().toISOString(),
       rules,
       enabled: { ...meta.enabled },
-      priority: { ...meta.priority },
     };
     if (last && JSON.stringify(last.rules) === JSON.stringify(rules)) return;
     meta.history = [snapshot, ...meta.history].slice(0, 12);
@@ -227,29 +261,37 @@ const RulesLab = (() => {
   function ensureDefaultProfiles() {
     const defaults = {
       Default: {
-        rules: { ...DEFAULT_RULES },
+        rules: {
+          coding: { hard: '', soft: 'Modular code files.\nComment the why, not the what.' },
+          general: { hard: '', soft: 'Memory is a core skill. Think independently.' },
+          soul: { soft: 'Helpful, concise, and logical.\nObjective and critical thinker.' },
+        },
         enabled: { ...defaultMeta.enabled },
-        priority: { ...defaultMeta.priority },
       },
       'Strict Review': {
         rules: {
-          coding:
-            'Prioritise bugs, regressions, missing tests, unsafe assumptions, and architecture drift.\nKeep findings specific and line-referenced.',
-          general:
-            'Challenge weak reasoning. State uncertainty clearly. Do not overfit to the user request if the evidence points elsewhere.',
-          soul: 'Direct, concise, critical, and practical.',
+          coding: {
+            hard: 'Prioritise bugs, regressions, missing tests, unsafe assumptions, and architecture drift.\nKeep findings specific and line-referenced.',
+            soft: '',
+          },
+          general: {
+            hard: 'Challenge weak reasoning. State uncertainty clearly. Do not overfit to the user request if the evidence points elsewhere.',
+            soft: '',
+          },
+          soul: { soft: 'Direct, concise, critical, and practical.' },
         },
         enabled: { coding: true, general: true, soul: true },
-        priority: { coding: 'hard', general: 'hard', soul: 'style' },
       },
       Research: {
         rules: {
-          coding: DEFAULT_RULES.coding,
-          general: 'Verify time-sensitive facts. Prefer primary sources. Separate evidence from inference.',
-          soul: 'Careful, source-led, and explicit about uncertainty.',
+          coding: { hard: '', soft: 'Modular code files.\nComment the why, not the what.' },
+          general: {
+            hard: 'Verify time-sensitive facts. Prefer primary sources. Separate evidence from inference.',
+            soft: '',
+          },
+          soul: { soft: 'Careful, source-led, and explicit about uncertainty.' },
         },
         enabled: { coding: true, general: true, soul: true },
-        priority: { coding: 'preference', general: 'hard', soul: 'preference' },
       },
     };
     meta.profiles = { ...defaults, ...meta.profiles };
@@ -276,7 +318,6 @@ const RulesLab = (() => {
     meta.profiles[name] = {
       rules: draft(),
       enabled: { ...meta.enabled },
-      priority: { ...meta.priority },
     };
     saveMeta();
     if (input) input.value = '';
@@ -297,7 +338,6 @@ const RulesLab = (() => {
     });
     if (!ok) return;
     meta.enabled = { ...defaultMeta.enabled, ...(profile.enabled || {}) };
-    meta.priority = { ...defaultMeta.priority, ...(profile.priority || {}) };
     applyMetaToControls();
     setDraft(profile.rules);
     saveMeta();
@@ -325,7 +365,20 @@ const RulesLab = (() => {
     const rules = draft();
     return sections
       .filter((key) => meta.enabled[key] !== false)
-      .map((key) => ({ key, label: labels[key], priority: meta.priority[key], text: rules[key].trim() }));
+      .map((key) => ({
+        key,
+        label: labels[key],
+        text: flattenSectionText(rules[key], PRIORITY_SECTIONS[key]),
+      }));
+  }
+
+  function flattenSectionText(section, priorities) {
+    if (typeof section === 'string') return section;
+    if (!section || typeof section !== 'object') return '';
+    return priorities
+      .map((p) => (section[p] || '').trim())
+      .filter(Boolean)
+      .join('\n\n');
   }
 
   function renderPreview() {
@@ -334,17 +387,11 @@ const RulesLab = (() => {
     const target = document.getElementById('rules-preview-target')?.value || 'agents';
     const items = activeSections();
     if (target === 'cursor') {
-      host.textContent = items
-        .map((item) => `[${priorityLabel(item.priority)}] ${item.label}\n${item.text}`)
-        .join('\n\n');
+      host.textContent = items.map((item) => `${item.label}\n${item.text}`).join('\n\n');
       return;
     }
     const title = target === 'claude' ? '# Context Engine Rules' : '# Rules';
-    host.textContent = `${title}\n\n${items.map((item) => `## ${item.label}\nPriority: ${priorityLabel(item.priority)}\n${item.text}`).join('\n\n')}`;
-  }
-
-  function priorityLabel(value) {
-    return value === 'hard' ? 'Hard rule' : value === 'style' ? 'Style guidance' : 'Preference';
+    host.textContent = `${title}\n\n${items.map((item) => `## ${item.label}\n${item.text}`).join('\n\n')}`;
   }
 
   function issue(kind, title, body) {
@@ -374,7 +421,12 @@ const RulesLab = (() => {
   }
 
   function flattenRules(rules) {
-    return sections.flatMap((key) => [`## ${labels[key]}`, ...(rules[key] || '').split('\n')]);
+    return sections.flatMap((key) => {
+      const section = rules?.[key];
+      const priorities = PRIORITY_SECTIONS[key];
+      const text = flattenSectionText(section, priorities);
+      return [`## ${labels[key]}`, ...(text ? text.split('\n') : [])];
+    });
   }
 
   function simpleDiff(before, after) {
@@ -405,11 +457,21 @@ const RulesLab = (() => {
             (snap, index) => `
       <button class="rules-history-item" onclick="RulesLab.restoreHistory(${index})">
         <span>${esc(new Date(snap.ts).toLocaleString())}</span>
-        <small>${wordsOf(Object.values(snap.rules).join(' '))} words</small>
+        <small>${wordsOf(flattenRulesText(snap.rules))} words</small>
       </button>`,
           )
           .join('')
       : '<div class="rules-empty">Save changes to create snapshots.</div>';
+  }
+
+  function flattenRulesText(rules) {
+    return sections
+      .map((key) => {
+        const section = rules?.[key];
+        const priorities = PRIORITY_SECTIONS[key];
+        return flattenSectionText(section, priorities);
+      })
+      .join(' ');
   }
 
   async function restoreHistory(index) {
@@ -422,7 +484,6 @@ const RulesLab = (() => {
     });
     if (!ok) return;
     meta.enabled = { ...defaultMeta.enabled, ...(snap.enabled || {}) };
-    meta.priority = { ...defaultMeta.priority, ...(snap.priority || {}) };
     applyMetaToControls();
     setDraft(snap.rules);
   }
@@ -444,7 +505,7 @@ const RulesLab = (() => {
       .map((entry) => (typeof entry === 'string' ? entry : entry.content || ''))
       .join('\n')
       .toLowerCase();
-    const text = Object.values(draft()).join('\n').toLowerCase();
+    const text = flattenRulesText(draft()).toLowerCase();
     const notes = [];
     if (
       /no memory|ignore memory|do not use memory/.test(text) &&
@@ -501,5 +562,6 @@ const RulesLab = (() => {
     applyProfile,
     restoreHistory,
     switchPanel,
+    PRIORITY_SECTIONS,
   };
 })();

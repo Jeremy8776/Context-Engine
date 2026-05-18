@@ -3,27 +3,53 @@
 // config.js - Soul & Rules tab with keyboard save
 
 const ConfigTab = (() => {
-  const ruleFields = [
-    ['rules-coding', 'rules-coding-count'],
-    ['rules-general', 'rules-general-count'],
-    ['rules-soul', 'rules-soul-count'],
-  ];
+  // Priority sections per rule category (must match RulesLab.PRIORITY_SECTIONS)
+  const PRIORITY_SECTIONS = {
+    coding: ['hard', 'preference', 'style'],
+    general: ['hard', 'preference', 'style'],
+    soul: ['preference'],
+  };
+
+  /** Get all textarea IDs for a given section key */
+  function textareasFor(key) {
+    return PRIORITY_SECTIONS[key].map((p) => `rules-${key}-${p}`);
+  }
+
+  /** Get all textarea IDs across all sections */
+  function allTextareaIds() {
+    return Object.keys(PRIORITY_SECTIONS).flatMap(textareasFor);
+  }
 
   function load() {
     const r = RS.get();
-    document.getElementById('rules-coding').value = r.coding || '';
-    document.getElementById('rules-general').value = r.general || '';
-    document.getElementById('rules-soul').value = r.soul || '';
+    Object.keys(PRIORITY_SECTIONS).forEach((key) => {
+      const section = r[key];
+      PRIORITY_SECTIONS[key].forEach((p) => {
+        const el = document.getElementById(`rules-${key}-${p}`);
+        if (!el) return;
+        if (typeof section === 'string') {
+          el.value = p === 'preference' ? section : '';
+        } else if (section && typeof section === 'object') {
+          el.value = section[p] || '';
+        } else {
+          el.value = '';
+        }
+      });
+    });
     updateRuleMetrics();
   }
 
   function save() {
     if (typeof RulesLab !== 'undefined') RulesLab.beforeSave();
-    RS.save({
-      coding: document.getElementById('rules-coding').value.trim(),
-      general: document.getElementById('rules-general').value.trim(),
-      soul: document.getElementById('rules-soul').value.trim(),
+    const data = {};
+    Object.keys(PRIORITY_SECTIONS).forEach((key) => {
+      data[key] = {};
+      PRIORITY_SECTIONS[key].forEach((p) => {
+        const el = document.getElementById(`rules-${key}-${p}`);
+        data[key][p] = el?.value?.trim() || '';
+      });
     });
+    RS.save(data);
     updateRuleMetrics();
     flash('rules-saved');
   }
@@ -36,7 +62,7 @@ const ConfigTab = (() => {
       danger: true,
     });
     if (!ok) return;
-    RS.save({ ...DEFAULT_RULES });
+    RS.save(structuredClone(DEFAULT_RULES));
     load();
     if (typeof RulesLab !== 'undefined') RulesLab.beforeSave();
     flash('rules-saved');
@@ -44,12 +70,17 @@ const ConfigTab = (() => {
   }
 
   function updateRuleMetrics() {
-    ruleFields.forEach(([inputId, metricId]) => {
-      const input = document.getElementById(inputId);
-      const metric = document.getElementById(metricId);
-      if (!input || !metric) return;
-      const words = input.value.trim().split(/\s+/).filter(Boolean).length;
-      const lines = input.value.split(/\n/).filter((line) => line.trim()).length;
+    Object.keys(PRIORITY_SECTIONS).forEach((key) => {
+      const metric = document.getElementById(`rules-${key}-count`);
+      if (!metric) return;
+      let words = 0;
+      let lines = 0;
+      PRIORITY_SECTIONS[key].forEach((p) => {
+        const el = document.getElementById(`rules-${key}-${p}`);
+        if (!el) return;
+        words += el.value.trim().split(/\s+/).filter(Boolean).length;
+        lines += el.value.split(/\n/).filter((l) => l.trim()).length;
+      });
       metric.textContent = `${words} words / ${lines} lines`;
     });
   }
@@ -152,8 +183,8 @@ const ConfigTab = (() => {
     if (typeof RulesLab !== 'undefined') RulesLab.mount();
     load();
     initKeyboardSave();
-    ruleFields.forEach(([inputId]) => {
-      document.getElementById(inputId)?.addEventListener('input', () => {
+    allTextareaIds().forEach((id) => {
+      document.getElementById(id)?.addEventListener('input', () => {
         updateRuleMetrics();
         if (typeof RulesLab !== 'undefined') RulesLab.refresh();
       });

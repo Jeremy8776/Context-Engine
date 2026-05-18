@@ -9,7 +9,7 @@ const API = '/api';
  * @typedef {{ title?: string, message?: string, confirmText?: string, cancelText?: string, danger?: boolean }} ConfirmOptions
  * @typedef {{ returnErrors?: boolean }} ApiFetchOptions
  * @typedef {{ version?: string, last_updated?: string, entries: Array<string | { content?: string, [key: string]: unknown }> }} MemoryData
- * @typedef {{ coding?: string, general?: string, soul?: string, [key: string]: unknown }} RulesData
+ * @typedef {{ coding: Object<string, string>, general: Object<string, string>, soul: Object<string, string>, [key: string]: unknown }} RulesData
  */
 
 // ---- APP DIALOGS ----
@@ -356,6 +356,55 @@ const MS = {
 };
 
 // ---- RULES ----
+/** @type {Object<string, string[]>} */
+const PRIORITY_SECTIONS = {
+  coding: ['hard', 'soft'],
+  general: ['hard', 'soft'],
+  soul: ['soft'],
+};
+
+/** Migrate legacy flat-string rules to new priority-object format
+ *  @param {any} rules
+ *  @returns {RulesData}
+ */
+function migrateRules(rules) {
+  if (!rules) return structuredClone(DEFAULT_RULES);
+  /** @type {RulesData} */
+  const result = { coding: {}, general: {}, soul: {} };
+  for (const key of /** @type {('coding'|'general'|'soul')[]} */ (['coding', 'general', 'soul'])) {
+    const section = rules[key];
+    const priorities = /** @type {string[]} */ (PRIORITY_SECTIONS[key]);
+    if (typeof section === 'string') {
+      priorities.forEach((p) => {
+        result[key][p] = p === 'soft' ? section : '';
+      });
+    } else if (section && typeof section === 'object') {
+      priorities.forEach((p) => {
+        if (p === 'soft') {
+          const soft = typeof section.soft === 'string' ? section.soft : '';
+          if (soft) {
+            result[key][p] = soft;
+          } else {
+            const pref = typeof section.preference === 'string' ? section.preference : '';
+            const style = typeof section.style === 'string' ? section.style : '';
+            const parts = [];
+            if (pref) parts.push('## Preference\n' + pref);
+            if (style) parts.push('## Style\n' + style);
+            result[key][p] = parts.join('\n\n');
+          }
+        } else {
+          result[key][p] = typeof section[p] === 'string' ? section[p] : '';
+        }
+      });
+    } else {
+      priorities.forEach((p) => {
+        result[key][p] = '';
+      });
+    }
+  }
+  return result;
+}
+
 const RS = {
   /** @type {RulesData | null} */
   _cache: null,
@@ -365,11 +414,11 @@ const RS = {
       const raw = localStorage.getItem('ce_rules');
       const s = raw ? JSON.parse(raw) : null;
       if (s) {
-        this._cache = s;
-        return s;
+        this._cache = migrateRules(s);
+        return this._cache;
       }
     } catch {}
-    return { ...DEFAULT_RULES };
+    return structuredClone(DEFAULT_RULES);
   },
   /** @param {RulesData} rules */
   save(rules) {
@@ -389,7 +438,7 @@ const RS = {
   async loadFromServer() {
     const data = await apiFetch('/rules');
     if (data) {
-      const rules = { coding: data.coding, general: data.general, soul: data.soul };
+      const rules = migrateRules(data);
       this._cache = rules;
       localStorage.setItem('ce_rules', JSON.stringify(rules));
       return rules;

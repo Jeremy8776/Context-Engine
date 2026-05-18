@@ -67,7 +67,7 @@ function compileForClaude(ctx) {
     .join('\n');
 
   const rulesBlock = ctx.rules
-    ? `## Operational Rules\n- **Coding:** ${ctx.rules.coding}\n- **General:** ${ctx.rules.general}\n- **Soul:** ${ctx.rules.soul}\n`
+    ? `## Operational Rules\n- **Coding:** ${flattenSection(ctx.rules.coding, ['hard', 'soft'])}\n- **General:** ${flattenSection(ctx.rules.general, ['hard', 'soft'])}\n- **Soul:** ${flattenSection(ctx.rules.soul, ['soft'])}\n`
     : '';
   const resume = sessionStartBlock(ctx);
 
@@ -103,7 +103,7 @@ function compileForCursor(ctx) {
 
   if (ctx.rules) {
     sections.push(
-      `# Rules\n\n## Coding\n${ctx.rules.coding}\n\n## General\n${ctx.rules.general}\n\n## Personality\n${ctx.rules.soul}`,
+      `# Rules\n\n${flattenSectionLabeled(ctx.rules.coding, 'Coding', ['hard', 'soft'])}\n\n${flattenSectionLabeled(ctx.rules.general, 'General', ['hard', 'soft'])}\n\n${flattenSectionLabeled(ctx.rules.soul, 'Soul', ['soft'])}`,
     );
   }
 
@@ -153,13 +153,13 @@ agent:
     sections.push(`## Rules
 
 ### Coding
-${ctx.rules.coding}
+${flattenSection(ctx.rules.coding, ['hard', 'soft'])}
 
 ### General
-${ctx.rules.general}
+${flattenSection(ctx.rules.general, ['hard', 'soft'])}
 
 ### Personality
-${ctx.rules.soul}`);
+${flattenSection(ctx.rules.soul, ['soft'])}`);
   }
 
   if (ctx.memory && ctx.memory.entries && ctx.memory.entries.length) {
@@ -181,7 +181,9 @@ function compileForCopilot(ctx) {
   if (resume) sections.push(resume);
 
   if (ctx.rules) {
-    sections.push(`# Instructions\n\n${ctx.rules.coding}\n\n${ctx.rules.general}`);
+    sections.push(
+      `# Instructions\n\n${flattenSection(ctx.rules.coding, ['hard', 'soft'])}\n\n${flattenSection(ctx.rules.general, ['hard', 'soft'])}`,
+    );
   }
 
   if (ctx.activeSkills.length) {
@@ -208,7 +210,9 @@ function compileForWindsurf(ctx) {
   if (resume) sections.push(resume);
 
   if (ctx.rules) {
-    sections.push(`# Rules\n${ctx.rules.coding}\n${ctx.rules.general}`);
+    sections.push(
+      `# Rules\n${flattenSection(ctx.rules.coding, ['hard', 'soft'])}\n${flattenSection(ctx.rules.general, ['hard', 'soft'])}`,
+    );
   }
 
   if (ctx.activeSkills.length) {
@@ -275,36 +279,40 @@ function renderSkills(skills, cfg) {
 
 function renderRules(rules, cfg) {
   if (!rules || !cfg) return null;
+  const flat = {
+    coding: flattenSection(rules.coding, ['hard', 'soft']),
+    general: flattenSection(rules.general, ['hard', 'soft']),
+    soul: flattenSection(rules.soul, ['soft']),
+  };
   if (cfg.kind === 'flat') {
     return cfg.keys
-      .map((k) => rules[k])
+      .map((k) => flat[k])
       .filter(Boolean)
       .join('\n\n');
   }
   if (cfg.kind === 'wrapped') {
     const body = cfg.keys
-      .map((k) => rules[k])
+      .map((k) => flat[k])
       .filter(Boolean)
       .join('\n\n');
     return `${cfg.header}\n${body}`;
   }
   if (cfg.kind === 'wrapped-inline') {
     const body = cfg.entries
-      .map(([prefix, key]) => (rules[key] ? `${prefix}${rules[key]}` : null))
+      .map(([prefix, key]) => (flat[key] ? `${prefix}${flat[key]}` : null))
       .filter(Boolean)
       .join('\n');
     return `${cfg.header}\n${body}`;
   }
   if (cfg.kind === 'sections') {
     return cfg.entries
-      .map(([heading, key]) => (rules[key] ? `## ${heading}\n${rules[key]}` : null))
+      .map(([heading, key]) => (flat[key] ? `## ${heading}\n${flat[key]}` : null))
       .filter(Boolean)
       .join('\n\n');
   }
   if (cfg.kind === 'split-sections') {
-    // Each entry becomes its own top-level section pushed separately.
     return cfg.entries
-      .map(([heading, key]) => (rules[key] ? `## ${heading}\n${rules[key]}` : null))
+      .map(([heading, key]) => (flat[key] ? `## ${heading}\n${flat[key]}` : null))
       .filter(Boolean);
   }
   throw new Error(`Unknown rules kind: ${cfg.kind}`);
@@ -342,9 +350,10 @@ function compileForOllama(ctx) {
   }
 
   if (ctx.rules) {
-    sysLines.push(`Coding rules: ${ctx.rules.coding}`);
-    sysLines.push(`General rules: ${ctx.rules.general}`);
-    if (ctx.rules.soul) sysLines.push(`Personality: ${ctx.rules.soul}`);
+    sysLines.push(`Coding rules: ${flattenSection(ctx.rules.coding, ['hard', 'soft'])}`);
+    sysLines.push(`General rules: ${flattenSection(ctx.rules.general, ['hard', 'soft'])}`);
+    const soulText = flattenSection(ctx.rules.soul, ['soft']);
+    if (soulText) sysLines.push(`Personality: ${soulText}`);
   }
 
   if (ctx.activeSkills.length) {
@@ -421,13 +430,103 @@ function buildContext(opts) {
 
   return {
     memory,
-    rules: rules
-      ? { coding: rules.coding || '', general: rules.general || '', soul: rules.soul || '' }
-      : null,
+    rules: rules ? normalizeRules(rules) : null,
     sessionStart: rules?.sessionStart || '',
     activeSkills,
     totalSkills: allSkills.length,
   };
+}
+
+/**
+ * Normalize rules from either legacy flat-string format or new priority-object format
+ * into the canonical priority-object format.
+ *
+ * Legacy: { coding: "text", general: "text", soul: "text" }
+ * New:    { coding: { hard: "...", soft: "..." }, general: {...}, soul: { soft: "..." } }
+ *
+ * @param {object} rules
+ * @returns {object}
+ */
+function normalizeRules(rules) {
+  const codingPriorities = ['hard', 'soft'];
+  const generalPriorities = ['hard', 'soft'];
+  const soulPriorities = ['soft'];
+
+  const coding =
+    typeof rules.coding === 'string'
+      ? { soft: rules.coding }
+      : typeof rules.coding === 'object' && rules.coding !== null
+        ? pickPriorities(rules.coding, codingPriorities)
+        : {};
+  const general =
+    typeof rules.general === 'string'
+      ? { soft: rules.general }
+      : typeof rules.general === 'object' && rules.general !== null
+        ? pickPriorities(rules.general, generalPriorities)
+        : {};
+  const soul =
+    typeof rules.soul === 'string'
+      ? { soft: rules.soul }
+      : typeof rules.soul === 'object' && rules.soul !== null
+        ? pickPriorities(rules.soul, soulPriorities)
+        : {};
+
+  return { coding, general, soul };
+}
+
+/**
+ * Flatten a priority-object section into a single string.
+ * Each priority gets a labeled section. Empty priorities are omitted.
+ * @param {object|string} section
+ * @param {string[]} priorities
+ * @returns {string}
+ */
+function flattenSection(section, priorities) {
+  if (typeof section === 'string') return section;
+  if (!section || typeof section !== 'object') return '';
+  const parts = [];
+  for (const p of priorities) {
+    const text = (section[p] || '').trim();
+    if (text) parts.push(text);
+  }
+  return parts.join('\n\n');
+}
+
+/**
+ * Flatten a priority-object section into labeled sections for output.
+ * Each priority gets its own heading prefix.
+ * @param {object|string} section
+ * @param {string} sectionLabel - e.g. "Coding" or "General" or "Soul"
+ * @param {string[]} priorities
+ * @returns {string}
+ */
+function flattenSectionLabeled(section, sectionLabel, priorities) {
+  if (typeof section === 'string') return `${sectionLabel}\n${section}`;
+  if (!section || typeof section !== 'object') return '';
+  const parts = [];
+  for (const p of priorities) {
+    const text = (section[p] || '').trim();
+    if (text) {
+      const label = p === 'hard' ? 'Hard rule' : 'Soft guidance';
+      parts.push(`### ${label}\n${text}`);
+    }
+  }
+  if (!parts.length) return '';
+  return `## ${sectionLabel}\n\n${parts.join('\n\n')}`;
+}
+
+/**
+ * Pick only allowed priorities from a rules object, ignoring unknown keys.
+ * @param {object} obj
+ * @param {string[]} allowed
+ * @returns {object}
+ */
+function pickPriorities(obj, allowed) {
+  const out = {};
+  for (const key of allowed) {
+    if (typeof obj[key] === 'string') out[key] = obj[key];
+  }
+  return out;
 }
 
 // Resume bookmark — same block injected into every adapter so AI agents
