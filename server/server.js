@@ -9,6 +9,7 @@ const { cors, json } = require('./lib/http');
 const { handleRequest } = require('./router');
 const { regenerateCONTEXTmd } = require('./lib/modes');
 const { isLocalRequest, SECURITY_HEADERS } = require('./lib/security');
+const { getAuthToken } = require('./lib/crypto');
 
 /**
  * @returns {import('http').Server}
@@ -31,6 +32,18 @@ async function handleHttpRequest(req, res) {
     return res.end();
   }
   const url = new URL(req.url || '/', `http://localhost:${PORT}`);
+
+  // Local API auth: if a CE_API_KEY is configured, require a Bearer token
+  // on every API request. Static UI files and auth endpoints are exempt.
+  const token = getAuthToken();
+  if (token && url.pathname.startsWith('/api/') && !url.pathname.startsWith('/api/auth/')) {
+    const authHeader = String(req.headers.authorization || '');
+    const provided = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+    if (provided !== token) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ ok: false, error: 'Unauthorized: invalid or missing API token' }));
+    }
+  }
 
   try {
     const handled = await handleRequest(req, res, url);

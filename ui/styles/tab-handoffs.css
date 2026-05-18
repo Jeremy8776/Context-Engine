@@ -114,7 +114,7 @@
 }
 
 /* Pill chrome retained for the side-panel detail header only (handoff-
-   detail-meta). The list/grid cards no longer render meta as pills — the
+   detail-meta). The list/grid cards no longer render meta as pills ├ö├ç├Â the
    meta lives in .handoff-subtitle as a single plain-text line below the
    title, mirroring Memory's title + preview rhythm. */
 .handoff-type,
@@ -229,7 +229,7 @@
 
 /* Layout variants. Mirrors the Skills + Memory tab pattern: the SAME
    .handoff-card renders in both modes. Only the parent container's display
-   flips — grid auto-fill columns for grid mode, single-column flex stack
+   flips ├ö├ç├Â grid auto-fill columns for grid mode, single-column flex stack
    for list mode. No bespoke per-mode card chrome. */
 .handoffs-results-scroll.handoffs-layout-list {
   display: flex;
@@ -238,7 +238,7 @@
 }
 
 /* Grid mode wants tall uniform cards (min-height: 148px). List mode wants
-   each card to feel like a real list row — drop the grid's tall minimum
+   each card to feel like a real list row ├ö├ç├Â drop the grid's tall minimum
    and pin to the DRAM list-row token Skills already uses, so legacy
    handoffs with empty bodies still feel substantial rather than collapsing
    to title height. */
@@ -246,7 +246,7 @@
   min-height: var(--dram-list-row-h);
 }
 
-/* Project name badge — surfaces the repo basename so a user scanning the
+/* Project name badge ├ö├ç├Â surfaces the repo basename so a user scanning the
    active list can tell handoffs apart by project, not just title. */
 .handoff-title-row {
   display: flex;
@@ -497,7 +497,7 @@ body.side-panel-active #handoffs-tab .handoffs-list {
   }
 }
 
-/* Body editors — both the create modal and the side-panel detail. The base
+/* Body editors ├ö├ç├Â both the create modal and the side-panel detail. The base
    .add-input class normalises chrome; these rules size + soft-wrap the
    textareas so multi-paragraph handoff prose has somewhere to live. */
 .handoff-modal-body-field {

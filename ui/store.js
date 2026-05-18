@@ -149,10 +149,17 @@ const Toast = (() => {
  */
 async function apiFetch(path, method = 'GET', payload = null, options = {}) {
   try {
+    const authToken = getAuthTokenForRequest();
+    const headers = /** @type {Record<string, string>} */ ({ 'Content-Type': 'application/json' });
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
     /** @type {RequestInit} */
-    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    const opts = { method, headers };
     if (payload) opts.body = JSON.stringify(payload);
     const res = await fetch(`${API}${path}`, opts);
+    if (res.status === 401) {
+      handleAuthFailure();
+      return null;
+    }
     let data = null;
     try {
       data = await res.json();
@@ -170,6 +177,24 @@ async function apiFetch(path, method = 'GET', payload = null, options = {}) {
     Toast.error(`Connection failed: ${e instanceof Error ? e.message : String(e)}`);
     return null;
   }
+}
+
+const AUTH_STORE_KEY = 'ce_auth_token';
+
+function getAuthTokenForRequest() {
+  try {
+    return localStorage.getItem(AUTH_STORE_KEY) || '';
+  } catch {
+    return '';
+  }
+}
+
+function handleAuthFailure() {
+  localStorage.removeItem(AUTH_STORE_KEY);
+  Toast.error(
+    'API auth failed. The server requires a token but this client has none or an invalid one. Regenerate in Settings.',
+    8000,
+  );
 }
 
 // ---- SERVER STATUS ----
@@ -630,6 +655,27 @@ const DS = {
   /** @param {string} slug */
   async deleteProject(slug) {
     return await apiFetch(`/projects/${encodeURIComponent(slug)}`, 'DELETE');
+  },
+  async getRuleFiles() {
+    return await apiFetch('/rule-files', 'GET', null, { returnErrors: true });
+  },
+  /** @param {string} slug @param {string[]} ruleNames @param {string[]} targets */
+  async publishProjectRules(slug, ruleNames, targets) {
+    return await apiFetch(
+      `/projects/${encodeURIComponent(slug)}/publish`,
+      'POST',
+      { ruleNames, targets },
+      { returnErrors: true },
+    );
+  },
+  async getAuthStatus() {
+    return await apiFetch('/auth/status', 'GET', null, { returnErrors: true });
+  },
+  async generateAuthToken() {
+    return await apiFetch('/auth/generate', 'POST', null, { returnErrors: true });
+  },
+  async removeAuthToken() {
+    return await apiFetch('/auth/remove', 'POST', null, { returnErrors: true });
   },
 };
 

@@ -1,13 +1,21 @@
-// @ts-nocheck — Path-A backlog: file in tsconfig include, opt out until incremental typing is done. See docs/llm-handoff.md.
+// @ts-nocheck ├ö├ç├Â Path-A backlog: file in tsconfig include, opt out until incremental typing is done. See docs/llm-handoff.md.
 
-// router.js — API route handlers for Context Engine v3
+// router.js ├ö├ç├Â API route handlers for Context Engine v3
 
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const { DATA_DIR, SKILLS_DIR, CONTEXT_MD, HOMEDIR, WORKSPACES_FILE } = require('./lib/config');
 const { body, json } = require('./lib/http');
-const { getApiKey, setApiKey, removeApiKey } = require('./lib/crypto');
+const {
+  getApiKey,
+  setApiKey,
+  removeApiKey,
+  generateApiToken,
+  getAuthToken,
+  setAuthToken,
+  removeAuthToken,
+} = require('./lib/crypto');
 const { validateMemory, validateRules, validateStates } = require('./lib/validation');
 const {
   scanSkills,
@@ -58,8 +66,15 @@ const {
   readManifest: readSkillImportManifest,
 } = require('./lib/skill-import');
 const { markIndexStale } = require('./lib/vectorstore');
+const {
+  listRuleFiles,
+  readRuleFile,
+  writeRuleFile,
+  deleteRuleFile,
+  combineRuleFiles,
+} = require('./lib/rule-files');
+const { listProjects, getProject, createProject, updateProject, deleteProject } = require('./lib/projects');
 const { handleHandoffRequest, handoffRouteDocs } = require('./lib/handoff-routes');
-const { listProjects, getProject, createProject, deleteProject, updateProject } = require('./lib/projects');
 const { apiDocs } = require('./lib/api-docs');
 
 const ALLOWED_INGEST_HOSTS = new Set(['github.com', 'gitlab.com', 'codeberg.org', 'bitbucket.org']);
@@ -77,10 +92,26 @@ function cleanupIngestJobs() {
 async function handleRequest(req, res, url) {
   const p = url.pathname;
 
+  // ---- LOCAL AUTH ----
+  // Auth endpoints are exempt from the Bearer token check in server.js
+  if (p === '/api/auth/status' && req.method === 'GET') {
+    const token = getAuthToken();
+    return json(res, { configured: !!token });
+  }
+  if (p === '/api/auth/generate' && req.method === 'POST') {
+    const token = generateApiToken();
+    setAuthToken(token);
+    return json(res, { ok: true, token });
+  }
+  if (p === '/api/auth/remove' && req.method === 'POST') {
+    removeAuthToken();
+    return json(res, { ok: true });
+  }
+
   // ---- SKILLS ----
   if (p === '/api/skills' && req.method === 'GET') return json(res, Object.values(scanSkills()));
 
-  // GET /api/skills/:id — full skill record + body, optionally a single section.
+  // GET /api/skills/:id ├ö├ç├Â full skill record + body, optionally a single section.
   // Used by the MCP bridge so hosts (Claude Desktop, Codex) can fetch a skill
   // body on demand instead of preloading every active skill into context.
   if (p.startsWith('/api/skills/') && req.method === 'GET') {
@@ -167,7 +198,7 @@ async function handleRequest(req, res, url) {
       } catch {
         skillCount = 0;
       }
-      // Imported state is derived from manifest presence — the user's source
+      // Imported state is derived from manifest presence ├ö├ç├Â the user's source
       // record stays `external`; importing is a runtime aspect, not a type.
       let imported = false;
       let lastSyncedAt = null;
@@ -200,7 +231,7 @@ async function handleRequest(req, res, url) {
     return json(res, { candidates: scanHostSkillPaths() });
   }
 
-  // POST /api/skill-sources/:id/import — first-time import (copy/hard-link
+  // POST /api/skill-sources/:id/import ├ö├ç├Â first-time import (copy/hard-link
   // into <CE_ROOT>/skills/imported/<id>/).
   if (p.startsWith('/api/skill-sources/') && p.endsWith('/import') && req.method === 'POST') {
     const id = decodeURIComponent(p.slice('/api/skill-sources/'.length, -'/import'.length));
@@ -212,7 +243,7 @@ async function handleRequest(req, res, url) {
     return json(res, { ok: true, manifest: result.manifest });
   }
 
-  // GET /api/skill-sources/:id/sync — read-only diff.
+  // GET /api/skill-sources/:id/sync ├ö├ç├Â read-only diff.
   if (p.startsWith('/api/skill-sources/') && p.endsWith('/sync') && req.method === 'GET') {
     const id = decodeURIComponent(p.slice('/api/skill-sources/'.length, -'/sync'.length));
     if (!id) return json(res, { ok: false, error: 'id is required' }, 400);
@@ -221,7 +252,7 @@ async function handleRequest(req, res, url) {
     return json(res, { ok: true, diff: result.diff, manifest: result.manifest });
   }
 
-  // POST /api/skill-sources/:id/sync/apply — apply the diff with a mode.
+  // POST /api/skill-sources/:id/sync/apply ├ö├ç├Â apply the diff with a mode.
   if (p.startsWith('/api/skill-sources/') && p.endsWith('/sync/apply') && req.method === 'POST') {
     const id = decodeURIComponent(p.slice('/api/skill-sources/'.length, -'/sync/apply'.length));
     if (!id) return json(res, { ok: false, error: 'id is required' }, 400);
@@ -237,7 +268,7 @@ async function handleRequest(req, res, url) {
     return json(res, { ok: true, applied: result.applied, manifest: result.manifest });
   }
 
-  // DELETE /api/skill-sources/:id — must come AFTER more-specific sub-routes.
+  // DELETE /api/skill-sources/:id ├ö├ç├Â must come AFTER more-specific sub-routes.
   if (p.startsWith('/api/skill-sources/') && req.method === 'DELETE') {
     const id = decodeURIComponent(p.replace('/api/skill-sources/', ''));
     if (!id || id === 'scan') return json(res, { ok: false, error: 'id is required' }, 400);
@@ -314,7 +345,7 @@ async function handleRequest(req, res, url) {
     const data = await body(req);
     let repoUrl = data?.url;
     if (!repoUrl || typeof repoUrl !== 'string' || !/^https:\/\//i.test(repoUrl)) {
-      return json(res, { ok: false, error: 'Invalid URL — must be https://' }, 400);
+      return json(res, { ok: false, error: 'Invalid URL ├ö├ç├Â must be https://' }, 400);
     }
     repoUrl = repoUrl
       .replace(/\/tree\/[^/]+.*$/, '')
@@ -336,7 +367,7 @@ async function handleRequest(req, res, url) {
     }
     const segments = parsedUrl.pathname.split('/').filter(Boolean);
     if (segments.length < 2)
-      return json(res, { ok: false, error: 'Invalid repo URL — need owner/repo' }, 400);
+      return json(res, { ok: false, error: 'Invalid repo URL ├ö├ç├Â need owner/repo' }, 400);
     // Reject anything that could escape the ingested/ directory after slugification.
     const owner = segments[0];
     const repo = segments[1];
@@ -410,6 +441,38 @@ async function handleRequest(req, res, url) {
     return json(res, { ok: true });
   }
 
+  // ---- RULE FILES ----
+  if (p === '/api/rule-files' && req.method === 'GET') {
+    return json(res, { ok: true, files: listRuleFiles() });
+  }
+  if (p === '/api/rule-files' && req.method === 'POST') {
+    const { name, data } = await body(req);
+    if (!name) return json(res, { ok: false, error: 'Rule name is required' }, 400);
+    const v = validateRules(data);
+    if (!v.valid) return json(res, { ok: false, error: v.error }, 400);
+    const result = writeRuleFile(name, data);
+    return json(res, result, result.ok ? 200 : 400);
+  }
+  if (p.startsWith('/api/rule-files/') && req.method === 'GET') {
+    const name = decodeURIComponent(p.slice('/api/rule-files/'.length));
+    const data = readRuleFile(name);
+    if (!data) return json(res, { ok: false, error: 'Rule file not found' }, 404);
+    return json(res, { ok: true, name, data });
+  }
+  if (p.startsWith('/api/rule-files/') && req.method === 'PUT') {
+    const name = decodeURIComponent(p.slice('/api/rule-files/'.length));
+    const data = await body(req);
+    const v = validateRules(data);
+    if (!v.valid) return json(res, { ok: false, error: v.error }, 400);
+    const result = writeRuleFile(name, data);
+    return json(res, result, result.ok ? 200 : 400);
+  }
+  if (p.startsWith('/api/rule-files/') && req.method === 'DELETE') {
+    const name = decodeURIComponent(p.slice('/api/rule-files/'.length));
+    const result = deleteRuleFile(name);
+    return json(res, result, result.ok ? 200 : 400);
+  }
+
   // ---- API KEYS ----
   if (p === '/api/keys/status' && req.method === 'GET') {
     return json(res, { ANTHROPIC_API_KEY: !!getApiKey('ANTHROPIC_API_KEY') });
@@ -421,7 +484,7 @@ async function handleRequest(req, res, url) {
     const allowed = ['ANTHROPIC_API_KEY'];
     if (!allowed.includes(data.name)) return json(res, { ok: false, error: 'Unknown key name' }, 400);
     if (data.name === 'ANTHROPIC_API_KEY' && !data.value.startsWith('sk-ant-')) {
-      return json(res, { ok: false, error: 'Invalid key format — should start with sk-ant-' }, 400);
+      return json(res, { ok: false, error: 'Invalid key format ├ö├ç├Â should start with sk-ant-' }, 400);
     }
     setApiKey(data.name, data.value);
     return json(res, { ok: true });
@@ -513,6 +576,20 @@ async function handleRequest(req, res, url) {
   }
   if (p === '/api/restore' && req.method === 'POST') {
     const { timestamp } = await body(req);
+    if (!timestamp || typeof timestamp !== 'string') {
+      return json(res, { ok: false, error: 'timestamp is required' }, 400);
+    }
+    const known = listBackups();
+    const isKnown = known.some((b) => b.timestamp === timestamp);
+    if (!isKnown) {
+      if (!/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}(\.\d+)?$/.test(timestamp)) {
+        return json(res, { ok: false, error: 'Invalid backup timestamp format' }, 400);
+      }
+      const dir = path.join(DATA_DIR, 'backups', timestamp);
+      if (!fs.existsSync(dir)) {
+        return json(res, { ok: false, error: 'Unknown backup timestamp' }, 400);
+      }
+    }
     const ok = restoreBackup(timestamp);
     if (ok) regenerateCONTEXTmd();
     return json(res, { ok });
@@ -768,6 +845,37 @@ async function handleRequest(req, res, url) {
     }
     const result = deleteProject(slug);
     return json(res, result, result.ok ? 200 : 404);
+  }
+  if (p.startsWith('/api/projects/') && p.endsWith('/publish') && req.method === 'POST') {
+    const slugRaw = p.slice('/api/projects/'.length);
+    const slug = decodeURIComponent(slugRaw.slice(0, -'/publish'.length));
+    const project = getProject(slug);
+    if (!project) return json(res, { ok: false, error: 'Project not found' }, 404);
+    if (!project.path) return json(res, { ok: false, error: 'Project has no folder path set' }, 400);
+    const { ruleNames, targets } = await body(req);
+    if (!Array.isArray(ruleNames) || !ruleNames.length) {
+      return json(res, { ok: false, error: 'Select at least one rule' }, 400);
+    }
+    if (!Array.isArray(targets) || !targets.length) {
+      return json(res, { ok: false, error: 'Select at least one target format' }, 400);
+    }
+    const denyReason = checkSafeWritePath(project.path);
+    if (denyReason) return json(res, { ok: false, error: denyReason }, 400);
+    const combined = combineRuleFiles(ruleNames);
+    try {
+      const result = compile({
+        dataDir: DATA_DIR,
+        skillsDir: SKILLS_DIR,
+        scanSkills,
+        targets,
+        outputDir: project.path,
+        rulesOverride: combined,
+      });
+      appendSession({ type: 'project_publish', slug, ruleNames, targets });
+      return json(res, { ok: true, ...result });
+    } catch (e) {
+      return json(res, { ok: false, error: e.message }, 500);
+    }
   }
 
   return null; // Not an API route
