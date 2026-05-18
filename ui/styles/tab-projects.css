@@ -1,0 +1,66 @@
+/* Projects tab. Card and list styles scoped to #projects-tab so they
+   don't share selectors with tab-handoffs.css. */
+
+#projects-tab .projects-toolbar {
+  display: grid;
+  grid-template-columns: minmax(260px, 520px) auto;
+  gap: 16px;
+  align-items: center;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0 24px 8px;
+}
+
+#projects-tab .projects-search {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+#projects-tab .projects-toolbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+}
+
+#projects-tab .projects-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(var(--rules-card-min, 320px), 100%), 1fr));
+  gap: var(--s-4);
+  overflow-y: auto;
+  padding: 0;
+  flex: 1;
+  min-height: 0;
+}
+
+#projects-tab .projects-list:not(.grid-mode) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+#projects-tab .projects-list:not(.grid-mode) .project-card {
+  min-height: auto;
+}
+
+#projects-tab .project-card {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  width: 100%;
+  min-height: 148px;
+  padding: 15px;
+  border: 1px solid var(--soft-line);
+  border-radius: var(--r-3);
+  background: var(--bg-card);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+#projects-tab .project-card:hover {
+  border-color: var(--alpha-purple-45);
+  background: var(--alpha-purple-06);
+}

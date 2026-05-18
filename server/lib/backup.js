@@ -47,6 +47,7 @@ function listBackups() {
 
 /** @param {string} ts */
 function restoreBackup(ts) {
+  if (typeof ts !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}(\.\d+)?$/.test(ts)) return false;
   const dir = path.join(BACKUPS_DIR, ts);
   if (!fs.existsSync(dir)) return false;
   ['memory.json', 'rules.json', 'skill-states.json'].forEach((f) => {

@@ -1,6 +1,6 @@
 // @ts-check
 
-// validation-smoke.js — Smoke test for request body validators
+// validation-smoke.js ├ö├ç├Â Smoke test for request body validators
 
 const assert = require('assert');
 const { validateMemory, validateRules, validateStates } = require('../server/lib/validation');

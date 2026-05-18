@@ -1,6 +1,6 @@
 // @ts-check
 
-// validation.js — Request body validators for data endpoints
+// validation.js ├ö├ç├Â Request body validators for data endpoints
 
 /** @param {any} data */
 function validateMemory(data) {

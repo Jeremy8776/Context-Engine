@@ -101,6 +101,13 @@
                   <path d="M14 13h7v4h-7z" /></svg></span
               ><span class="nav-text">Projects</span>
             </button>
+            <button class="tab-btn" data-label="Rules" title="Rules" onclick="switchTab('config', this)">
+              <span class="nav-icon"
+                ><svg viewBox="0 0 24 24">
+                  <path d="M12 3l7 3v5c0 4.4-2.8 8.1-7 10-4.2-1.9-7-5.6-7-10V6l7-3z" />
+                  <path d="M9 12l2 2 4-5" /></svg></span
+              ><span class="nav-text">Rules</span>
+            </button>
             <button class="tab-btn" data-label="Skills" title="Skills" onclick="switchTab('skills', this)">
               <span class="nav-icon"
                 ><svg viewBox="0 0 24 24">
@@ -139,13 +146,6 @@
                   <path d="M14 4v4h4" />
                   <path d="M10 12h5M10 16h4" /></svg></span
               ><span class="nav-text">Handoffs</span>
-            </button>
-            <button class="tab-btn" data-label="Rules" title="Rules" onclick="switchTab('config', this)">
-              <span class="nav-icon"
-                ><svg viewBox="0 0 24 24">
-                  <path d="M12 3l7 3v5c0 4.4-2.8 8.1-7 10-4.2-1.9-7-5.6-7-10V6l7-3z" />
-                  <path d="M9 12l2 2 4-5" /></svg></span
-              ><span class="nav-text">Rules</span>
             </button>
             <button
               class="tab-btn"
@@ -684,8 +684,8 @@
                   Scope memory, rules, and handoffs per project. Each project gets its own data directory.
                 </p>
               </div>
-              <div class="handoffs-toolbar">
-                <div class="handoffs-search">
+              <div class="projects-toolbar">
+                <div class="projects-search">
                   <input
                     class="search"
                     id="projects-search-input"
@@ -693,14 +693,60 @@
                     placeholder="Search projects"
                   />
                 </div>
-                <div class="handoffs-toolbar-actions">
+                <div class="projects-toolbar-actions">
+                  <div class="view-toggle" role="group" aria-label="Layout">
+                    <button
+                      class="view-btn on"
+                      id="projects-btn-grid"
+                      title="Grid view"
+                      onclick="ProjectsTab.setView('grid')"
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <rect x="3" y="3" width="7" height="7" rx="1" />
+                        <rect x="14" y="3" width="7" height="7" rx="1" />
+                        <rect x="3" y="14" width="7" height="7" rx="1" />
+                        <rect x="14" y="14" width="7" height="7" rx="1" />
+                      </svg>
+                    </button>
+                    <button
+                      class="view-btn"
+                      id="projects-btn-list"
+                      title="List view"
+                      onclick="ProjectsTab.setView('list')"
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <line x1="8" y1="6" x2="21" y2="6" />
+                        <line x1="8" y1="12" x2="21" y2="12" />
+                        <line x1="8" y1="18" x2="21" y2="18" />
+                        <line x1="3" y1="6" x2="3.01" y2="6" />
+                        <line x1="3" y1="12" x2="3.01" y2="12" />
+                        <line x1="3" y1="18" x2="3.01" y2="18" />
+                      </svg>
+                    </button>
+                  </div>
                   <button class="save-btn" onclick="ProjectsTab.openAddModal()" title="Add project">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
                     <span>Add</span>
                   </button>
                 </div>
               </div>
-              <div id="projects-list" class="handoffs-list"></div>
+              <div id="projects-list" class="projects-list"></div>
             </div>
           </div>
         </div>
@@ -771,6 +817,30 @@
         <div class="memory-modal-actions">
           <button class="fb" onclick="ProjectsTab.closeAddModal()">Cancel</button>
           <button class="save-btn" onclick="ProjectsTab.createFromModal()">Create</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-overlay" id="project-publish-overlay" onclick="ProjectsTab.closePublishModal(event)">
+      <div class="memory-modal publish-modal" onclick="event.stopPropagation()">
+        <div class="memory-modal-head">
+          <h3 class="publish-modal-title">Publish rules</h3>
+          <button class="icon-btn" onclick="ProjectsTab.closePublishModal()" title="Close" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          </button>
+        </div>
+        <div class="publish-modal-body">
+          <div class="publish-section">
+            <h4>Rules</h4>
+            <div id="publish-rule-list" class="publish-check-list"></div>
+          </div>
+          <div class="publish-section">
+            <h4>Target formats</h4>
+            <div id="publish-target-list" class="publish-check-list"></div>
+          </div>
+        </div>
+        <div class="memory-modal-actions">
+          <button class="fb" onclick="ProjectsTab.closePublishModal()">Cancel</button>
+          <button class="save-btn" onclick="ProjectsTab.publishFromModal()">Publish</button>
         </div>
       </div>
     </div>

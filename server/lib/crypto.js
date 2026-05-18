@@ -90,4 +90,45 @@ function removeApiKey(name) {
   saveKeys(keys);
 }
 
-module.exports = { getApiKey, setApiKey, removeApiKey };
+// ---- CE_API_KEY (local API auth) ----
+function generateApiToken() {
+  return 'ce_' + crypto.randomBytes(24).toString('hex');
+}
+
+function getAuthToken() {
+  const envKey = process.env.CE_API_KEY;
+  if (envKey) return envKey;
+  const keys = loadKeys();
+  const envelope = keys['CE_API_KEY'];
+  if (envelope) {
+    try {
+      return decryptValue(envelope);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+/** @param {string} token */
+function setAuthToken(token) {
+  const keys = loadKeys();
+  keys['CE_API_KEY'] = encryptValue(token);
+  saveKeys(keys);
+}
+
+function removeAuthToken() {
+  const keys = loadKeys();
+  delete keys['CE_API_KEY'];
+  saveKeys(keys);
+}
+
+module.exports = {
+  getApiKey,
+  setApiKey,
+  removeApiKey,
+  generateApiToken,
+  getAuthToken,
+  setAuthToken,
+  removeAuthToken,
+};
