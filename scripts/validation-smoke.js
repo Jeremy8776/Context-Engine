@@ -61,9 +61,9 @@ assert.strictEqual(rulesOk.valid, true, 'valid flat rules passes');
 
 // GIVEN valid rules data (new priority-object format)
 const rulesPriorityOk = validateRules({
-  coding: { hard: 'No unused vars', preference: 'Use strict mode', style: 'K&R braces' },
-  general: { hard: 'Be truthful', preference: 'Be helpful', style: '' },
-  soul: { preference: 'Curious and direct' },
+  coding: { hard: 'No unused vars', soft: 'Use strict mode' },
+  general: { hard: 'Be truthful', soft: 'Be helpful' },
+  soul: { soft: 'Curious and direct' },
 });
 assert.strictEqual(rulesPriorityOk.valid, true, 'valid priority rules passes');
 
@@ -74,7 +74,7 @@ assert.ok(rulesSoulBad.error && rulesSoulBad.error.includes('soul'), 'error ment
 
 // GIVEN coding with invalid priority
 const rulesCodingBad = validateRules({
-  coding: { hard: 'ok', preference: 'ok', style: 'ok', urgent: 'not allowed' },
+  coding: { hard: 'ok', soft: 'ok', urgent: 'not allowed' },
   general: '',
   soul: '',
 });
@@ -82,7 +82,7 @@ assert.strictEqual(rulesCodingBad.valid, false, 'coding with invalid priority fa
 assert.ok(rulesCodingBad.error && rulesCodingBad.error.includes('coding'), 'error mentions coding');
 
 // GIVEN mixed flat and object
-const rulesMixed = validateRules({ coding: 'text', general: { preference: 'text' }, soul: '' });
+const rulesMixed = validateRules({ coding: 'text', general: { soft: 'text' }, soul: '' });
 assert.strictEqual(rulesMixed.valid, true, 'mixed flat and object rules passes');
 
 // GIVEN missing one of the required keys

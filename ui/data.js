@@ -23,13 +23,11 @@ Objective and critical thinker.`;
 const DEFAULT_RULES = {
   coding: {
     hard: '',
-    preference: 'Modular code files.\nComment the why, not the what.',
-    style: '',
+    soft: 'Modular code files.\nComment the why, not the what.',
   },
   general: {
     hard: '',
-    preference: 'Memory is a core skill. Think independently.',
-    style: '',
+    soft: 'Memory is a core skill. Think independently.',
   },
-  soul: { preference: DEFAULT_SOUL },
+  soul: { soft: DEFAULT_SOUL },
 };

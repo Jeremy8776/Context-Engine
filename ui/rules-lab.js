@@ -8,26 +8,19 @@ const RulesLab = (() => {
   const labels = { coding: 'Coding Rules', general: 'General Rules', soul: 'Soul' };
 
   const PRIORITY_SECTIONS = {
-    coding: ['hard', 'preference', 'style'],
-    general: ['hard', 'preference', 'style'],
-    soul: ['preference'],
+    coding: ['hard', 'soft'],
+    general: ['hard', 'soft'],
+    soul: ['soft'],
   };
 
   const PRIORITY_LABELS = {
-    hard: 'Hard rule',
-    preference: 'Preference',
-    style: 'Style guidance',
-  };
-
-  const PRIORITY_ICONS = {
-    hard: '⛔',
-    preference: '⚖️',
-    style: '🎨',
+    hard: 'Hard rules',
+    soft: 'Soft rules',
   };
 
   const defaultMeta = {
     enabled: { coding: true, general: true, soul: true },
-    priority: { coding: 'hard', general: 'hard', soul: 'preference' },
+    priority: { coding: 'hard', general: 'hard', soul: 'soft' },
     profiles: {},
     history: [],
     lastSaved: null,
@@ -135,7 +128,7 @@ const RulesLab = (() => {
       .map(
         (p) => `
       <div class="rules-priority-section">
-        <label class="rules-priority-label">${PRIORITY_ICONS[p]} ${PRIORITY_LABELS[p]}</label>
+        <label class="rules-priority-label">${PRIORITY_LABELS[p]}</label>
         <textarea class="rules-textarea" id="rules-${key}-${p}" rows="${isWide ? 5 : 3}"></textarea>
       </div>`,
       )
@@ -213,7 +206,7 @@ const RulesLab = (() => {
         const el = document.getElementById(`rules-${key}-${p}`);
         if (!el) return;
         if (typeof section === 'string') {
-          el.value = p === 'preference' ? section : '';
+          el.value = p === 'soft' ? section : '';
         } else if (section && typeof section === 'object') {
           el.value = section[p] || '';
         } else {
@@ -269,9 +262,9 @@ const RulesLab = (() => {
     const defaults = {
       Default: {
         rules: {
-          coding: { hard: '', preference: 'Modular code files.\nComment the why, not the what.', style: '' },
-          general: { hard: '', preference: 'Memory is a core skill. Think independently.', style: '' },
-          soul: { preference: 'Helpful, concise, and logical.\nObjective and critical thinker.' },
+          coding: { hard: '', soft: 'Modular code files.\nComment the why, not the what.' },
+          general: { hard: '', soft: 'Memory is a core skill. Think independently.' },
+          soul: { soft: 'Helpful, concise, and logical.\nObjective and critical thinker.' },
         },
         enabled: { ...defaultMeta.enabled },
       },
@@ -279,27 +272,24 @@ const RulesLab = (() => {
         rules: {
           coding: {
             hard: 'Prioritise bugs, regressions, missing tests, unsafe assumptions, and architecture drift.\nKeep findings specific and line-referenced.',
-            preference: '',
-            style: '',
+            soft: '',
           },
           general: {
             hard: 'Challenge weak reasoning. State uncertainty clearly. Do not overfit to the user request if the evidence points elsewhere.',
-            preference: '',
-            style: '',
+            soft: '',
           },
-          soul: { preference: 'Direct, concise, critical, and practical.' },
+          soul: { soft: 'Direct, concise, critical, and practical.' },
         },
         enabled: { coding: true, general: true, soul: true },
       },
       Research: {
         rules: {
-          coding: { hard: '', preference: 'Modular code files.\nComment the why, not the what.', style: '' },
+          coding: { hard: '', soft: 'Modular code files.\nComment the why, not the what.' },
           general: {
             hard: 'Verify time-sensitive facts. Prefer primary sources. Separate evidence from inference.',
-            preference: '',
-            style: '',
+            soft: '',
           },
-          soul: { preference: 'Careful, source-led, and explicit about uncertainty.' },
+          soul: { soft: 'Careful, source-led, and explicit about uncertainty.' },
         },
         enabled: { coding: true, general: true, soul: true },
       },

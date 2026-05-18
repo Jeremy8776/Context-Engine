@@ -358,9 +358,9 @@ const MS = {
 // ---- RULES ----
 /** @type {Object<string, string[]>} */
 const PRIORITY_SECTIONS = {
-  coding: ['hard', 'preference', 'style'],
-  general: ['hard', 'preference', 'style'],
-  soul: ['preference'],
+  coding: ['hard', 'soft'],
+  general: ['hard', 'soft'],
+  soul: ['soft'],
 };
 
 /** Migrate legacy flat-string rules to new priority-object format
@@ -376,11 +376,25 @@ function migrateRules(rules) {
     const priorities = /** @type {string[]} */ (PRIORITY_SECTIONS[key]);
     if (typeof section === 'string') {
       priorities.forEach((p) => {
-        result[key][p] = p === 'preference' ? section : '';
+        result[key][p] = p === 'soft' ? section : '';
       });
     } else if (section && typeof section === 'object') {
       priorities.forEach((p) => {
-        result[key][p] = typeof section[p] === 'string' ? section[p] : '';
+        if (p === 'soft') {
+          const soft = typeof section.soft === 'string' ? section.soft : '';
+          if (soft) {
+            result[key][p] = soft;
+          } else {
+            const pref = typeof section.preference === 'string' ? section.preference : '';
+            const style = typeof section.style === 'string' ? section.style : '';
+            const parts = [];
+            if (pref) parts.push('## Preference\n' + pref);
+            if (style) parts.push('## Style\n' + style);
+            result[key][p] = parts.join('\n\n');
+          }
+        } else {
+          result[key][p] = typeof section[p] === 'string' ? section[p] : '';
+        }
       });
     } else {
       priorities.forEach((p) => {

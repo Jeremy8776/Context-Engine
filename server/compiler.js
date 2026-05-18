@@ -67,7 +67,7 @@ function compileForClaude(ctx) {
     .join('\n');
 
   const rulesBlock = ctx.rules
-    ? `## Operational Rules\n- **Coding:** ${flattenSection(ctx.rules.coding, ['hard', 'preference', 'style'])}\n- **General:** ${flattenSection(ctx.rules.general, ['hard', 'preference', 'style'])}\n- **Soul:** ${flattenSection(ctx.rules.soul, ['preference'])}\n`
+    ? `## Operational Rules\n- **Coding:** ${flattenSection(ctx.rules.coding, ['hard', 'soft'])}\n- **General:** ${flattenSection(ctx.rules.general, ['hard', 'soft'])}\n- **Soul:** ${flattenSection(ctx.rules.soul, ['soft'])}\n`
     : '';
   const resume = sessionStartBlock(ctx);
 
@@ -103,7 +103,7 @@ function compileForCursor(ctx) {
 
   if (ctx.rules) {
     sections.push(
-      `# Rules\n\n${flattenSectionLabeled(ctx.rules.coding, 'Coding', ['hard', 'preference', 'style'])}\n\n${flattenSectionLabeled(ctx.rules.general, 'General', ['hard', 'preference', 'style'])}\n\n${flattenSectionLabeled(ctx.rules.soul, 'Soul', ['preference'])}`,
+      `# Rules\n\n${flattenSectionLabeled(ctx.rules.coding, 'Coding', ['hard', 'soft'])}\n\n${flattenSectionLabeled(ctx.rules.general, 'General', ['hard', 'soft'])}\n\n${flattenSectionLabeled(ctx.rules.soul, 'Soul', ['soft'])}`,
     );
   }
 
@@ -153,13 +153,13 @@ agent:
     sections.push(`## Rules
 
 ### Coding
-${flattenSection(ctx.rules.coding, ['hard', 'preference', 'style'])}
+${flattenSection(ctx.rules.coding, ['hard', 'soft'])}
 
 ### General
-${flattenSection(ctx.rules.general, ['hard', 'preference', 'style'])}
+${flattenSection(ctx.rules.general, ['hard', 'soft'])}
 
 ### Personality
-${flattenSection(ctx.rules.soul, ['preference'])}`);
+${flattenSection(ctx.rules.soul, ['soft'])}`);
   }
 
   if (ctx.memory && ctx.memory.entries && ctx.memory.entries.length) {
@@ -182,7 +182,7 @@ function compileForCopilot(ctx) {
 
   if (ctx.rules) {
     sections.push(
-      `# Instructions\n\n${flattenSection(ctx.rules.coding, ['hard', 'preference', 'style'])}\n\n${flattenSection(ctx.rules.general, ['hard', 'preference', 'style'])}`,
+      `# Instructions\n\n${flattenSection(ctx.rules.coding, ['hard', 'soft'])}\n\n${flattenSection(ctx.rules.general, ['hard', 'soft'])}`,
     );
   }
 
@@ -211,7 +211,7 @@ function compileForWindsurf(ctx) {
 
   if (ctx.rules) {
     sections.push(
-      `# Rules\n${flattenSection(ctx.rules.coding, ['hard', 'preference', 'style'])}\n${flattenSection(ctx.rules.general, ['hard', 'preference', 'style'])}`,
+      `# Rules\n${flattenSection(ctx.rules.coding, ['hard', 'soft'])}\n${flattenSection(ctx.rules.general, ['hard', 'soft'])}`,
     );
   }
 
@@ -280,9 +280,9 @@ function renderSkills(skills, cfg) {
 function renderRules(rules, cfg) {
   if (!rules || !cfg) return null;
   const flat = {
-    coding: flattenSection(rules.coding, ['hard', 'preference', 'style']),
-    general: flattenSection(rules.general, ['hard', 'preference', 'style']),
-    soul: flattenSection(rules.soul, ['preference']),
+    coding: flattenSection(rules.coding, ['hard', 'soft']),
+    general: flattenSection(rules.general, ['hard', 'soft']),
+    soul: flattenSection(rules.soul, ['soft']),
   };
   if (cfg.kind === 'flat') {
     return cfg.keys
@@ -350,9 +350,9 @@ function compileForOllama(ctx) {
   }
 
   if (ctx.rules) {
-    sysLines.push(`Coding rules: ${flattenSection(ctx.rules.coding, ['hard', 'preference', 'style'])}`);
-    sysLines.push(`General rules: ${flattenSection(ctx.rules.general, ['hard', 'preference', 'style'])}`);
-    const soulText = flattenSection(ctx.rules.soul, ['preference']);
+    sysLines.push(`Coding rules: ${flattenSection(ctx.rules.coding, ['hard', 'soft'])}`);
+    sysLines.push(`General rules: ${flattenSection(ctx.rules.general, ['hard', 'soft'])}`);
+    const soulText = flattenSection(ctx.rules.soul, ['soft']);
     if (soulText) sysLines.push(`Personality: ${soulText}`);
   }
 
@@ -442,31 +442,31 @@ function buildContext(opts) {
  * into the canonical priority-object format.
  *
  * Legacy: { coding: "text", general: "text", soul: "text" }
- * New:    { coding: { hard: "...", preference: "...", style: "..." }, general: {...}, soul: { preference: "..." } }
+ * New:    { coding: { hard: "...", soft: "..." }, general: {...}, soul: { soft: "..." } }
  *
  * @param {object} rules
  * @returns {object}
  */
 function normalizeRules(rules) {
-  const codingPriorities = ['hard', 'preference', 'style'];
-  const generalPriorities = ['hard', 'preference', 'style'];
-  const soulPriorities = ['preference'];
+  const codingPriorities = ['hard', 'soft'];
+  const generalPriorities = ['hard', 'soft'];
+  const soulPriorities = ['soft'];
 
   const coding =
     typeof rules.coding === 'string'
-      ? { preference: rules.coding }
+      ? { soft: rules.coding }
       : typeof rules.coding === 'object' && rules.coding !== null
         ? pickPriorities(rules.coding, codingPriorities)
         : {};
   const general =
     typeof rules.general === 'string'
-      ? { preference: rules.general }
+      ? { soft: rules.general }
       : typeof rules.general === 'object' && rules.general !== null
         ? pickPriorities(rules.general, generalPriorities)
         : {};
   const soul =
     typeof rules.soul === 'string'
-      ? { preference: rules.soul }
+      ? { soft: rules.soul }
       : typeof rules.soul === 'object' && rules.soul !== null
         ? pickPriorities(rules.soul, soulPriorities)
         : {};
@@ -507,7 +507,7 @@ function flattenSectionLabeled(section, sectionLabel, priorities) {
   for (const p of priorities) {
     const text = (section[p] || '').trim();
     if (text) {
-      const label = p === 'hard' ? 'Hard rule' : p === 'preference' ? 'Preference' : 'Style guidance';
+      const label = p === 'hard' ? 'Hard rule' : 'Soft guidance';
       parts.push(`### ${label}\n${text}`);
     }
   }
