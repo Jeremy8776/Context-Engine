@@ -580,8 +580,15 @@ async function handleRequest(req, res, url) {
       return json(res, { ok: false, error: 'timestamp is required' }, 400);
     }
     const known = listBackups();
-    if (!known.some((b) => b.timestamp === timestamp)) {
-      return json(res, { ok: false, error: 'Unknown backup timestamp' }, 400);
+    const isKnown = known.some((b) => b.timestamp === timestamp);
+    if (!isKnown) {
+      if (!/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}(\.\d+)?$/.test(timestamp)) {
+        return json(res, { ok: false, error: 'Invalid backup timestamp format' }, 400);
+      }
+      const dir = path.join(DATA_DIR, 'backups', timestamp);
+      if (!fs.existsSync(dir)) {
+        return json(res, { ok: false, error: 'Unknown backup timestamp' }, 400);
+      }
     }
     const ok = restoreBackup(timestamp);
     if (ok) regenerateCONTEXTmd();

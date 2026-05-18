@@ -39,7 +39,10 @@ function listRuleFiles() {
 
 /** @param {string} name @returns {RuleData | null} */
 function readRuleFile(name) {
-  const filePath = path.join(RULES_DIR, `${name}.json`);
+  const safeName = sanitizeName(name);
+  if (!safeName) return null;
+  const filePath = path.join(RULES_DIR, `${safeName}.json`);
+  if (filePath.includes('..')) return null;
   try {
     return JSON.parse(fs.readFileSync(filePath, 'utf8'));
   } catch {
