@@ -5,9 +5,9 @@
 const ConfigTab = (() => {
   // Priority sections per rule category (must match RulesLab.PRIORITY_SECTIONS)
   const PRIORITY_SECTIONS = {
-    coding: ['hard', 'preference', 'style'],
-    general: ['hard', 'preference', 'style'],
-    soul: ['preference'],
+    coding: ['hard', 'soft'],
+    general: ['hard', 'soft'],
+    soul: ['soft'],
   };
 
   /** Get all textarea IDs for a given section key */
